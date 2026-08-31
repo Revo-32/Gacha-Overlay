@@ -1,0 +1,35 @@
+Gacha Overlay - Third-party notice index
+========================================
+
+This Release Candidate bundles the .NET 8 Windows Desktop self-contained
+runtime, fonts, and palette references. Their repository-preserved notices are
+staged under the Runtime, Fonts, and Themes folders.
+
+Fonts
+-----
+
+- KIMM: source attribution and redistribution terms are recorded in
+  Fonts/NOTICE-Fonts.txt.
+- Cafe24 PRO Slim, Pretendard, and Wanted Sans: notices and the SIL Open Font
+  License 1.1 are recorded under Fonts/.
+
+Themes
+------
+
+- Palette reference attributions and the applicable MIT notice text are
+  recorded in Themes/NOTICE-Color-Themes.txt.
+
+.NET runtime
+------------
+
+The applicable Microsoft .NET 8 runtime and Windows Desktop runtime license
+texts, together with the .NET Runtime third-party notices, are recorded under
+Runtime/. The source package identities and verification hashes are described
+in Runtime/README.txt.
+
+Gacha Overlay own license
+-------------------------
+
+Gacha Overlay source code is provided under the MIT License in the repository
+root LICENSE file. That license does not replace or override the terms for the
+runtime, fonts, themes, or any other third-party component.

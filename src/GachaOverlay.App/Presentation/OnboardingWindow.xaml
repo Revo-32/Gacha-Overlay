@@ -1,0 +1,83 @@
+<Window x:Class="GachaOverlay.App.Presentation.OnboardingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GachaOverlay.App.Presentation"
+        Title="{Binding Settings.Localization[OnboardingTitle]}"
+        Icon="/GachaOverlay.App;component/Assets/Branding/GachaOverlay-AppIcon.ico"
+        Width="760" Height="620" MinWidth="680" MinHeight="540"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource AppBackgroundBrush}">
+    <Window.Resources>
+        <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
+        <DataTemplate x:Key="OptionTemplate"><TextBlock Text="{Binding DisplayText}" /></DataTemplate>
+    </Window.Resources>
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Text="{Binding Settings.Localization[OnboardingTitle]}" />
+            <TextBlock Margin="0,7,0,20" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding StepProgressText}" />
+        </StackPanel>
+        <Border Grid.Row="1" Padding="24" CornerRadius="10" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <Grid>
+                    <StackPanel Visibility="{Binding IsLanguageStep, Converter={StaticResource BoolVisibility}}">
+                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingLanguageTitle]}" />
+                        <TextBlock Margin="0,7,0,20" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingLanguageHint]}" TextWrapping="Wrap" />
+                        <ComboBox Width="280" HorizontalAlignment="Left" ItemsSource="{Binding Settings.Languages}" ItemTemplate="{StaticResource OptionTemplate}" SelectedValuePath="Code" SelectedValue="{Binding Settings.SelectedLanguage, Mode=TwoWay}" AutomationProperties.Name="{Binding Settings.Localization[Language]}" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding IsDiscordStep, Converter={StaticResource BoolVisibility}}">
+                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingDiscordTitle]}" />
+                        <TextBlock Margin="0,7,0,14" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingDiscordHint]}" TextWrapping="Wrap" />
+                        <TextBlock Margin="0,8,0,5" Text="{Binding Settings.Localization[SettingsDiscordClientId]}" /><TextBox Text="{Binding Settings.DiscordClientIdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Margin="0,12,0,5" Text="{Binding Settings.Localization[SettingsDiscordClientSecret]}" /><PasswordBox PasswordChanged="OnDiscordClientSecretChanged" AutomationProperties.Name="{Binding Settings.Localization[SettingsDiscordClientSecret]}" />
+                        <TextBlock Margin="0,12,0,5" Text="{Binding Settings.Localization[SettingsDiscordRedirectUri]}" /><TextBox Text="{Binding Settings.DiscordRedirectUriText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Margin="0,18,0,0" HorizontalAlignment="Left" Style="{StaticResource Style.Button.Primary}" Command="{Binding Settings.SaveAndConnectDiscordCommand}" Content="{Binding Settings.Localization[SettingsDiscordSaveAndConnect]}" />
+                        <TextBlock Margin="0,10,0,0" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding Settings.DiscordSetupMessage}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding IsServerStep, Converter={StaticResource BoolVisibility}}">
+                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingServerTitle]}" />
+                        <TextBlock Margin="0,7,0,18" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingServerHint]}" TextWrapping="Wrap" />
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding Settings.ServerSettings.GuildName}" />
+                        <TextBlock Margin="0,8,0,14" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding Settings.ServerSettings.StatusText}" TextWrapping="Wrap" />
+                        <Button HorizontalAlignment="Left" Command="{Binding Settings.ServerSettings.RefreshCommand}" Content="{Binding Settings.Localization[SettingsServerRefresh]}" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding IsMainStep, Converter={StaticResource BoolVisibility}}">
+                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingMainTitle]}" />
+                        <TextBlock Margin="0,7,0,18" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingMainHint]}" TextWrapping="Wrap" />
+                        <ComboBox Width="400" HorizontalAlignment="Left" ItemsSource="{Binding Settings.ServerSettings.MainChannels}" ItemTemplate="{StaticResource OptionTemplate}" SelectedItem="{Binding Settings.ServerSettings.SelectedMainChannel, Mode=TwoWay}" AutomationProperties.Name="{Binding Settings.Localization[SettingsServerMainChannel]}" />
+                        <TextBlock Margin="0,10,0,0" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding Settings.ServerSettings.StatusText}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding IsAccessibilityStep, Converter={StaticResource BoolVisibility}}">
+                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingAccessibilityTitle]}" />
+                        <TextBlock Margin="0,7,0,18" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingAccessibilityHint]}" TextWrapping="Wrap" />
+                        <TextBlock FontWeight="SemiBold" Text="{Binding Settings.SalesUiaStatusText}" />
+                        <CheckBox Margin="0,16,0,0" IsChecked="{Binding Settings.SalesTrackingEnabled, Mode=TwoWay}" Content="{Binding Settings.Localization[SettingsSalesTracking]}" />
+                        <Button Margin="0,16,0,0" HorizontalAlignment="Left" Command="{Binding Settings.LaunchDiscordAccessibilityCommand}" Content="{Binding Settings.Localization[SettingsDiscordAccessibilityLaunch]}" />
+                        <TextBlock Margin="0,12,0,0" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingNoSilentKill]}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding IsHudStep, Converter={StaticResource BoolVisibility}}">
+                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingHudTitle]}" />
+                        <TextBlock Margin="0,7,0,18" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingHudHint]}" TextWrapping="Wrap" />
+                        <TextBlock Margin="0,5" Text="F9 · HUD Show / Hide" />
+                        <TextBlock Margin="0,5" Text="F10 · Lock / Unlock" />
+                        <TextBlock Margin="0,5" Text="{Binding Settings.Localization[OnboardingHudDragHint]}" />
+                        <TextBlock Margin="0,5" Text="{Binding Settings.Localization[OnboardingHudClickThroughHint]}" />
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </Border>
+        <Grid Grid.Row="2" Margin="0,18,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource StatusWarningBrush}" Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Margin="0,0,8,0" Command="{Binding PreviousCommand}" Content="{Binding Settings.Localization[OnboardingBack]}" />
+                <Button Margin="0,0,8,0" Style="{StaticResource Style.Button.Primary}" Command="{Binding NextCommand}" Content="{Binding Settings.Localization[OnboardingNext]}" />
+                <Button Style="{StaticResource Style.Button.Primary}" Command="{Binding FinishCommand}" Content="{Binding Settings.Localization[OnboardingFinish]}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

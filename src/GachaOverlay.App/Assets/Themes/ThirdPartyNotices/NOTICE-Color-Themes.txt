@@ -1,0 +1,70 @@
+Gacha Overlay - Color Theme Attribution Audit
+============================================================
+
+Audit date: 2026-08-31
+
+The Gacha Overlay theme system is an original semantic-token implementation.
+It contains no copied theme source code, icons, screenshots, fonts, or binary
+assets. The locally defined palettes were adapted from the approved M7.5.6
+specification with the following projects used as naming and color references.
+
+GitHub Dark
+  Reference: GitHub Primer Primitives
+  Source: https://github.com/primer/primitives
+  License: MIT
+  Copyright (c) 2018 GitHub Inc.
+
+One Dark Pro
+  Reference: Binaryify One Dark Pro
+  Source: https://github.com/Binaryify/OneDark-Pro
+  License: MIT
+  Copyright (c) 2013-2022 Binaryify
+
+Nord
+  Reference: Nord color palette
+  Source: https://github.com/nordtheme/nord
+  License: MIT
+  Copyright (c) 2016-present Sven Greb
+
+Tokyo Night
+  Reference: Tokyo Night VS Code theme
+  Source: https://github.com/tokyo-night/tokyo-night-vscode-theme
+  License: MIT
+  Copyright (c) 2018-present Enkia
+
+Monokai
+  Reference: the classic built-in Monokai theme in Code - OSS
+  Source: https://github.com/microsoft/vscode/blob/main/extensions/theme-monokai/themes/monokai-color-theme.json
+  Repository license: MIT
+  Copyright (c) 2015-present Microsoft Corporation
+
+Important Monokai scope note
+----------------------------
+
+This application implements the classic Monokai-inspired palette named in the
+M7.5.6 specification. It does not include, copy, or redistribute Monokai Pro
+extensions, icons, source files, or other proprietary Monokai Pro assets.
+
+Theme and product names may be trademarks of their respective owners. Their
+use here identifies the palette inspiration and does not imply endorsement.
+
+MIT License text
+----------------
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The applicable copyright notice above and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

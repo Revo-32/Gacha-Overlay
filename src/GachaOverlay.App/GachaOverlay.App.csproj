@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationIcon>Assets\Branding\GachaOverlay-AppIcon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GachaOverlay.Core\GachaOverlay.Core.csproj" />
+    <ProjectReference Include="..\GachaOverlay.Infrastructure\GachaOverlay.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\Fonts\KIMM_Bold.ttf" />
+    <Resource Include="Assets\Fonts\KIMM_Light.ttf" />
+    <Resource Include="Assets\Fonts\Cafe24PROSlimMax.ttf" />
+    <Resource Include="Assets\Fonts\Cafe24PROSlimFit.ttf" />
+    <Resource Include="Assets\Fonts\PretendardVariable.ttf" />
+    <Resource Include="Assets\Fonts\WantedSansVariable.ttf" />
+    <Content Include="Assets\Fonts\KIMM_Bold.ttf"
+             Condition="'$(PublishSingleFile)' != 'true'"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Fonts\KIMM_Light.ttf"
+             Condition="'$(PublishSingleFile)' != 'true'"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Fonts\Cafe24PROSlimMax.ttf"
+             Condition="'$(PublishSingleFile)' != 'true'"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Fonts\Cafe24PROSlimFit.ttf"
+             Condition="'$(PublishSingleFile)' != 'true'"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Fonts\PretendardVariable.ttf"
+             Condition="'$(PublishSingleFile)' != 'true'"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Fonts\WantedSansVariable.ttf"
+             Condition="'$(PublishSingleFile)' != 'true'"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Fonts\ThirdPartyNotices\**\*"
+             Condition="'$(PublishSingleFile)' != 'true'"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Themes\ThirdPartyNotices\**\*"
+             Condition="'$(PublishSingleFile)' != 'true'"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Assets\Branding\GachaOverlay-AppIcon.ico" />
+    <Resource Include="Assets\Branding\GachaOverlay-AppIcon.png" />
+  </ItemGroup>
+</Project>

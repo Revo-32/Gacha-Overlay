@@ -1,0 +1,42 @@
+{
+  "name": "Gacha Overlay Release Manual",
+  "version": "1.0",
+  "page": {
+    "size": "A4",
+    "margin_left_mm": 19,
+    "margin_right_mm": 19,
+    "margin_top_mm": 20,
+    "margin_bottom_mm": 17
+  },
+  "colors": {
+    "brand_navy": "#081A7A",
+    "brand_blue": "#0B6CFF",
+    "brand_cyan": "#00CFEA",
+    "brand_yellow": "#FFD400",
+    "ink": "#172033",
+    "muted": "#526174",
+    "line": "#D8E1EC",
+    "paper": "#FFFFFF",
+    "panel": "#F4F7FB",
+    "tip": "#EAF7FF",
+    "important": "#FFF7D6",
+    "security": "#FFF0F0",
+    "troubleshoot": "#F2EEFF"
+  },
+  "typography": {
+    "body_font": "Pretendard",
+    "body_pt": 10.6,
+    "body_leading_pt": 16.2,
+    "caption_pt": 9.0,
+    "h1_pt": 23,
+    "h2_pt": 16,
+    "part_pt": 30,
+    "cover_pt": 35
+  },
+  "screenshots": {
+    "border_radius_mm": 3,
+    "border_color": "#C8D4E3",
+    "annotation_color": "#00CFEA",
+    "annotation_badge": "#081A7A"
+  }
+}

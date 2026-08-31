@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{AEE209AC-2348-47EE-A617-BC61032A006A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GachaOverlay.Core", "src\GachaOverlay.Core\GachaOverlay.Core.csproj", "{E57F91C8-4386-4422-AC59-B07754AE9887}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GachaOverlay.Infrastructure", "src\GachaOverlay.Infrastructure\GachaOverlay.Infrastructure.csproj", "{F60A1AD3-33F6-4567-B0B3-14831D2887CD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GachaOverlay.App", "src\GachaOverlay.App\GachaOverlay.App.csproj", "{FEF74698-1C3A-4F34-B7E7-8BF2F6153E11}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{11586E03-D91C-4924-BB71-E605805C8229}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GachaOverlay.Tests", "tests\GachaOverlay.Tests\GachaOverlay.Tests.csproj", "{890ED0AF-F373-4C21-9AED-9157356A48AE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E57F91C8-4386-4422-AC59-B07754AE9887}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E57F91C8-4386-4422-AC59-B07754AE9887}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E57F91C8-4386-4422-AC59-B07754AE9887}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E57F91C8-4386-4422-AC59-B07754AE9887}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F60A1AD3-33F6-4567-B0B3-14831D2887CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F60A1AD3-33F6-4567-B0B3-14831D2887CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F60A1AD3-33F6-4567-B0B3-14831D2887CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F60A1AD3-33F6-4567-B0B3-14831D2887CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FEF74698-1C3A-4F34-B7E7-8BF2F6153E11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FEF74698-1C3A-4F34-B7E7-8BF2F6153E11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FEF74698-1C3A-4F34-B7E7-8BF2F6153E11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FEF74698-1C3A-4F34-B7E7-8BF2F6153E11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{890ED0AF-F373-4C21-9AED-9157356A48AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{890ED0AF-F373-4C21-9AED-9157356A48AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{890ED0AF-F373-4C21-9AED-9157356A48AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{890ED0AF-F373-4C21-9AED-9157356A48AE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E57F91C8-4386-4422-AC59-B07754AE9887} = {AEE209AC-2348-47EE-A617-BC61032A006A}
+		{F60A1AD3-33F6-4567-B0B3-14831D2887CD} = {AEE209AC-2348-47EE-A617-BC61032A006A}
+		{FEF74698-1C3A-4F34-B7E7-8BF2F6153E11} = {AEE209AC-2348-47EE-A617-BC61032A006A}
+		{890ED0AF-F373-4C21-9AED-9157356A48AE} = {11586E03-D91C-4924-BB71-E605805C8229}
+	EndGlobalSection
+EndGlobal

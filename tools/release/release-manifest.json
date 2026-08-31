@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "productName": "Gacha Overlay",
+  "versionProperty": "GachaReleaseVersion",
+  "version": "1.0.0-rc.1",
+  "assemblyVersion": "1.0.0.0",
+  "fileVersion": "1.0.0.0",
+  "informationalVersion": "1.0.0-rc.1",
+  "tag": "v1.0.0-rc.1",
+  "title": "Gacha Overlay 1.0.0-rc.1",
+  "prerelease": true,
+  "draft": true,
+  "runtimeIdentifier": "win-x64",
+  "artifactName": "Gacha-Overlay-1.0.0-rc.1-win-x64.zip",
+  "packageDirectoryName": "Gacha Overlay",
+  "executableName": "Gacha Overlay.exe",
+  "manualName": "Gacha Overlay 사용자 설명서.pdf",
+  "manualSource": "docs/manual/output/Gacha Overlay 사용자 설명서.pdf",
+  "requiredRootEntries": [
+    {
+      "name": "Gacha Overlay.exe",
+      "type": "file"
+    },
+    {
+      "name": "Gacha Overlay 사용자 설명서.pdf",
+      "type": "file"
+    },
+    {
+      "name": "Licenses",
+      "type": "directory"
+    }
+  ],
+  "allowedRootEntries": [
+    "Gacha Overlay.exe",
+    "Gacha Overlay 사용자 설명서.pdf",
+    "Licenses"
+  ],
+  "forbiddenRootExtensions": [
+    ".dll",
+    ".pdb",
+    ".json",
+    ".ps1",
+    ".cs",
+    ".xaml"
+  ],
+  "forbiddenRecursiveFileNames": [
+    "settings.json",
+    "discord-client-secret.dat",
+    "discord-oauth-token.dat",
+    "sales-products.json",
+    "sales-products.override.json",
+    "guild-display-names.json",
+    "crash-summary.json"
+  ],
+  "forbiddenRecursiveExtensions": [
+    ".pdb",
+    ".deps.json",
+    ".runtimeconfig.json",
+    ".ps1",
+    ".cs",
+    ".xaml"
+  ]
+}

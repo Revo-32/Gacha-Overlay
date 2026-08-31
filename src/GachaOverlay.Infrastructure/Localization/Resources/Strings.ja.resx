@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AppName" xml:space="preserve"><value>Gacha Overlay</value></data>
+  <data name="FoundationReady" xml:space="preserve"><value>基盤の準備完了</value></data>
+  <data name="FoundationDescription" xml:space="preserve"><value>M2～M8 の機能を拡張するためのアプリ基盤が整いました。</value></data>
+  <data name="Language" xml:space="preserve"><value>言語</value></data>
+  <data name="HideToTray" xml:space="preserve"><value>トレイに隠す</value></data>
+  <data name="TrayHint" xml:space="preserve"><value>アプリはシステムトレイで実行を続けます。</value></data>
+  <data name="TrayOpenFoundation" xml:space="preserve"><value>Foundation 状態を開く</value></data>
+  <data name="TrayExit" xml:space="preserve"><value>終了</value></data>
+  <data name="StartupFatalTitle" xml:space="preserve"><value>起動に失敗しました</value></data>
+  <data name="StartupFatalMessage" xml:space="preserve"><value>アプリを起動できませんでした。詳細はログを確認してください。</value></data>
+  <data name="UnexpectedErrorTitle" xml:space="preserve"><value>アプリケーションエラー</value></data>
+  <data name="UnexpectedErrorMessage" xml:space="preserve"><value>致命的なエラーが発生しました。詳細はログを確認してください。</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>HUD 設定</value></data>
+  <data name="SettingsOpenFailed" xml:space="preserve"><value>設定ウィンドウを開けません。アプリのログを確認してください。</value></data>
+  <data name="SettingsVisibilityMode" xml:space="preserve"><value>表示モード</value></data>
+  <data name="SettingsVisibilityAlways" xml:space="preserve"><value>常に表示</value></data>
+  <data name="SettingsVisibilityGameOnly" xml:space="preserve"><value>GTA5 がアクティブなときのみ表示</value></data>
+  <data name="SettingsSurfaceOpacity" xml:space="preserve"><value>HUD 背景の不透明度</value></data>
+  <data name="SettingsModifierDrag" xml:space="preserve"><value>ロック中の Alt + ドラッグを有効化</value></data>
+  <data name="SettingsModifierDragHint" xml:space="preserve"><value>既定ではオフです。この設定がオンで、ロック中の HUD が表示されている時だけ軽量マウスフックが動作します。</value></data>
+  <data name="SettingsLockHotkey" xml:space="preserve"><value>ロック / 解除ホットキー</value></data>
+  <data name="SettingsVisibilityHotkey" xml:space="preserve"><value>表示 / 非表示ホットキー</value></data>
+  <data name="SettingsHotkeyHint" xml:space="preserve"><value>例: F10 または Control+Shift+L。単文字キーには修飾キーが必要です。</value></data>
+  <data name="SettingsApplyHotkeys" xml:space="preserve"><value>ホットキーを適用</value></data>
+  <data name="SettingsResetPlacement" xml:space="preserve"><value>HUD の位置とサイズをリセット</value></data>
+  <data name="SettingsResetPosition" xml:space="preserve"><value>HUD の位置をリセット</value></data>
+  <data name="SettingsResetSize" xml:space="preserve"><value>HUD のサイズをリセット</value></data>
+  <data name="SettingsCenterCurrentDisplay" xml:space="preserve"><value>現在のモニターの中央へ移動</value></data>
+  <data name="SettingsHotkeyInvalid" xml:space="preserve"><value>有効な修飾キーホットキーを2つ入力してください。</value></data>
+  <data name="SettingsHotkeyDuplicate" xml:space="preserve"><value>2つのホットキーは別々にしてください。</value></data>
+  <data name="SettingsHotkeyApplied" xml:space="preserve"><value>保存しました。登録競合はログで確認できます。</value></data>
+  <data name="HudShellTitle" xml:space="preserve"><value>Gacha Overlay · メインチャット</value></data>
+  <data name="HudLockedHint" xml:space="preserve"><value>マウス入力を透過中 · 編集にはロックホットキーを使用</value></data>
+  <data name="HudUnlockedHint" xml:space="preserve"><value>このヘッダーをドラッグするか、端でサイズを変更</value></data>
+  <data name="HudLocked" xml:space="preserve"><value>ロック中</value></data>
+  <data name="HudUnlocked" xml:space="preserve"><value>ロック解除</value></data>
+  <data name="HudConnectionStatusFormat" xml:space="preserve"><value>Discord: {0} · {1}</value></data>
+  <data name="HudVisibilityAlways" xml:space="preserve"><value>表示ポリシー: 常に表示</value></data>
+  <data name="HudVisibilityGameOnly" xml:space="preserve"><value>表示ポリシー: GTA 前面時のみ</value></data>
+  <data name="HudGameStatusFormat" xml:space="preserve"><value>前面プロセス: {0} · GTA 対象: {1}</value></data>
+  <data name="HudUnknownProcess" xml:space="preserve"><value>不明</value></data>
+  <data name="HudTargetYes" xml:space="preserve"><value>はい</value></data>
+  <data name="HudTargetNo" xml:space="preserve"><value>いいえ</value></data>
+  <data name="TrayShowHud" xml:space="preserve"><value>HUD を表示</value></data>
+  <data name="TrayHideHud" xml:space="preserve"><value>HUD を非表示</value></data>
+  <data name="TrayLockHud" xml:space="preserve"><value>HUD をロック</value></data>
+  <data name="TrayUnlockHud" xml:space="preserve"><value>HUD のロックを解除</value></data>
+  <data name="TraySettings" xml:space="preserve"><value>設定</value></data>
+  <data name="SettingsChatTitle" xml:space="preserve"><value>メインチャット</value></data>
+  <data name="SettingsChatLivePreviewHint" xml:space="preserve"><value>変更は保存と同時に HUD へ反映されます。</value></data>
+  <data name="SettingsChatLayout" xml:space="preserve"><value>レイアウトスタイル</value></data>
+  <data name="SettingsChatCompact" xml:space="preserve"><value>コンパクト</value></data>
+  <data name="SettingsChatBalanced" xml:space="preserve"><value>バランス</value></data>
+  <data name="SettingsChatShowTime" xml:space="preserve"><value>バランスモードでローカル時刻を表示</value></data>
+  <data name="SettingsChatFont" xml:space="preserve"><value>フォント</value></data>
+  <data name="SettingsFontKimm" xml:space="preserve"><value>한국기계연구원</value></data>
+  <data name="SettingsFontCafe24ProSlim" xml:space="preserve"><value>Cafe24 PRO Slim</value></data>
+  <data name="SettingsChatFontSize" xml:space="preserve"><value>フォントサイズ</value></data>
+  <data name="SettingsColorTheme" xml:space="preserve"><value>カラーテーマ</value></data>
+  <data name="ColorThemeGitHubDarkDescription" xml:space="preserve"><value>基本 · 高い可読性</value></data>
+  <data name="ColorThemeOneDarkProDescription" xml:space="preserve"><value>バランス · おすすめ</value></data>
+  <data name="ColorThemeNordDescription" xml:space="preserve"><value>落ち着き · 低刺激</value></data>
+  <data name="ColorThemeTokyoNightDescription" xml:space="preserve"><value>モダン · ゲーミング</value></data>
+  <data name="ColorThemeMonokaiDescription" xml:space="preserve"><value>高コントラスト · ビビッド</value></data>
+  <data name="SettingsNicknameOutline" xml:space="preserve"><value>ニックネーム輪郭</value></data>
+  <data name="SettingsMessageOutline" xml:space="preserve"><value>メッセージ輪郭</value></data>
+  <data name="SettingsOutlineThickness" xml:space="preserve"><value>輪郭の太さ</value></data>
+  <data name="SettingsMaxLines" xml:space="preserve"><value>メッセージ最大行数</value></data>
+  <data name="SettingsShowImages" xml:space="preserve"><value>画像プレビューを表示</value></data>
+  <data name="SettingsImageThumbnail" xml:space="preserve"><value>サムネイルのみ</value></data>
+  <data name="SettingsImageEnlarge" xml:space="preserve"><value>サムネイル + ロック解除時にクリック拡大</value></data>
+  <data name="SettingsChatStylePreset" xml:space="preserve"><value>ワンショットチャットスタイルプリセット</value></data>
+  <data name="SettingsPresetModern" xml:space="preserve"><value>モダン</value></data>
+  <data name="SettingsPresetHighReadability" xml:space="preserve"><value>高可読性</value></data>
+  <data name="SettingsPresetGtaLegacy" xml:space="preserve"><value>GTA レガシー</value></data>
+  <data name="SettingsApplyChatPreset" xml:space="preserve"><value>プリセットを適用</value></data>
+  <data name="SettingsChatPresetApplied" xml:space="preserve"><value>プリセットを適用しました。個別設定は引き続き調整できます。</value></data>
+  <data name="SettingsChatStyle" xml:space="preserve"><value>チャットスタイル</value></data>
+  <data name="SettingsPresetExplanation" xml:space="preserve"><value>プリセットはフォント、サイズ、色、間隔、効果をまとめて設定します。適用後も下の詳細項目を自由に変更できます。</value></data>
+  <data name="SettingsDetailedAdjustments" xml:space="preserve"><value>詳細調整</value></data>
+  <data name="SettingsDetailedAdjustmentsHint" xml:space="preserve"><value>各項目はその設定だけを変更し、プリセットを再適用したり値を固定したりしません。</value></data>
+  <data name="SettingsRecommended" xml:space="preserve"><value>おすすめ</value></data>
+  <data name="SettingsPresetModernDescription" xml:space="preserve"><value>すっきり整った標準スタイル</value></data>
+  <data name="SettingsPresetHighReadabilityDescription" xml:space="preserve"><value>複雑なゲーム画面でも読みやすいスタイル</value></data>
+  <data name="SettingsPresetGtaLegacyDescription" xml:space="preserve"><value>太い名前と詰めた本文で再現したクラシック GTA チャット</value></data>
+  <data name="SettingsPresetPreviewNickname" xml:space="preserve"><value>ItoToko:</value></data>
+  <data name="SettingsPresetPreviewMessage" xml:space="preserve"><value>今から参加する人？ ABC 123</value></data>
+  <data name="SettingsPresetActive" xml:space="preserve"><value>現在適用中: {0}</value></data>
+  <data name="SettingsPresetCustom" xml:space="preserve"><value>カスタム · 詳細値がプリセット初期値と異なります。</value></data>
+  <data name="SettingsFontPreviewSample" xml:space="preserve"><value>한글 ABC 123 日本語 · User-Name</value></data>
+  <data name="SettingsBundledFontNotice" xml:space="preserve"><value>公式パッケージと必要な告知ファイルを同梱したフォントです。</value></data>
+  <data name="SettingsFontResolvedBundled" xml:space="preserve"><value>現在適用中: {0} · 同梱フォント</value></data>
+  <data name="SettingsFontResolvedSystem" xml:space="preserve"><value>現在適用中: {0} · インストール済みシステムフォント</value></data>
+  <data name="SettingsFontResolvedFallback" xml:space="preserve"><value>代替フォントを使用中: {0} · {1} のインストールが必要です</value></data>
+  <data name="SettingsChatLineHeight" xml:space="preserve"><value>行の高さ</value></data>
+  <data name="SettingsChatMessageSpacing" xml:space="preserve"><value>メッセージ間隔</value></data>
+  <data name="ChatStickerFallbackUnnamed" xml:space="preserve"><value>[ステッカー]</value></data>
+  <data name="ChatForwardFallback" xml:space="preserve"><value>[転送メッセージ]</value></data>
+  <data name="ChatMessageFallback" xml:space="preserve"><value>[メッセージ]</value></data>
+  <data name="SettingsResetHotkeys" xml:space="preserve"><value>既定のホットキーに戻す</value></data>
+  <data name="SettingsHotkeyRegistrationFailed" xml:space="preserve"><value>新しいホットキーを登録できませんでした。以前の有効な設定を復元しました。</value></data>
+  <data name="SettingsHotkeySaveFailed" xml:space="preserve"><value>ホットキーを保存できませんでした。以前の有効な設定を復元しました。</value></data>
+  <data name="SettingsHotkeyDefaultsRestored" xml:space="preserve"><value>既定値を復元しました: F9 表示/非表示、F10 ロック/解除。</value></data>
+  <data name="SettingsDiscordTitle" xml:space="preserve"><value>Discord 接続</value></data>
+  <data name="SettingsDiscordClientIdStatus" xml:space="preserve"><value>Application ID</value></data>
+  <data name="SettingsDiscordOAuthStatus" xml:space="preserve"><value>OAuth 認証</value></data>
+  <data name="SettingsDiscordGuildStatus" xml:space="preserve"><value>Guild</value></data>
+  <data name="SettingsDiscordChannelStatus" xml:space="preserve"><value>メイン / 販売チャンネル</value></data>
+  <data name="SettingsDiscordClientId" xml:space="preserve"><value>Discord Application / Client ID</value></data>
+  <data name="SettingsDiscordClientSecret" xml:space="preserve"><value>Discord Client Secret</value></data>
+  <data name="SettingsDiscordClientSecretHint" xml:space="preserve"><value>現在の Windows ユーザー用 DPAPI で保護保存します。既存値を維持する場合は空欄にします。</value></data>
+  <data name="SettingsDiscordRedirectUri" xml:space="preserve"><value>OAuth Redirect URI</value></data>
+  <data name="SettingsDiscordGuildId" xml:space="preserve"><value>Guild ID（任意）</value></data>
+  <data name="SettingsDiscordMainChannelId" xml:space="preserve"><value>メインチャンネル ID（任意）</value></data>
+  <data name="SettingsDiscordSalesChannelId" xml:space="preserve"><value>販売チャンネル ID（任意）</value></data>
+  <data name="SettingsDiscordIdHint" xml:space="preserve"><value>ID が空の場合は正確な名前で検索し、解決した ID を自動保存します。</value></data>
+  <data name="SettingsDiscordSaveAndConnect" xml:space="preserve"><value>保存して接続</value></data>
+  <data name="SettingsDiscordReconnect" xml:space="preserve"><value>再接続</value></data>
+  <data name="SettingsDiscordSavedAndConnecting" xml:space="preserve"><value>設定を安全に保存し、Discord 接続を要求しました。</value></data>
+  <data name="SettingsDiscordSaveFailed" xml:space="preserve"><value>Discord 接続設定を保存できませんでした。</value></data>
+  <data name="SettingsDiscordInvalidClientId" xml:space="preserve"><value>数字の Discord Application ID を入力してください。</value></data>
+  <data name="SettingsDiscordInvalidRedirectUri" xml:space="preserve"><value>有効な HTTP または HTTPS Redirect URI を入力してください。</value></data>
+  <data name="SettingsDiscordInvalidTargetId" xml:space="preserve"><value>Guild とチャンネル ID は数字のみ、または空欄にしてください。</value></data>
+  <data name="SettingsDiscordSecretRequired" xml:space="preserve"><value>保護設定を完了するには Client Secret を入力してください。</value></data>
+  <data name="SettingsDiscordProtectedSaveFailed" xml:space="preserve"><value>Windows 保護ストレージに Client Secret を保存できませんでした。</value></data>
+  <data name="SettingsDiscordReconnectRequested" xml:space="preserve"><value>Discord の再接続を要求しました。</value></data>
+  <data name="DiscordStatusConnected" xml:space="preserve"><value>接続済み</value></data>
+  <data name="DiscordStatusConnecting" xml:space="preserve"><value>接続中</value></data>
+  <data name="DiscordStatusAuthenticating" xml:space="preserve"><value>認証中</value></data>
+  <data name="DiscordStatusReconnecting" xml:space="preserve"><value>再接続中</value></data>
+  <data name="DiscordStatusConfigurationRequired" xml:space="preserve"><value>Discord 設定が必要</value></data>
+  <data name="DiscordStatusAuthenticationRequired" xml:space="preserve"><value>Discord 認証が必要</value></data>
+  <data name="DiscordStatusTargetConfigurationRequired" xml:space="preserve"><value>Guild またはチャンネル設定が必要</value></data>
+  <data name="DiscordStatusFailed" xml:space="preserve"><value>接続失敗</value></data>
+  <data name="DiscordStatusDiscordNotRunning" xml:space="preserve"><value>Discord の起動待ち</value></data>
+  <data name="DiscordStatusDisconnected" xml:space="preserve"><value>未接続</value></data>
+  <data name="DiscordConfigurationConfigured" xml:space="preserve"><value>設定済み</value></data>
+  <data name="DiscordConfigurationMissing" xml:space="preserve"><value>設定が必要</value></data>
+  <data name="DiscordConfigurationAutoResolve" xml:space="preserve"><value>正確な名前で自動検索</value></data>
+  <data name="DiscordAuthenticationComplete" xml:space="preserve"><value>認証済み</value></data>
+  <data name="DiscordAuthenticationSaved" xml:space="preserve"><value>保護された認証を保存済み</value></data>
+  <data name="DiscordAuthenticationRequired" xml:space="preserve"><value>認証が必要</value></data>
+  <data name="DiscordAuthenticationUnreadable" xml:space="preserve"><value>保護された認証の再設定が必要</value></data>
+  <data name="TrayDiscordStatusFormat" xml:space="preserve"><value>状態: {0}</value></data>
+  <data name="TrayDiscordConnectionSetup" xml:space="preserve"><value>Discord 接続設定</value></data>
+  <data name="TrayDiscordReconnect" xml:space="preserve"><value>Discord を再接続</value></data>
+  <data name="SettingsSalesTitle" xml:space="preserve"><value>販売キュー</value></data>
+  <data name="SettingsSalesDescription" xml:space="preserve"><value>チャットの下に表示する販売キュー情報を選択します。</value></data>
+  <data name="SettingsSalesTracking" xml:space="preserve"><value>販売状況の追跡</value></data>
+  <data name="SettingsSalesTrackingHint" xml:space="preserve"><value>信頼できる販売キュー、状態案内、自分の順番通知をチャットの下に表示します。</value></data>
+  <data name="SettingsSalesShowCurrentSeller" xml:space="preserve"><value>現在の販売者を表示</value></data>
+  <data name="SettingsSalesShowWaitingCount" xml:space="preserve"><value>待機人数を表示</value></data>
+  <data name="SettingsSalesShowProduct" xml:space="preserve"><value>商品を表示</value></data>
+  <data name="SettingsSalesShowNextWaitingUser" xml:space="preserve"><value>次の待機者を表示</value></data>
+  <data name="SalesStatusPreparing" xml:space="preserve"><value>販売状態センサーを準備中</value></data>
+  <data name="SalesStatusUnavailable" xml:space="preserve"><value>Discord 販売センサーを利用できません</value></data>
+  <data name="SalesStatusAccessibilityUnavailable" xml:space="preserve"><value>Discord アクセシビリティツリーを利用できません</value></data>
+  <data name="SalesStatusPaused" xml:space="preserve"><value>販売センサーを一時停止中</value></data>
+  <data name="SalesStatusResyncing" xml:space="preserve"><value>販売状態を再同期中</value></data>
+  <data name="SalesStatusPartial" xml:space="preserve"><value>販売状態を一部観測中</value></data>
+  <data name="SalesStatusError" xml:space="preserve"><value>販売センサーエラー</value></data>
+  <data name="SalesQueueEmpty" xml:space="preserve"><value>待機者はいません</value></data>
+  <data name="SalesNoDisplayFields" xml:space="preserve"><value>販売キューの表示項目が選択されていません</value></data>
+  <data name="SalesCurrentSellerFormat" xml:space="preserve"><value>現在 {0}</value></data>
+  <data name="SalesWaitingCountFormat" xml:space="preserve"><value>待機 {0}人</value></data>
+  <data name="SalesProductFormat" xml:space="preserve"><value>{0}</value></data>
+  <data name="SalesNextSellerFormat" xml:space="preserve"><value>次 {0}</value></data>
+  <data name="SalesHealthLiveAccessible" xml:space="preserve"><value>販売キューは最新で完全に同期されています</value></data>
+  <data name="SalesHealthConnecting" xml:space="preserve"><value>Discord に接続中</value></data>
+  <data name="SalesHealthResyncing" xml:space="preserve"><value>販売状態を再同期中</value></data>
+  <data name="SalesHealthOpenChannelFormat" xml:space="preserve"><value>{0} チャンネルを開いてください</value></data>
+  <data name="SalesHealthDegraded" xml:space="preserve"><value>販売状態の一部のみ確認できました</value></data>
+  <data name="SalesHealthDisconnected" xml:space="preserve"><value>Discord の接続が切れました</value></data>
+  <data name="SalesHealthSensorError" xml:space="preserve"><value>販売状態センサーを利用できません</value></data>
+  <data name="SalesHealthDisabled" xml:space="preserve"><value>販売状況の追跡はオフです</value></data>
+  <data name="SalesNextTurnSelf" xml:space="preserve"><value>次は自分の番</value></data>
+  <data name="SalesCurrentTurnSelf" xml:space="preserve"><value>販売の順番です！販売を始めてください</value></data>
+  <data name="SettingsCategoryGeneral" xml:space="preserve"><value>一般</value></data>
+  <data name="SettingsCategoryDiscord" xml:space="preserve"><value>Discord</value></data>
+  <data name="SettingsCategoryHud" xml:space="preserve"><value>HUD</value></data>
+  <data name="SettingsCategoryChat" xml:space="preserve"><value>チャット</value></data>
+  <data name="SettingsCategoryMedia" xml:space="preserve"><value>メディア</value></data>
+  <data name="SettingsCategorySales" xml:space="preserve"><value>販売</value></data>
+  <data name="SettingsCategoryHotkeys" xml:space="preserve"><value>ホットキー</value></data>
+  <data name="SettingsCategoryDiagnostics" xml:space="preserve"><value>診断</value></data>
+  <data name="SettingsGeneralTitle" xml:space="preserve"><value>一般設定</value></data>
+  <data name="SettingsHudTitle" xml:space="preserve"><value>HUD の外観</value></data>
+  <data name="SettingsMinimalHud" xml:space="preserve"><value>ミニマル HUD</value></data>
+  <data name="SettingsMinimalHudHint" xml:space="preserve"><value>タイトル、説明、ロックバッジを非表示にします。ロック解除時はフローティング移動バーと設定ボタンを使用できます。</value></data>
+  <data name="SettingsHudChromeOpacity" xml:space="preserve"><value>ヘッダー表面の不透明度</value></data>
+  <data name="SettingsChatSurfaceOpacity" xml:space="preserve"><value>チャット表面の不透明度</value></data>
+  <data name="SettingsSalesSurfaceOpacity" xml:space="preserve"><value>販売表面の不透明度</value></data>
+  <data name="SettingsQueueDetailSurfaceOpacity" xml:space="preserve"><value>キュー詳細表面の不透明度</value></data>
+  <data name="SettingsFontPretendard" xml:space="preserve"><value>Pretendard</value></data>
+  <data name="SettingsFontWantedSans" xml:space="preserve"><value>Wanted Sans</value></data>
+  <data name="SettingsPresetClean" xml:space="preserve"><value>Clean</value></data>
+  <data name="SettingsPresetCleanDescription" xml:space="preserve"><value>バランスのよい間隔と鮮明な Pretendard 本文です。</value></data>
+  <data name="SettingsNicknameOutlineThickness" xml:space="preserve"><value>ニックネームの輪郭線</value></data>
+  <data name="SettingsMessageOutlineThickness" xml:space="preserve"><value>メッセージの輪郭線</value></data>
+  <data name="SettingsMediaTitle" xml:space="preserve"><value>メディアプレビュー</value></data>
+  <data name="SettingsImageSize" xml:space="preserve"><value>画像サイズ</value></data>
+  <data name="SettingsImageSizeCompact" xml:space="preserve"><value>コンパクト</value></data>
+  <data name="SettingsImageSizeLarge" xml:space="preserve"><value>大</value></data>
+  <data name="SettingsCustomEmoji" xml:space="preserve"><value>カスタム絵文字を表示</value></data>
+  <data name="SettingsStickers" xml:space="preserve"><value>ステッカーを表示</value></data>
+  <data name="SettingsHidePreviewSourceUrl" xml:space="preserve"><value>プレビュー読込後に該当する元 URL のみ隠す</value></data>
+  <data name="SettingsDiagnosticsTitle" xml:space="preserve"><value>診断と復旧</value></data>
+  <data name="SettingsDiagnosticsDescription" xml:space="preserve"><value>明示的な復旧操作は自動実行されません。</value></data>
+  <data name="SettingsManualSalesResync" xml:space="preserve"><value>販売状態を今すぐ再同期</value></data>
+  <data name="SettingsProductMappingManager" xml:space="preserve"><value>商品マッピング管理</value></data>
+  <data name="SettingsProductManagerDescription" xml:space="preserve"><value>観測された絵文字を選択し、表示する商品名を指定します。同じ商品名の絵文字は数量として合算されます。</value></data>
+  <data name="SettingsProductObservedEmoji" xml:space="preserve"><value>観測された絵文字</value></data>
+  <data name="SettingsProductSearch" xml:space="preserve"><value>絵文字名または ID を検索</value></data>
+  <data name="SettingsProductUnmappedOnly" xml:space="preserve"><value>未設定のみ</value></data>
+  <data name="SettingsProductMappedBadge" xml:space="preserve"><value>設定済み</value></data>
+  <data name="SettingsProductSelectHelp" xml:space="preserve"><value>左側の絵文字を選択すると、商品マッピングを作成または編集できます。</value></data>
+  <data name="SettingsProductNoMapping" xml:space="preserve"><value>この絵文字にはまだ商品マッピングがありません。</value></data>
+  <data name="SettingsProductCreateMapping" xml:space="preserve"><value>マッピングを作成</value></data>
+  <data name="SettingsProductDraftSave" xml:space="preserve"><value>マッピングを保存</value></data>
+  <data name="SettingsProductDraftCancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="SettingsProductNameLabel" xml:space="preserve"><value>商品名</value></data>
+  <data name="SettingsProductNameHint" xml:space="preserve"><value>内部の絵文字名の代わりに販売 HUD に表示する分かりやすい名前です。</value></data>
+  <data name="SettingsProductExistingNames" xml:space="preserve"><value>既存の商品名を使用</value></data>
+  <data name="SettingsProductGroupHint" xml:space="preserve"><value>複数の絵文字に同じ商品名を指定すると、1件の販売投稿内で数量として合算されます。</value></data>
+  <data name="SettingsExportProductMappings" xml:space="preserve"><value>商品マッピングを書き出す</value></data>
+  <data name="SettingsSalesPreview" xml:space="preserve"><value>販売プレビュー / テストセンターを開く</value></data>
+  <data name="HudOpenSettings" xml:space="preserve"><value>HUD 設定を開く</value></data>
+  <data name="SalesQueueDetails" xml:space="preserve"><value>キュー詳細</value></data>
+  <data name="SettingsDeleteDiscordAuthentication" xml:space="preserve"><value>保存済み Discord サインインを削除</value></data>
+  <data name="SettingsDeleteDiscordAuthenticationConfirm" xml:space="preserve"><value>この Windows ユーザーに保護保存された Discord OAuth サインインを削除しますか？</value></data>
+  <data name="SettingsClearMediaCache" xml:space="preserve"><value>メディアキャッシュを消去</value></data>
+  <data name="SettingsResetAll" xml:space="preserve"><value>すべての設定をリセット</value></data>
+  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>すべての設定を安全な既定値に戻しますか？保護保存された Discord サインインは削除されません。</value></data>
+  <data name="SettingsProductSelectEmoji" xml:space="preserve"><value>先に観測された絵文字を選択してください。</value></data>
+  <data name="SettingsProductDuplicate" xml:space="preserve"><value>同じサーバー範囲ですでにマッピングされています。</value></data>
+  <data name="SettingsProductSaveFailed" xml:space="preserve"><value>マッピングを保存できませんでした。以前のファイルは保持されています。</value></data>
+  <data name="SettingsProductSaved" xml:space="preserve"><value>マッピングを保存し、販売キューへ適用しました。</value></data>
+  <data name="SettingsProductAddSelected" xml:space="preserve"><value>選択した絵文字を追加</value></data>
+  <data name="SettingsProductRefresh" xml:space="preserve"><value>一覧を更新</value></data>
+  <data name="SettingsProductDeleteSelected" xml:space="preserve"><value>選択したマッピングを削除</value></data>
+  <data name="SettingsProductSaveApply" xml:space="preserve"><value>保存して適用</value></data>
+  <data name="SalesDetailCurrent" xml:space="preserve"><value>現在</value></data>
+  <data name="SalesDetailSelf" xml:space="preserve"><value>自分</value></data>
+  <data name="SettingsApplyScenario" xml:space="preserve"><value>シナリオを適用</value></data>
+  <data name="SalesPreviewNormal" xml:space="preserve"><value>通常</value></data>
+  <data name="SalesPreviewEmpty" xml:space="preserve"><value>空</value></data>
+  <data name="SalesPreviewNextTurn" xml:space="preserve"><value>次が自分</value></data>
+  <data name="SalesPreviewCurrentTurn" xml:space="preserve"><value>現在が自分</value></data>
+  <data name="SalesPreviewPaused" xml:space="preserve"><value>一時停止</value></data>
+  <data name="SalesPreviewResyncing" xml:space="preserve"><value>再同期中</value></data>
+  <data name="SalesPreviewDegraded" xml:space="preserve"><value>一部確認</value></data>
+  <data name="SalesPreviewDisconnected" xml:space="preserve"><value>切断</value></data>
+  <data name="SalesPreviewError" xml:space="preserve"><value>エラー</value></data>
+  <data name="SalesPreviewSoldFade" xml:space="preserve"><value>販売完了フェード</value></data>
+  <data name="SalesPreviewOneItem" xml:space="preserve"><value>1 件</value></data>
+  <data name="SalesPreviewTwoItems" xml:space="preserve"><value>2 件</value></data>
+  <data name="SalesPreviewUltraCompact" xml:space="preserve"><value>超コンパクト</value></data>
+  <data name="SalesPreviewLongNames" xml:space="preserve"><value>長い名前</value></data>
+  <data name="SettingsAppVersion" xml:space="preserve"><value>アプリのバージョン</value></data>
+  <data name="SettingsAutoSaveHint" xml:space="preserve"><value>変更内容はすぐに適用され、自動保存されます。</value></data>
+  <data name="SettingsResetAllHint" xml:space="preserve"><value>表示、HUD、チャット、メディア、販売、ホットキー設定をリセットします。保護された Discord サインインは別に保持されます。</value></data>
+  <data name="SettingsM8AutoStartPlaceholder" xml:space="preserve"><value>Windows 自動起動は M8 のオンボーディングでここに追加されます。</value></data>
+  <data name="SettingsRevealSecret" xml:space="preserve"><value>Client Secret を表示または非表示</value></data>
+  <data name="SettingsM8DiscordRestartPlaceholder" xml:space="preserve"><value>Discord 自動起動とアクセシビリティ再起動案内は M8 で追加されます。</value></data>
+  <data name="SettingsTransparentHudHint" xml:space="preserve"><value>0% では通常の HUD 表面だけが透明になり、テキスト、メディア、状態表示は鮮明に保たれます。</value></data>
+  <data name="SettingsChatMaxLines" xml:space="preserve"><value>最大行数</value></data>
+  <data name="SettingsMediaFirstPlusNHint" xml:space="preserve"><value>最初のメディアを表示し、追加分は +N で案内します。</value></data>
+  <data name="SettingsMediaCacheCleared" xml:space="preserve"><value>メディアキャッシュを消去しました。表示中のプレビューを再取得しています。</value></data>
+  <data name="SettingsSalesHealthPaused" xml:space="preserve"><value>対象チャンネルが選択されるまで販売監視は一時停止します。</value></data>
+  <data name="SettingsSalesCoverageFormat" xml:space="preserve"><value>メッセージ {0} / {1} 件を確認 · {2}</value></data>
+  <data name="SettingsSalesCoverageComplete" xml:space="preserve"><value>完全なカバレッジ</value></data>
+  <data name="SettingsSalesCoveragePartial" xml:space="preserve"><value>部分的なカバレッジ</value></data>
+  <data name="SettingsSalesCoverageNone" xml:space="preserve"><value>カバレッジなし</value></data>
+  <data name="SettingsSalesLastSyncFormat" xml:space="preserve"><value>最後の完全同期: {0}</value></data>
+  <data name="SettingsSalesLastSyncNever" xml:space="preserve"><value>最後の完全同期: まだ完了していません</value></data>
+  <data name="SettingsUiaUnavailable" xml:space="preserve"><value>アクセシビリティセンサー: 利用不可</value></data>
+  <data name="SettingsUiaReady" xml:space="preserve"><value>アクセシビリティセンサー: 準備完了または Discord 待機中</value></data>
+  <data name="SettingsManualResyncRequested" xml:space="preserve"><value>販売状態の再同期を要求しました。信頼済みキューは維持されます。</value></data>
+  <data name="SettingsManualResyncCoalesced" xml:space="preserve"><value>すでに同期中のため、要求を安全にまとめました。</value></data>
+  <data name="SettingsManualResyncDisconnected" xml:space="preserve"><value>Discord に接続してから販売状態を再確認してください。</value></data>
+  <data name="SettingsManualResyncOpenChannel" xml:space="preserve"><value>設定した販売チャンネルを Discord で開いてから再試行してください。</value></data>
+  <data name="SettingsManualResyncTrackingDisabled" xml:space="preserve"><value>販売状況の追跡をオンにしてから再確認してください。</value></data>
+  <data name="SettingsQueueDetailMaxHeight" xml:space="preserve"><value>キュー詳細の最大高さ</value></data>
+  <data name="SettingsOpenLogFolder" xml:space="preserve"><value>ログフォルダーを開く</value></data>
+  <data name="SettingsOpenLatestLog" xml:space="preserve"><value>最新ログを開く</value></data>
+  <data name="SettingsM8DiagnosticsZipPlaceholder" xml:space="preserve"><value>診断 ZIP のエクスポートは M8 で追加されます。</value></data>
+  <data name="SettingsDiagnosticBundleDescription" xml:space="preserve"><value>問題分析に必要な機密性のないシステム・状態・性能情報と、サニタイズ済みの制限ログを ZIP に保存します。アップロードは行いません。</value></data>
+  <data name="SettingsCreateDiagnosticBundle" xml:space="preserve"><value>診断ファイルを作成</value></data>
+  <data name="SettingsDiagnosticCreating" xml:space="preserve"><value>診断ファイルを作成しています…</value></data>
+  <data name="SettingsDiagnosticCreated" xml:space="preserve"><value>診断ファイルを保存しました: {0}</value></data>
+  <data name="SettingsDiagnosticCancelled" xml:space="preserve"><value>診断ファイルの作成をキャンセルしました。</value></data>
+  <data name="SettingsDiagnosticBusy" xml:space="preserve"><value>診断ファイルはすでに作成中です。</value></data>
+  <data name="SettingsDiagnosticFailed" xml:space="preserve"><value>診断ファイルを作成できませんでした。アプリは実行を続けています。詳細はログを確認してください。</value></data>
+  <data name="SettingsDiagnosticZipFilter" xml:space="preserve"><value>ZIP ファイル (*.zip)|*.zip</value></data>
+  <data name="SettingsProductInvalid" xml:space="preserve"><value>マッピング入力を確認してください。Emoji ID と少なくとも一つの言語名が必要で、ID は重複できません。</value></data>
+  <data name="SettingsProductDeleteConfirm" xml:space="preserve"><value>選択した商品マッピングを削除しますか？保存して適用すると変更が確定します。</value></data>
+  <data name="SettingsProductExportFilter" xml:space="preserve"><value>JSON ファイル (*.json)|*.json|すべてのファイル (*.*)|*.*</value></data>
+  <data name="SettingsProductColumnPreview" xml:space="preserve"><value>プレビュー</value></data>
+  <data name="SettingsProductColumnName" xml:space="preserve"><value>絵文字名</value></data>
+  <data name="SettingsProductColumnEmojiId" xml:space="preserve"><value>絵文字 ID</value></data>
+  <data name="SettingsProductColumnGuild" xml:space="preserve"><value>サーバー</value></data>
+  <data name="SettingsProductColumnMapped" xml:space="preserve"><value>設定済み</value></data>
+  <data name="SettingsProductColumnCount" xml:space="preserve"><value>使用回数</value></data>
+  <data name="SettingsProductColumnEnabled" xml:space="preserve"><value>有効</value></data>
+  <data name="SettingsProductColumnProductId" xml:space="preserve"><value>商品 ID</value></data>
+  <data name="SettingsProductColumnEnglish" xml:space="preserve"><value>英語</value></data>
+  <data name="SettingsProductColumnKorean" xml:space="preserve"><value>韓国語</value></data>
+  <data name="SettingsProductColumnJapanese" xml:space="preserve"><value>日本語</value></data>
+  <data name="SettingsCategoryDeveloper" xml:space="preserve"><value>開発者</value></data>
+  <data name="SettingsDeveloperTitle" xml:space="preserve"><value>開発者ツール</value></data>
+  <data name="SettingsDeveloperProductMapping" xml:space="preserve"><value>商品マッピング</value></data>
+  <data name="SettingsDeveloperProductDescription" xml:space="preserve"><value>このサーバー用の既定の商品マッピングがアプリに含まれています。通常は変更する必要はありません。</value></data>
+  <data name="SettingsDeveloperCatalogSummary" xml:space="preserve"><value>既定のマッピング: Emoji {0} 件 · 商品グループ {1} 件</value></data>
+  <data name="SettingsDeveloperOverrideCount" xml:space="preserve"><value>現在のオーバーライド: {0} 件</value></data>
+  <data name="SettingsDeveloperCatalogReady" xml:space="preserve"><value>内蔵カタログ準備完了</value></data>
+  <data name="SettingsDeveloperCatalogUnavailable" xml:space="preserve"><value>内蔵カタログを読み込めませんでした。販売機能は既定値なしで安全に続行します。</value></data>
+  <data name="SettingsDeveloperExportEffective" xml:space="preserve"><value>現在有効なマッピングを書き出す</value></data>
+  <data name="SettingsDeveloperResetOverrides" xml:space="preserve"><value>ユーザー変更をすべてリセット</value></data>
+  <data name="SettingsDeveloperResetOverridesConfirm" xml:space="preserve"><value>すべての商品マッピングのオーバーライドを削除し、内蔵の既定値に戻しますか？Discord のキュー自体はリセットされません。</value></data>
+  <data name="SettingsDeveloperSalesTest" xml:space="preserve"><value>販売 UI テスト</value></data>
+  <data name="SettingsDeveloperSalesTestDescription" xml:space="preserve"><value>実際の販売状態に影響しない、分離されたプレビュー/テストセンターです。</value></data>
+  <data name="SettingsDeveloperApplicationInfo" xml:space="preserve"><value>アプリケーション情報</value></data>
+  <data name="SettingsDeveloperCredits" xml:space="preserve"><value>クレジット</value></data>
+  <data name="SettingsDeveloperLicenses" xml:space="preserve"><value>オープンソースライセンス / 通知</value></data>
+  <data name="SettingsDeveloperCreditsContent" xml:space="preserve"><value>Gacha Overlay アプリケーション&#10;&#10;同梱フォント: Pretendard, KIMM, Wanted Sans, Cafe24 PRO Slim&#10;カラーテーマ: GitHub Dark, One Dark Pro, Nord, Tokyo Night, Monokai&#10;サードパーティのライブラリとリソースは同梱の通知ファイルに記載されています。</value></data>
+  <data name="SettingsProductSourceBuiltIn" xml:space="preserve"><value>既定値</value></data>
+  <data name="SettingsProductSourceModified" xml:space="preserve"><value>変更済み</value></data>
+  <data name="SettingsProductSourceCustom" xml:space="preserve"><value>ユーザー追加</value></data>
+  <data name="SettingsProductSourceDisabled" xml:space="preserve"><value>無効</value></data>
+  <data name="SettingsProductRestoreDefault" xml:space="preserve"><value>既定値に戻す</value></data>
+  <data name="SettingsProductDefaultRestored" xml:space="preserve"><value>内蔵の既定値に戻しました。</value></data>
+  <data name="SettingsCategoryServer" xml:space="preserve"><value>サーバー</value></data>
+  <data name="SettingsServerTitle" xml:space="preserve"><value>サーバー設定</value></data>
+  <data name="SettingsServerCurrent" xml:space="preserve"><value>現在のサーバー</value></data>
+  <data name="SettingsServerFixedHint" xml:space="preserve"><value>このサーバーは Gacha Overlay v1.0 で固定されています。</value></data>
+  <data name="SettingsServerMainChannel" xml:space="preserve"><value>メインチャンネル</value></data>
+  <data name="SettingsServerMainHint" xml:space="preserve"><value>ゲームHUDに表示するチャットチャンネルを1つ選択します。</value></data>
+  <data name="SettingsServerRefresh" xml:space="preserve"><value>チャンネル一覧を更新</value></data>
+  <data name="SettingsServerSalesChannel" xml:space="preserve"><value>販売チャンネル</value></data>
+  <data name="SettingsServerSalesFixedHint" xml:space="preserve"><value>販売追跡で使用する固定チャンネルで、変更できません。</value></data>
+  <data name="SettingsServerConnectToInspect" xml:space="preserve"><value>サーバー情報を確認するには Discord に接続してください。</value></data>
+  <data name="SettingsServerLoading" xml:space="preserve"><value>対象サーバーとチャンネルを読み込み中…</value></data>
+  <data name="SettingsServerUnavailableName" xml:space="preserve"><value>対象サーバーを利用できません</value></data>
+  <data name="SettingsServerSalesMissing" xml:space="preserve"><value>固定販売チャンネルが見つかりません。</value></data>
+  <data name="SettingsServerCurrentMainMissing" xml:space="preserve"><value>選択中のメインチャンネルを利用できません。別のチャンネルを選択してください。</value></data>
+  <data name="SettingsServerReady" xml:space="preserve"><value>サーバーとチャンネル情報を確認しました。</value></data>
+  <data name="SettingsServerTargetMissing" xml:space="preserve"><value>対象 Discord サーバーが見つかりません。ログイン中のアカウントを確認してください。</value></data>
+  <data name="SettingsServerDiscordNotRunning" xml:space="preserve"><value>Discord を起動してから一覧を更新してください。</value></data>
+  <data name="SettingsServerLoadFailed" xml:space="preserve"><value>チャンネルを読み込めませんでした。Discord 接続を確認して再試行してください。</value></data>
+  <data name="SettingsServerSwitching" xml:space="preserve"><value>新しいメインチャンネルを準備して切り替え中…</value></data>
+  <data name="SettingsServerSwitchSucceeded" xml:space="preserve"><value>メインチャンネルを切り替えました。</value></data>
+  <data name="SettingsServerSwitchNoChange" xml:space="preserve"><value>すでに使用中のメインチャンネルです。</value></data>
+  <data name="SettingsServerSwitchSuperseded" xml:space="preserve"><value>より新しいチャンネル選択でこの要求を取り消しました。</value></data>
+  <data name="SettingsServerSwitchSaveFailed" xml:space="preserve"><value>保存できなかったため以前のチャンネルに戻しました。</value></data>
+  <data name="SettingsServerSwitchFailed" xml:space="preserve"><value>切り替えに失敗しました。以前のメインチャンネルは維持されます。</value></data>
+  <data name="SettingsWindowsAutoStart" xml:space="preserve"><value>Windows 起動時に Gacha Overlay を実行</value></data>
+  <data name="SettingsWindowsAutoStartHint" xml:space="preserve"><value>ユーザー別の起動項目を使用し、現在の実行ファイル位置を反映します。</value></data>
+  <data name="SettingsAutoStartFailed" xml:space="preserve"><value>Windows 自動起動の登録に失敗しました。アプリは引き続き使用できます。</value></data>
+  <data name="SettingsRerunOnboarding" xml:space="preserve"><value>初期設定をもう一度実行</value></data>
+  <data name="SettingsRerunOnboardingHint" xml:space="preserve"><value>資格情報や現在の設定を削除せずにガイドを再表示します。</value></data>
+  <data name="SettingsDiscordAutoLaunch" xml:space="preserve"><value>Gacha Overlay 起動時に Discord も起動</value></data>
+  <data name="SettingsDiscordReauthenticate" xml:space="preserve"><value>再認証</value></data>
+  <data name="SettingsDiscordAccessibilityLaunch" xml:space="preserve"><value>販売アクセシビリティ用に Discord を起動</value></data>
+  <data name="SettingsDiscordAccessibilityRunningGuidance" xml:space="preserve"><value>Discord はすでに実行中です。安全のため自分で完全に終了してから再実行してください。Gacha Overlay が無断で Discord を終了することはありません。</value></data>
+  <data name="SettingsDiscordAccessibilityLaunchSucceeded" xml:space="preserve"><value>販売アクセシビリティオプションで Discord を起動しました。</value></data>
+  <data name="SettingsDiscordAccessibilityLaunchFailed" xml:space="preserve"><value>アクセシビリティモードで起動できませんでした。Discord を完全に終了し、--force-renderer-accessibility で起動して再接続してください。</value></data>
+  <data name="OnboardingTitle" xml:space="preserve"><value>Gacha Overlay 初期設定</value></data>
+  <data name="OnboardingProgress" xml:space="preserve"><value>ステップ {0} / {1}</value></data>
+  <data name="OnboardingLanguageTitle" xml:space="preserve"><value>言語を選択</value></data>
+  <data name="OnboardingLanguageHint" xml:space="preserve"><value>既定は English です。一般設定で後から変更できます。</value></data>
+  <data name="OnboardingDiscordTitle" xml:space="preserve"><value>Discord 接続</value></data>
+  <data name="OnboardingDiscordHint" xml:space="preserve"><value>限定配布用アプリ資格情報を入力します。Secret は非表示・DPAPI保護され、ログには記録されません。</value></data>
+  <data name="OnboardingServerTitle" xml:space="preserve"><value>対象サーバーを確認</value></data>
+  <data name="OnboardingServerHint" xml:space="preserve"><value>Gacha Overlay v1.0 は固定 Discord サーバーを1つ使用します。ログイン中のアカウントが参加している必要があります。</value></data>
+  <data name="OnboardingMainTitle" xml:space="preserve"><value>メインチャンネルを選択</value></data>
+  <data name="OnboardingMainHint" xml:space="preserve"><value>HUDに表示する対応テキストチャンネルを1つ選択します。固定販売チャンネルは除外されます。</value></data>
+  <data name="OnboardingAccessibilityTitle" xml:space="preserve"><value>販売アクセシビリティを確認</value></data>
+  <data name="OnboardingAccessibilityHint" xml:space="preserve"><value>販売追跡には Discord のアクセシビリティが必要です。販売追跡をオフにすればメインチャットのみ使用できます。</value></data>
+  <data name="OnboardingNoSilentKill" xml:space="preserve"><value>明示的な操作なしに Discord を終了または再起動しません。</value></data>
+  <data name="OnboardingHudTitle" xml:space="preserve"><value>HUD の準備完了</value></data>
+  <data name="OnboardingHudHint" xml:space="preserve"><value>Discord bootstrap 完了後、選択したメインチャンネルで HUD が表示されます。</value></data>
+  <data name="OnboardingHudDragHint" xml:space="preserve"><value>HUD のロックを解除してから移動・サイズ変更できます。</value></data>
+  <data name="OnboardingHudClickThroughHint" xml:space="preserve"><value>ロック中はマウス入力が HUD を通過してゲームに届きます。</value></data>
+  <data name="OnboardingBack" xml:space="preserve"><value>戻る</value></data>
+  <data name="OnboardingNext" xml:space="preserve"><value>次へ</value></data>
+  <data name="OnboardingFinish" xml:space="preserve"><value>完了</value></data>
+  <data name="OnboardingDiscordRequired" xml:space="preserve"><value>続行する前に有効な Discord 資格情報を保存してください。</value></data>
+  <data name="OnboardingServerRequired" xml:space="preserve"><value>続行する前に固定対象サーバーを確認してください。</value></data>
+  <data name="OnboardingMainRequired" xml:space="preserve"><value>メインチャンネルを1つ選択して準備を完了してください。</value></data>
+  <data name="OnboardingAccessibilityRequired" xml:space="preserve"><value>Discord アクセシビリティを準備するか、販売追跡をオフにしてください。</value></data>
+  <data name="OnboardingSaveFailed" xml:space="preserve"><value>初期設定の完了状態を保存できませんでした。再試行してください。</value></data>
+  <data name="DiscordStatusAutoLaunchFailed" xml:space="preserve"><value>Discord を自動起動できませんでした。手動で起動して再接続してください。</value></data>
+</root>

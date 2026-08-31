@@ -1,0 +1,50 @@
+<UserControl x:Class="GachaOverlay.App.Presentation.ChatMediaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:GachaOverlay.App.Presentation"
+             HorizontalAlignment="Left"
+             SnapsToDevicePixels="True"
+             UseLayoutRounding="True">
+    <UserControl.Resources>
+        <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
+    </UserControl.Resources>
+    <StackPanel Margin="0,3,0,4"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Orientation="Horizontal">
+        <Grid Margin="0,0,8,0">
+            <Image Width="{Binding StickerExtent}"
+                   Height="{Binding StickerExtent}"
+                   HorizontalAlignment="Left"
+                   Source="{Binding StickerImage}"
+                   Stretch="Uniform"
+                   Visibility="{Binding ShowStickerImage, Converter={StaticResource BoolVisibility}}" />
+        </Grid>
+        <Button Padding="0"
+                HorizontalAlignment="Left"
+                Background="Transparent"
+                BorderThickness="0"
+                Command="{Binding PreviewCommand}"
+                IsHitTestVisible="{Binding CanEnlarge}"
+                Visibility="{Binding ShowImages, Converter={StaticResource BoolVisibility}}">
+            <Grid>
+                <Image Width="{Binding ThumbnailWidth}"
+                       MaxHeight="{Binding ThumbnailMaxHeight}"
+                       HorizontalAlignment="Left"
+                       Source="{Binding Thumbnail}"
+                       Stretch="Uniform" />
+                <Border HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,4,4"
+                        Padding="5,2"
+                        Background="{DynamicResource MediaOverlayBrush}"
+                        CornerRadius="4"
+                        Visibility="{Binding HasAdditionalMedia, Converter={StaticResource BoolVisibility}}">
+                    <TextBlock FontSize="11"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               Text="{Binding AdditionalMediaText}" />
+                </Border>
+            </Grid>
+        </Button>
+    </StackPanel>
+</UserControl>

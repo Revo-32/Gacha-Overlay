@@ -1,0 +1,97 @@
+<Window x:Class="GachaOverlay.App.Presentation.HudWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GachaOverlay.App.Presentation"
+        Title="{Binding Title}"
+        Icon="/GachaOverlay.App;component/Assets/Branding/GachaOverlay-AppIcon.ico"
+        Width="520"
+        Height="320"
+        MinWidth="240"
+        MinHeight="150"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanResize"
+        ShowActivated="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        WindowStyle="None"
+        Closing="OnClosing"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True">
+    <Window.Resources>
+        <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
+    </Window.Resources>
+    <Border x:Name="HudSurface"
+            Background="Transparent"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource CornerRadius.Hud}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid x:Name="DragSurface"
+                  Grid.Row="0"
+                  Margin="{DynamicResource Thickness.Hud.Header}"
+                  Background="Transparent"
+                  MouseLeftButtonDown="OnDragSurfaceMouseLeftButtonDown"
+                  Visibility="{Binding IsHudChromeVisible, Converter={StaticResource BoolVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock FontSize="{DynamicResource Typography.Hud.Title}"
+                               FontWeight="SemiBold"
+                               Text="{Binding Title}" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="{DynamicResource Typography.Caption}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Text="{Binding Hint}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="12,0,0,0" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Button x:Name="HeaderSettingsButton" Width="30" Height="30" Padding="7" ToolTip="{Binding Localization[HudOpenSettings]}" Click="OnSettingsClick">
+                        <Path Data="M12,1 L14,1 14.7,3.3 16.5,4.1 18.7,3 20,4.3 18.9,6.5 19.7,8.3 22,9 22,11 19.7,11.7 18.9,13.5 20,15.7 18.7,17 16.5,15.9 14.7,16.7 14,19 12,19 11.3,16.7 9.5,15.9 7.3,17 6,15.7 7.1,13.5 6.3,11.7 4,11 4,9 6.3,8.3 7.1,6.5 6,4.3 7.3,3 9.5,4.1 11.3,3.3 Z M13,7 A3,3 0 1 0 13,13 A3,3 0 1 0 13,7" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform"/>
+                    </Button>
+                    <Border x:Name="LockBadgeSurface" Margin="8,0,0,0" Padding="10,5" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="{DynamicResource CornerRadius.Small}">
+                        <TextBlock FontSize="{DynamicResource Typography.Caption}" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding LockStatus}" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <Border x:Name="FloatingEditSurface" Grid.Row="0" Margin="8" Padding="6,4" HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Background="{DynamicResource AccentSubtleBrush}" CornerRadius="9"
+                    Visibility="{Binding IsFloatingEditStripVisible, Converter={StaticResource BoolVisibility}}">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="76" Height="28" Background="Transparent" Cursor="SizeAll" MouseLeftButtonDown="OnDragSurfaceMouseLeftButtonDown">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><Rectangle Width="36" Height="2" Fill="{DynamicResource TextSecondaryBrush}"/><Rectangle Width="24" Height="2" Margin="0,4,0,0" Fill="{DynamicResource TextSecondaryBrush}"/></StackPanel>
+                    </Border>
+                    <Button x:Name="FloatingSettingsButton" Width="28" Height="28" Padding="6" ToolTip="{Binding Localization[HudOpenSettings]}" Click="OnSettingsClick">
+                        <Path Data="M12,1 L14,1 14.7,3.3 16.5,4.1 18.7,3 20,4.3 18.9,6.5 19.7,8.3 22,9 22,11 19.7,11.7 18.9,13.5 20,15.7 18.7,17 16.5,15.9 14.7,16.7 14,19 12,19 11.3,16.7 9.5,15.9 7.3,17 6,15.7 7.1,13.5 6.3,11.7 4,11 4,9 6.3,8.3 7.1,6.5 6,4.3 7.3,3 9.5,4.1 11.3,3.3 Z M13,7 A3,3 0 1 0 13,13 A3,3 0 1 0 13,7" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform"/>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Row="1" Margin="{DynamicResource Thickness.Hud.Content}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Border x:Name="ChatSurface" Grid.Row="0"
+                        Padding="{DynamicResource Thickness.Hud.ContentPadding}"
+                        Background="{DynamicResource SurfaceRaisedBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource CornerRadius.Medium}"
+                        ClipToBounds="True">
+                    <local:ChatView x:Name="ChatContent" DataContext="{Binding Chat}" />
+                </Border>
+                <local:SalesQueueView x:Name="SalesContent" Grid.Row="1" DataContext="{Binding Sales}" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

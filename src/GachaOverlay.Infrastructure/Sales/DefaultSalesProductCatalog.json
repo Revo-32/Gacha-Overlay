@@ -1,0 +1,131 @@
+{
+  "Version": 2,
+  "Products": [
+    {
+      "ProductId": "group-b6b87a92ca10",
+      "EmojiId": "1418347703552839802",
+      "EmojiName": "GTA_Bunker",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "벙커" },
+      "Enabled": true,
+      "GroupName": "벙커"
+    },
+    {
+      "ProductId": "group-fb6ccc993178",
+      "EmojiId": "1418348629055504486",
+      "EmojiName": "GTA_Nightclub",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "나클" },
+      "Enabled": true,
+      "GroupName": "나클"
+    },
+    {
+      "ProductId": "group-7e7ae29a5ab8",
+      "EmojiId": "1461355402792009729",
+      "EmojiName": "SELL_SP_HANG",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "항스패" },
+      "Enabled": true,
+      "GroupName": "항스패"
+    },
+    {
+      "ProductId": "group-26560ec83a10",
+      "EmojiId": "1439136641330708581",
+      "EmojiName": "SELL_SP",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "스패" },
+      "Enabled": true,
+      "GroupName": "스패"
+    },
+    {
+      "ProductId": "group-b6b87a92ca10",
+      "EmojiId": "1438464695815245904",
+      "EmojiName": "SELL_BUNG",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "벙커" },
+      "Enabled": true,
+      "GroupName": "벙커"
+    },
+    {
+      "ProductId": "group-1757dd3cf372",
+      "EmojiId": "1436906875051311154",
+      "EmojiName": "GTA_Bikers_philopon",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "필" },
+      "Enabled": true,
+      "GroupName": "필"
+    },
+    {
+      "ProductId": "group-f4f759edb468",
+      "EmojiId": "1436478258316185731",
+      "EmojiName": "GTA_Bikers_cocaine",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "코" },
+      "Enabled": true,
+      "GroupName": "코"
+    },
+    {
+      "ProductId": "group-e0bebb354d8f",
+      "EmojiId": "1436909263124561940",
+      "EmojiName": "GTA_Bikers_cash",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "위" },
+      "Enabled": true,
+      "GroupName": "위"
+    },
+    {
+      "ProductId": "group-e0bebb354d8f",
+      "EmojiId": "1453317209815388252",
+      "EmojiName": "GTA_Bikers_paper",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "위" },
+      "Enabled": true,
+      "GroupName": "위"
+    },
+    {
+      "ProductId": "group-0a8a81fee098",
+      "EmojiId": "1436478165567541400",
+      "EmojiName": "GTA_Bikers_weed",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "마" },
+      "Enabled": true,
+      "GroupName": "마"
+    },
+    {
+      "ProductId": "group-0262f01b34a0",
+      "EmojiId": "1523061893567352884",
+      "EmojiName": "GTA_LSD",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "엘" },
+      "Enabled": true,
+      "GroupName": "엘"
+    },
+    {
+      "ProductId": "group-0262f01b34a0",
+      "EmojiId": "1438464558523088937",
+      "EmojiName": "SELL_L",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "엘" },
+      "Enabled": true,
+      "GroupName": "엘"
+    },
+    {
+      "ProductId": "group-fb6ccc993178",
+      "EmojiId": "1438464639141810249",
+      "EmojiName": "SELL_NA",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "나클" },
+      "Enabled": true,
+      "GroupName": "나클"
+    },
+    {
+      "ProductId": "group-86cc283e043f",
+      "EmojiId": "1436485825767411863",
+      "EmojiName": "GTA_collection",
+      "GuildId": "1417848677074079857",
+      "DisplayNames": { "ko": "반반" },
+      "Enabled": true,
+      "GroupName": "반반"
+    }
+  ]
+}

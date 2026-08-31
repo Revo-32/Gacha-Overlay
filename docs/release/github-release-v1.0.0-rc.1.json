@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "tag": "v1.0.0-rc.1",
+  "title": "Gacha Overlay 1.0.0-rc.1",
+  "prerelease": true,
+  "draft": true,
+  "artifact": "Gacha-Overlay-1.0.0-rc.1-win-x64.zip",
+  "releaseBody": "github-release-v1.0.0-rc.1.md",
+  "codeSigning": "Not configured",
+  "codeSigningBlocksControlledRc": false,
+  "actualGitHubRelease": "DRAFT TO BE CREATED AFTER TAG PUSH"
+}

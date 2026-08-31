@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "ownLicenseStatus": "MIT",
+  "ownLicenseBlocksControlledRc": false,
+  "entries": [
+    {
+      "component": ".NET 8 Windows Desktop self-contained runtime",
+      "status": "VerifiedFromRuntimePackEvidence",
+      "blocksFinalPackage": false,
+      "sourcePath": "tools/release/licenses/Runtime",
+      "stagingDirectory": "Runtime"
+    },
+    {
+      "component": "Bundled fonts",
+      "status": "VerifiedFromRepositoryEvidence",
+      "blocksFinalPackage": false,
+      "sourcePath": "src/GachaOverlay.App/Assets/Fonts/ThirdPartyNotices",
+      "stagingDirectory": "Fonts"
+    },
+    {
+      "component": "Color theme attributions",
+      "status": "VerifiedFromRepositoryEvidence",
+      "blocksFinalPackage": false,
+      "sourcePath": "src/GachaOverlay.App/Assets/Themes/ThirdPartyNotices",
+      "stagingDirectory": "Themes"
+    }
+  ]
+}

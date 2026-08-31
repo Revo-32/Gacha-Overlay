@@ -1,0 +1,48 @@
+Gacha Overlay - Third-party font notices
+========================================
+
+한국기계연구원 서체 (KIMM)
+--------------------------
+Copyright / source: 한국기계연구원 (Korea Institute of Machinery & Materials)
+Official source: https://www.kimm.re.kr/webfont
+Bundled original files: KIMM_Bold.ttf, KIMM_Light.ttf
+
+Official notice (preserved from the source page):
+- 저작물 출처 표시 필수
+- 추천 문구: 출처 - 한국기계연구원, kimm.re.kr
+- 출처를 표기하는 한 영리 목적 온·오프라인 공유 및 2차 저작물 변경 이용 가능
+- 한국기계연구원이 후원하거나 특수한 관계에 있는 것처럼 오인하게 하는 표기는 금지
+
+Attribution: 출처 - 한국기계연구원, kimm.re.kr
+The original font files are bundled without modification.
+
+Cafe24 PRO Slim
+---------------
+Copyright: Cafe24 Corp.
+Official source: https://fonts.cafe24.com/
+Bundled original files: Cafe24PROSlimMax.ttf, Cafe24PROSlimFit.ttf
+
+The official package identifies both faces as SIL Open Font License 1.1.
+The unmodified official license PDFs are included next to this notice:
+- License-Cafe24-PRO-Slim-Max.pdf
+- License-Cafe24-PRO-Slim-Fit.pdf
+
+The complete SIL Open Font License 1.1 is included as OFL-1.1.txt.
+The original font files are bundled without modification.
+
+Pretendard
+----------
+Copyright (c) 2021, Kil Hyung-jin and the upstream font authors identified
+by the official project.
+Official source: https://github.com/orioncactus/pretendard
+Bundled original file: PretendardVariable.ttf
+License: SIL Open Font License 1.1 (OFL-1.1.txt)
+
+Wanted Sans
+-----------
+Copyright: Wanted Lab, Inc.; Kil Hyung-jin; Kang Hanbin
+Official source: https://github.com/wanteddev/wanted-sans
+Bundled original file: WantedSansVariable.ttf
+License: SIL Open Font License 1.1 (OFL-1.1.txt)
+
+The original variable font files are bundled without modification.

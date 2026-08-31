@@ -1,0 +1,50 @@
+<UserControl x:Class="GachaOverlay.App.Presentation.ChatView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:GachaOverlay.App.Presentation"
+             SizeChanged="OnSizeChanged">
+    <UserControl.Resources>
+        <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
+    </UserControl.Resources>
+    <Grid>
+        <ScrollViewer x:Name="MessageScroller"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Hidden"
+                      CanContentScroll="False">
+            <Border Padding="{Binding PaintViewportPadding}">
+            <ItemsControl ItemsSource="{Binding Messages}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <local:ChatMessageView />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+            </Border>
+        </ScrollViewer>
+
+        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource BorderStrongBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="10"
+                Visibility="{Binding IsPreviewOpen, Converter={StaticResource BoolVisibility}}">
+            <Button Background="Transparent"
+                    BorderThickness="0"
+                    Command="{Binding ClosePreviewCommand}">
+                <Image Source="{Binding PreviewImage}" Stretch="Uniform" />
+            </Button>
+        </Border>
+
+        <Border x:Name="MentionNotificationBorder"
+                BorderBrush="{DynamicResource ChatSelfMentionBrush}"
+                BorderThickness="2"
+                CornerRadius="8"
+                IsHitTestVisible="False"
+                Opacity="0" />
+    </Grid>
+</UserControl>

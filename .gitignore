@@ -1,0 +1,25 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+TestResults/
+artifacts/
+tmp/
+**/__pycache__/
+*.py[cod]
+*.log
+*.dmp
+*.dump
+*.zip
+
+# Gacha Overlay local/runtime data must never enter the source repository.
+settings.json
+discord-client-secret.dat
+discord-oauth-token.dat
+sales-products.json
+sales-products.override.json
+guild-display-names.json
+crash-summary.json
+diagnostics/
+DiagnosticBundles/
