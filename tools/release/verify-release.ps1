@@ -84,7 +84,8 @@ function Assert-AllowedRootEntries {
     }
 
     foreach ($required in @($manifest.requiredRootEntries)) {
-        if ($AllowMissingManual -and [string]$required.name -eq [string]$manifest.manualName) {
+        $manualNames = @([string]$manifest.manualName, [string]$manifest.quickStartName)
+        if ($AllowMissingManual -and $manualNames -contains [string]$required.name) {
             continue
         }
 

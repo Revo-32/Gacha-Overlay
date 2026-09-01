@@ -4,8 +4,8 @@
 
 Release 아래의 **`Gacha-Overlay-1.0.0-rc.1-win-x64.zip`**을 받으세요. GitHub의 자동 생성 `Source code` ZIP은 실행용 배포본이 아닙니다.
 
-- ZIP SHA-256: `5A6A15346D263E7270D14D9A0B5E759DA0AE416CCB01A1870F504E93F8396294`
-- EXE SHA-256: `F7E0D11980614981F2785EF7FC659C085AF37DD1FDF6D6DD3F28E5DB1C6C0744`
+- ZIP SHA-256: `69B760C09177E5CE323F0AC191ABCFF4A60CB85B2BBBED9A76585BA529F32522`
+- EXE SHA-256: `785B63439E1F2D617866956180A4B00D90921EDDECEFDB38494B4DC7017F34C7`
 - 대상: Windows x64
 - 상태: Draft / Prerelease Release Candidate
 
@@ -14,9 +14,11 @@ Release 아래의 **`Gacha-Overlay-1.0.0-rc.1-win-x64.zip`**을 받으세요. Gi
 ## 빠른 시작
 
 1. ZIP을 새 폴더에 압축 해제합니다.
-2. 포함된 `Gacha Overlay 사용자 설명서.pdf`를 확인합니다.
+2. 포함된 `Gacha Overlay 빠른 시작.pdf`를 먼저 확인합니다.
 3. `Gacha Overlay.exe`를 실행합니다.
 4. 온보딩에서 Discord 인증, 대상 서버 및 메인 채널 설정을 완료합니다.
+
+OAuth·HUD·판매 대기열·보안과 상세 문제 해결은 같은 폴더의 `Gacha Overlay 사용자 설명서.pdf`를 확인하세요.
 
 ## 주요 변경 사항
 
@@ -35,8 +37,10 @@ Release 아래의 **`Gacha-Overlay-1.0.0-rc.1-win-x64.zip`**을 받으세요. Gi
 - `dotnet format --verify-no-changes`: PASS
 - self-contained single-file publish: PASS
 - 새 폴더 압축 해제 및 실행: PASS
-- 현재 트리, Git 인덱스, 사용자 설명서, EXE/PDF/ZIP credential 및 개인 정보 감사: PASS
-- 사용자 설명서: 40페이지 / PDF validator PASS
+- 현재 트리, Git 인덱스·이력, EXE/두 PDF/ZIP credential 및 개인 정보 감사: PASS
+- 빠른 시작: 10페이지 / App Tester 기본 흐름 언급 0 / PDF validator PASS
+- 전체 사용자 설명서: 40페이지 / App Tester 조건부 문제 해결만 유지 / PDF validator PASS
+- 패키지 루트: EXE, 빠른 시작, 전체 설명서, Licenses의 정확히 네 항목 / 13 files / PASS
 - Long-run Functional Soak: PASS
 
 ## 알려진 제한 사항

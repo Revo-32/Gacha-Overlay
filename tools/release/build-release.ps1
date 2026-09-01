@@ -133,6 +133,11 @@ if (-not (Test-Path -LiteralPath $manualSource -PathType Leaf)) {
     throw "Final Manual PDF is required: '$manualSource'. Complete M8.3.2 first."
 }
 
+$quickStartSource = Join-Path $repositoryRoot ([string]$manifest.quickStartSource)
+if (-not (Test-Path -LiteralPath $quickStartSource -PathType Leaf)) {
+    throw "Final Quick Start PDF is required: '$quickStartSource'. Complete M8.3.3 documentation first."
+}
+
 $artifactsRoot = Join-Path $repositoryRoot 'artifacts\release'
 $releaseRoot = Join-Path $artifactsRoot $version
 $stagingRoot = Join-Path $releaseRoot 'staging'
@@ -199,6 +204,7 @@ if (-not (Test-Path -LiteralPath $publishedExecutable -PathType Leaf)) {
 
 $finalExecutable = Join-Path $packageRoot ([string]$manifest.executableName)
 Copy-Item -LiteralPath $publishedExecutable -Destination $finalExecutable
+Copy-Item -LiteralPath $quickStartSource -Destination (Join-Path $packageRoot ([string]$manifest.quickStartName))
 Copy-Item -LiteralPath $manualSource -Destination (Join-Path $packageRoot ([string]$manifest.manualName))
 
 $licensesRoot = Join-Path $packageRoot 'Licenses'

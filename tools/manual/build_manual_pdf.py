@@ -69,10 +69,21 @@ def register_fonts(repo: Path) -> None:
 
 
 class ManualDocTemplate(BaseDocTemplate):
-    def __init__(self, filename: str, *, icon_path: Path, palette: dict, **kwargs):
+    def __init__(
+        self,
+        filename: str,
+        *,
+        icon_path: Path,
+        palette: dict,
+        document_label: str = "사용자 설명서",
+        footer_label: str = "Controlled Test Release · Manual 1.1",
+        **kwargs,
+    ):
         super().__init__(filename, **kwargs)
         self.icon_path = icon_path
         self.palette = palette
+        self.document_label = document_label
+        self.footer_label = footer_label
         frame = Frame(
             self.leftMargin,
             self.bottomMargin,
@@ -106,7 +117,7 @@ class ManualDocTemplate(BaseDocTemplate):
             )
             canvas.setFillColor(self.palette["muted"])
             canvas.setFont(BODY_FONT, 7.5)
-            canvas.drawString(self.leftMargin + 7 * mm, height - 9.2 * mm, "Gacha Overlay · 사용자 설명서")
+            canvas.drawString(self.leftMargin + 7 * mm, height - 9.2 * mm, f"Gacha Overlay · {self.document_label}")
             canvas.drawRightString(width - self.rightMargin, height - 9.2 * mm, "1.0.0-rc.1")
             canvas.setStrokeColor(self.palette["line"])
             canvas.setLineWidth(0.45)
@@ -114,7 +125,7 @@ class ManualDocTemplate(BaseDocTemplate):
 
             canvas.setFillColor(self.palette["muted"])
             canvas.setFont(BODY_FONT, 7.5)
-            canvas.drawString(self.leftMargin, 9.5 * mm, "Controlled Test Release · Manual 1.1")
+            canvas.drawString(self.leftMargin, 9.5 * mm, self.footer_label)
             canvas.drawRightString(width - self.rightMargin, 9.5 * mm, f"{doc.page}")
         canvas.restoreState()
 
@@ -143,10 +154,21 @@ class AccentRule(Flowable):
 
 
 class CoverHero(Flowable):
-    def __init__(self, icon_path: Path, palette: dict):
+    def __init__(
+        self,
+        icon_path: Path,
+        palette: dict,
+        *,
+        badge: str = "OFFICIAL USER GUIDE",
+        document_title: str = "사용자 설명서",
+        release_label: str = "VERSION 1.0.0-rc.1   ·   CONTROLLED TEST RELEASE",
+    ):
         super().__init__()
         self.icon_path = icon_path
         self.palette = palette
+        self.badge = badge
+        self.document_title = document_title
+        self.release_label = release_label
         self.height = 91 * mm
 
     def wrap(self, avail_width, avail_height):
@@ -166,16 +188,16 @@ class CoverHero(Flowable):
         c.roundRect(12 * mm, self.height - 17 * mm, 38 * mm, 7 * mm, 3.5 * mm, stroke=0, fill=1)
         c.setFillColor(self.palette["brand_navy"])
         c.setFont(HEAD_FONT, 8.2)
-        c.drawCentredString(31 * mm, self.height - 14.7 * mm, "OFFICIAL USER GUIDE")
+        c.drawCentredString(31 * mm, self.height - 14.7 * mm, self.badge)
 
         c.setFillColor(colors.white)
         c.setFont(HEAD_FONT, 34)
         c.drawString(12 * mm, self.height - 39 * mm, "Gacha Overlay")
         c.setFont(HEAD_FONT, 20)
-        c.drawString(12 * mm, self.height - 53 * mm, "사용자 설명서")
+        c.drawString(12 * mm, self.height - 53 * mm, self.document_title)
         c.setFillColor(colors.HexColor("#CDE8FF"))
         c.setFont(BODY_FONT, 9)
-        c.drawString(12 * mm, 14 * mm, "VERSION 1.0.0-rc.1   ·   CONTROLLED TEST RELEASE")
+        c.drawString(12 * mm, 14 * mm, self.release_label)
 
         c.drawImage(
             str(self.icon_path),
@@ -605,12 +627,19 @@ def parse_body(source_path: Path, styles, palette: dict):
         if image_match:
             caption, relative = image_match.groups()
             asset = (source_path.parent / relative).resolve()
+            explicit_max_height = None
+            if caption.startswith("compact:"):
+                caption = caption.split(":", 1)[1].strip()
+                explicit_max_height = 55 * mm
+            elif caption.startswith("tiny:"):
+                caption = caption.split(":", 1)[1].strip()
+                explicit_max_height = 32 * mm
             compact_part_assets = {
                 "13-hud.png",
                 "14-settings-general.png",
                 "17-sales-settings.png",
             }
-            max_height = 88 * mm if asset.name in compact_part_assets else 112 * mm
+            max_height = explicit_max_height or (88 * mm if asset.name in compact_part_assets else 112 * mm)
             story.append(screenshot_card(asset, caption, styles, palette, max_height=max_height))
             i += 1
             continue
@@ -669,17 +698,34 @@ def parse_body(source_path: Path, styles, palette: dict):
     return story
 
 
-def build_cover(repo: Path, styles, palette: dict):
+def build_cover(repo: Path, styles, palette: dict, document_kind: str):
     icon = repo / "assets/input/GachaOverlay_AppIcon_Source.png"
     hud = repo / "docs/manual/assets/1.0.0-rc.1/13-hud.png"
     hud_image = Image(str(hud), width=63 * mm, height=62.3 * mm, mask="auto")
-    left = [
-        Paragraph("Discord 채팅과 판매 대기열을<br/>게임 화면에서 확인하는 Windows HUD", styles["cover_desc"]),
-        Spacer(1, 5 * mm),
-        Paragraph("실제 UI를 따라 한 단계씩 설정하는 초보자용 Release Guide", styles["cover_meta"]),
-        Spacer(1, 7 * mm),
-        Paragraph("Manual 1.1 · 2026-09-01", styles["cover_meta"]),
-    ]
+    if document_kind == "quick-start":
+        hero = CoverHero(
+            icon,
+            palette,
+            badge="QUICK START GUIDE",
+            document_title="빠른 시작 가이드",
+            release_label="VERSION 1.0.0-rc.1   ·   QUICK START 1.0",
+        )
+        left = [
+            Paragraph("처음 설정할 때 필요한 내용만<br/>정리한 단축 가이드", styles["cover_desc"]),
+            Spacer(1, 5 * mm),
+            Paragraph("Discord Developer Portal이 처음이어도 실제 UI를 보며 따라갈 수 있습니다.", styles["cover_meta"]),
+            Spacer(1, 7 * mm),
+            Paragraph("Quick Start 1.0 · 2026-09-01", styles["cover_meta"]),
+        ]
+    else:
+        hero = CoverHero(icon, palette)
+        left = [
+            Paragraph("Discord 채팅과 판매 대기열을<br/>게임 화면에서 확인하는 Windows HUD", styles["cover_desc"]),
+            Spacer(1, 5 * mm),
+            Paragraph("실제 UI를 따라 한 단계씩 설정하는 초보자용 Release Guide", styles["cover_meta"]),
+            Spacer(1, 7 * mm),
+            Paragraph("Manual 1.1 · 2026-09-01", styles["cover_meta"]),
+        ]
     lower = Table([[left, hud_image]], colWidths=[91 * mm, 67 * mm], hAlign="CENTER")
     lower.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.white),
@@ -695,7 +741,7 @@ def build_cover(repo: Path, styles, palette: dict):
         styles["cover_meta"],
     )
     return [
-        CoverHero(icon, palette),
+        hero,
         Spacer(1, 8 * mm),
         lower,
         Spacer(1, 9 * mm),
@@ -704,13 +750,20 @@ def build_cover(repo: Path, styles, palette: dict):
     ]
 
 
-def build_pdf(repo: Path, source: Path, theme_path: Path, output: Path) -> None:
+def build_pdf(repo: Path, source: Path, theme_path: Path, output: Path, document_kind: str) -> None:
     theme = load_theme(theme_path)
     palette = {name: hex_color(value) for name, value in theme["colors"].items()}
     register_fonts(repo)
     styles = make_styles(theme, palette)
     page = theme["page"]
     output.parent.mkdir(parents=True, exist_ok=True)
+    is_quick_start = document_kind == "quick-start"
+    title = "Gacha Overlay 빠른 시작 가이드" if is_quick_start else "Gacha Overlay 사용자 설명서"
+    subject = (
+        "Gacha Overlay 1.0.0-rc.1 빠른 시작 가이드"
+        if is_quick_start
+        else "Gacha Overlay 1.0.0-rc.1 Controlled Test Release 사용자 설명서"
+    )
     doc = ManualDocTemplate(
         str(output),
         icon_path=repo / "assets/input/GachaOverlay_AppIcon_Source.png",
@@ -720,12 +773,14 @@ def build_pdf(repo: Path, source: Path, theme_path: Path, output: Path) -> None:
         rightMargin=page["margin_right_mm"] * mm,
         topMargin=page["margin_top_mm"] * mm,
         bottomMargin=page["margin_bottom_mm"] * mm,
-        title="Gacha Overlay 사용자 설명서",
+        document_label="빠른 시작" if is_quick_start else "사용자 설명서",
+        footer_label="Quick Start 1.0" if is_quick_start else "Controlled Test Release · Manual 1.1",
+        title=title,
         author="Gacha Overlay",
-        subject="Gacha Overlay 1.0.0-rc.1 Controlled Test Release 사용자 설명서",
+        subject=subject,
         creator="Gacha Overlay reproducible manual pipeline",
     )
-    story = build_cover(repo, styles, palette)
+    story = build_cover(repo, styles, palette, document_kind)
     story.extend(parse_body(source, styles, palette))
     doc.build(story)
 
@@ -736,8 +791,15 @@ def main() -> None:
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--theme", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--document-kind", choices=("manual", "quick-start"), default="manual")
     args = parser.parse_args()
-    build_pdf(args.repo.resolve(), args.source.resolve(), args.theme.resolve(), args.output.resolve())
+    build_pdf(
+        args.repo.resolve(),
+        args.source.resolve(),
+        args.theme.resolve(),
+        args.output.resolve(),
+        args.document_kind,
+    )
     print(args.output.resolve())
 
 

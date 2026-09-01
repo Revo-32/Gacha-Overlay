@@ -14,11 +14,17 @@
   "artifactName": "Gacha-Overlay-1.0.0-rc.1-win-x64.zip",
   "packageDirectoryName": "Gacha Overlay",
   "executableName": "Gacha Overlay.exe",
+  "quickStartName": "Gacha Overlay 빠른 시작.pdf",
+  "quickStartSource": "output/pdf/Gacha Overlay 빠른 시작.pdf",
   "manualName": "Gacha Overlay 사용자 설명서.pdf",
   "manualSource": "docs/manual/output/Gacha Overlay 사용자 설명서.pdf",
   "requiredRootEntries": [
     {
       "name": "Gacha Overlay.exe",
+      "type": "file"
+    },
+    {
+      "name": "Gacha Overlay 빠른 시작.pdf",
       "type": "file"
     },
     {
@@ -32,6 +38,7 @@
   ],
   "allowedRootEntries": [
     "Gacha Overlay.exe",
+    "Gacha Overlay 빠른 시작.pdf",
     "Gacha Overlay 사용자 설명서.pdf",
     "Licenses"
   ],

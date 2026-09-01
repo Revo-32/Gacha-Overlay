@@ -14,7 +14,7 @@ from pypdf import PdfReader
 
 
 EXPECTED_ICON_SHA256 = "944090cf580c9fd770193804f6675c1f60d45af19e94f6234438bd0912c6186f"
-REQUIRED_TEXT = [
+FULL_REQUIRED_TEXT = [
     "https://127.0.0.1",
     "rpc",
     "identify",
@@ -35,12 +35,42 @@ REQUIRED_TEXT = [
     "[스티커]",
     "[메시지]",
 ]
-FORBIDDEN_TEXT = [
+QUICK_REQUIRED_TEXT = [
+    "https://127.0.0.1",
+    "rpc",
+    "identify",
+    "messages.read",
+    "Client ID",
+    "Client Secret",
+    "Discord 인증",
+    "Main Channel",
+    "Sales Compatibility",
+    "F9",
+    "F10",
+    "Current",
+    "Waiting",
+    "Queue Detail",
+    "SOLD",
+    ":closed:",
+    "Paused",
+    "Diagnostic ZIP",
+    "Gacha Overlay 사용자 설명서.pdf",
+    "DPAPI",
+    "Local RPC",
+]
+COMMON_FORBIDDEN_TEXT = [
     "Custom HEX Theme",
     "Chat Text Shadow",
     "Guild Selector",
     "KoPub",
     "Sold History UI",
+]
+QUICK_FORBIDDEN_TEXT = [
+    "App Tester",
+    "Controlled Test",
+    "Tester",
+    "테스터",
+    "테스트 사용자",
 ]
 SECRET_PATTERNS = {
     "client_secret_assignment": r"client[_ ]secret\s*[=:]\s*[A-Za-z0-9._-]{12,}",
@@ -116,7 +146,7 @@ def font_audit(reader: PdfReader) -> dict:
     return fonts
 
 
-def validate(repo: Path, pdf: Path, source: Path) -> dict:
+def validate(repo: Path, pdf: Path, source: Path, document_kind: str) -> dict:
     reader = PdfReader(str(pdf))
     page_text = [(page.extract_text() or "").strip() for page in reader.pages]
     text = "\n".join(page_text)
@@ -136,14 +166,27 @@ def validate(repo: Path, pdf: Path, source: Path) -> dict:
     raw_capture_dir = repo / "tmp/manual-capture"
     raw_capture_files = sorted(path.name for path in raw_capture_dir.glob("**/*") if path.is_file()) if raw_capture_dir.exists() else []
 
-    required_missing = [term for term in REQUIRED_TEXT if re.sub(r"\s+", "", term) not in compact]
-    forbidden_found = [term for term in FORBIDDEN_TEXT if term.casefold() in combined.casefold()]
+    is_quick_start = document_kind == "quick-start"
+    required_text = QUICK_REQUIRED_TEXT if is_quick_start else FULL_REQUIRED_TEXT
+    forbidden_text = COMMON_FORBIDDEN_TEXT + (QUICK_FORBIDDEN_TEXT if is_quick_start else [])
+    expected_pages = 10 if is_quick_start else 40
+    expected_screenshot_refs = 11 if is_quick_start else 25
+    minimum_outline_items = 9 if is_quick_start else 10
+
+    required_missing = [term for term in required_text if re.sub(r"\s+", "", term) not in compact]
+    forbidden_found = [term for term in forbidden_text if term.casefold() in combined.casefold()]
     secret_hits = {
-        name: sorted(set(match.group(0) for match in re.finditer(pattern, combined, re.IGNORECASE)))
+        name: len(list(re.finditer(pattern, combined, re.IGNORECASE)))
         for name, pattern in SECRET_PATTERNS.items()
     }
-    secret_hits = {name: hits for name, hits in secret_hits.items() if hits}
-    developer_path_hits = sorted(set(re.findall(r"(?:[A-Z]:\\Users\\|E:\\Codex\\)[^\s<>'\"]*", combined, re.IGNORECASE)))
+    secret_hits = {name: count for name, count in secret_hits.items() if count}
+    developer_path_hit_count = len(re.findall(r"(?:[A-Z]:\\Users\\|E:\\Codex\\)[^\s<>'\"]*", combined, re.IGNORECASE))
+    tester_terms = re.compile(r"App Tester|Controlled Test|\bTester\b|테스터|테스트 사용자", re.IGNORECASE)
+    app_tester_basic_flow_mentions = len(tester_terms.findall(combined)) if is_quick_start else None
+    full_manual_conditional_tester_policy = (
+        "모든 사용자가 거치는 일반 설치 단계가 아닙니다" in source_text
+        and "권한 오류가 계속" in source_text
+    ) if not is_quick_start else None
 
     metadata = {str(key): str(value) for key, value in (reader.metadata or {}).items()}
     metadata_blob = "\n".join(metadata.values())
@@ -159,6 +202,7 @@ def validate(repo: Path, pdf: Path, source: Path) -> dict:
 
     result = {
         "pdf": str(pdf),
+        "document_kind": document_kind,
         "pdf_bytes": pdf.stat().st_size,
         "pages": len(reader.pages),
         "page_text_characters": [len(value) for value in page_text],
@@ -171,7 +215,9 @@ def validate(repo: Path, pdf: Path, source: Path) -> dict:
         "required_missing": required_missing,
         "forbidden_found": forbidden_found,
         "secret_or_personal_hits": secret_hits,
-        "developer_path_hits": developer_path_hits,
+        "developer_path_hit_count": developer_path_hit_count,
+        "app_tester_basic_flow_mentions": app_tester_basic_flow_mentions,
+        "full_manual_conditional_tester_policy": full_manual_conditional_tester_policy,
         "non_breaking_hyphen_count": combined.count("\u2011"),
         "source_screenshot_refs": len(image_refs),
         "unique_source_screenshot_refs": len(set(image_refs)),
@@ -186,20 +232,20 @@ def validate(repo: Path, pdf: Path, source: Path) -> dict:
         "custom_font_failures": custom_font_failures,
     }
     result["pass"] = all([
-        result["pages"] == 40,
+        result["pages"] == expected_pages,
         result["pdf_bytes"] > 0,
         not result["blank_or_unsearchable_pages"],
         result["a4_page_size_pass"],
         not result["encrypted"],
-        result["outline_items"] >= 10,
+        result["outline_items"] >= minimum_outline_items,
         not result["metadata_private_hits"],
         not result["required_missing"],
         not result["forbidden_found"],
         not result["secret_or_personal_hits"],
-        not result["developer_path_hits"],
+        result["developer_path_hit_count"] == 0,
         result["non_breaking_hyphen_count"] == 0,
-        result["source_screenshot_refs"] == 25,
-        result["unique_source_screenshot_refs"] == 25,
+        result["source_screenshot_refs"] == expected_screenshot_refs,
+        result["unique_source_screenshot_refs"] == expected_screenshot_refs,
         not result["missing_source_screenshot_refs"],
         result["base_screenshots"]["count"] == 25,
         not result["base_screenshots"]["non_png"],
@@ -210,6 +256,7 @@ def validate(repo: Path, pdf: Path, source: Path) -> dict:
         not result["raw_capture_files"],
         result["icon_exact_match"],
         not result["custom_font_failures"],
+        result["app_tester_basic_flow_mentions"] == 0 if is_quick_start else result["full_manual_conditional_tester_policy"],
     ])
     return result
 
@@ -219,9 +266,10 @@ def main() -> None:
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--pdf", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--document-kind", choices=("manual", "quick-start"), default="manual")
     parser.add_argument("--json-output", type=Path)
     args = parser.parse_args()
-    result = validate(args.repo.resolve(), args.pdf.resolve(), args.source.resolve())
+    result = validate(args.repo.resolve(), args.pdf.resolve(), args.source.resolve(), args.document_kind)
     payload = json.dumps(result, ensure_ascii=False, indent=2)
     if args.json_output:
         args.json_output.parent.mkdir(parents=True, exist_ok=True)

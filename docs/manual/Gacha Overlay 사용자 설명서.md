@@ -227,24 +227,24 @@ Scope는 Gacha Overlay가 Discord에 요청하는 권한 범위입니다. 다음
 
 <!-- PAGE -->
 
-# Controlled Test 사용자 등록
+# Discord 인증 문제 해결
 
-## 8. 필요하면 App Tester에 추가하세요
+## 인증 오류가 있을 때만 App Tester를 확인하세요
 
-현재 배포는 소규모 Controlled Test Release입니다. Portal 정책이나 Application 상태에 따라 사용할 Discord 계정을 App Tester로 등록해야 할 수 있습니다.
+App Tester 등록은 모든 사용자가 거치는 일반 설치 단계가 아닙니다. 먼저 다음 페이지의 정상 OAuth 연결을 진행하세요. Discord 인증이 권한 오류로 계속 실패하고 Client ID, Client Secret, Redirect URI와 로그인 계정이 모두 맞는 경우에만 아래 항목을 확인합니다.
 
-1. Application의 `앱 테스터` 화면을 엽니다.
-2. 테스트에 사용할 Discord username을 입력합니다.
-3. `초대` 또는 추가 버튼을 누릅니다.
-4. 초대 상태를 확인합니다.
+1. Discord Developer Portal에서 현재 Application의 `앱 테스터` 화면을 엽니다.
+2. 인증에 사용할 Discord username이 이미 등록되어 있는지 확인합니다.
+3. Application의 배포 상태상 필요한 경우에만 계정을 추가합니다.
+4. 같은 Discord 계정으로 다시 인증합니다.
 
 ![① Tester 입력, ② 초대](assets/1.0.0-rc.1-guide/07-tester-authorization.png)
 
 > [!IMPORTANT]
-> 현재 Portal 화면 기준으로 Tester는 최대 50명까지 표시됩니다. 공개 OAuth 배포는 이번 RC 범위가 아닙니다.
+> Portal 정책과 Application 배포 상태에 따라 이 단계가 필요하지 않을 수 있습니다. Tester 등록을 정상 설치의 필수 조건으로 취급하지 마세요.
 
 > [!TROUBLESHOOT]
-> 인증 권한 오류가 나오면 로그인 계정과 Tester 등록 계정이 같은지 먼저 확인하세요.
+> 권한 오류가 계속될 때만 로그인 계정과 조건부 Tester 등록 계정이 같은지 확인하세요.
 
 <!-- PAGE -->
 
@@ -342,7 +342,7 @@ Server는 Gacha Overlay가 연결할 Discord 서버입니다. 이 RC에서는 Pr
 > 서버 확인 문구가 정상으로 표시되고 Main Channel 선택 단계로 이동하면 정상입니다.
 
 > [!TROUBLESHOOT]
-> 서버가 보이지 않으면 Discord 계정, 서버 참여 상태, App Tester 등록 여부를 확인한 뒤 다시 인증하세요.
+> 서버가 보이지 않으면 Discord 계정과 서버 참여 상태를 먼저 확인하세요. 인증 권한 오류가 함께 발생할 때만 앞의 `Discord 인증 문제 해결`에서 App Tester 조건을 확인합니다.
 
 <!-- PAGE -->
 
@@ -722,8 +722,9 @@ Queue Detail은 HUD 잠금 상태와 펼침 상태를 따로 기억합니다. �
 ## Discord 연결이 안 돼요
 
 **증상**: 인증 창이 없거나 연결 상태가 실패입니다.  
-**가능한 원인**: Discord Desktop 미실행, 다른 계정, Tester 미등록, ID/Secret 불일치.  
-**해결 순서**: Discord 계정 확인 → Tester 확인 → ID/Secret 확인 → 다시 연결.  
+**가능한 원인**: Discord Desktop 미실행, 다른 계정, ID/Secret 불일치 또는 Application 상태에 따른 권한 제한.
+
+**해결 순서**: Discord 계정 확인 → ID/Secret 확인 → 다시 연결 → 권한 오류가 계속될 때만 App Tester 조건 확인.
 **정상 결과**: `LiveAndBootstrapped` 또는 정상 연결 상태가 표시됩니다.
 
 <!-- PAGE -->
