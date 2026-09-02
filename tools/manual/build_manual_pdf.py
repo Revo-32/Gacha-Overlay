@@ -469,15 +469,14 @@ def path_box(text: str, styles, palette: dict):
 def toc_table(styles, palette: dict):
     entries = [
         ("START HERE", "전체 흐름과 준비물", "2"),
-        ("PART 1", "설치 전에 준비하기", "4"),
-        ("PART 2", "Discord 개인용 Application", "5"),
-        ("PART 3", "처음 연결하기", "14"),
-        ("PART 4", "게임에서 HUD 사용하기", "21"),
-        ("PART 5", "내 취향에 맞게 설정하기", "24"),
-        ("PART 6", "판매 대기열 사용하기", "30"),
-        ("PART 7", "문제가 생겼을 때", "34"),
-        ("PART 8", "보안 · 데이터 · 제한사항", "38"),
-        ("QUICK", "한 페이지 빠른 참조", "40"),
+        ("PART 1", "설치와 Remote 연결", "4"),
+        ("PART 2", "페어링과 채널 선택", "6"),
+        ("PART 3", "게임에서 HUD 사용하기", "9"),
+        ("PART 4", "채팅과 미디어 설정", "12"),
+        ("PART 5", "판매 · 세션 · 알림", "14"),
+        ("PART 6", "문제가 생겼을 때", "17"),
+        ("PART 7", "보안과 Desktop 독립성", "19"),
+        ("QUICK", "한 페이지 빠른 참조", "22"),
     ]
     rows = []
     for label, title, page in entries:
@@ -539,9 +538,9 @@ def special_directive(text: str, styles, palette: dict):
         return toc_table(styles, palette)
     if text == "CHANNEL_MAP":
         return card_grid([
-            ("SERVER · 고정", "Gacha Overlay가 연결할 Production Guild"),
-            ("MAIN · 선택", "HUD에 채팅을 표시할 채널 한 개"),
-            ("SALES · 고정", "판매 대기열에 사용하는 Production Sales Channel"),
+            ("REMOTE BACKEND", "Discord와 통신하고 허용 범위를 판정하는 운영 서비스"),
+            ("MAIN · 선택", "HUD에 채팅을 표시할 허용 채널 한 개"),
+            ("SALES · 고정", "Remote가 전달하는 최신 30개 판매 근거"),
         ], styles, palette)
     if text == "HOTKEYS":
         return card_grid([
@@ -564,8 +563,8 @@ def special_directive(text: str, styles, palette: dict):
             ("F9", "HUD 표시 / 숨김 · 트레이 메뉴에서도 가능"),
             ("F10", "잠금 / 편집 상태"),
             ("SETTINGS", "트레이 아이콘 우클릭 → 설정 또는 F10 → Gear"),
-            ("SALES PAUSED", "Discord Sales Channel과 Accessibility 확인"),
-            ("MAIN CHANNEL", "Settings → Server"),
+            ("SALES UNAVAILABLE", "Remote Sales 연결과 권한 확인"),
+            ("MAIN CHANNEL", "Settings → Discord"),
             ("DIAGNOSTICS", "Settings → 진단 및 복구"),
         ], styles, palette, columns=2)
     raise ValueError(f"Unknown manual directive: {text}")
@@ -713,18 +712,18 @@ def build_cover(repo: Path, styles, palette: dict, document_kind: str):
         left = [
             Paragraph("처음 설정할 때 필요한 내용만<br/>정리한 단축 가이드", styles["cover_desc"]),
             Spacer(1, 5 * mm),
-            Paragraph("Discord Developer Portal이 처음이어도 실제 UI를 보며 따라갈 수 있습니다.", styles["cover_meta"]),
+            Paragraph("개인 Discord Application이나 Client Secret 없이 Remote 페어링으로 연결합니다.", styles["cover_meta"]),
             Spacer(1, 7 * mm),
-            Paragraph("Quick Start 1.0 · 2026-09-01", styles["cover_meta"]),
+            Paragraph("Quick Start 1.1 · 2026-09-03", styles["cover_meta"]),
         ]
     else:
         hero = CoverHero(icon, palette)
         left = [
             Paragraph("Discord 채팅과 판매 대기열을<br/>게임 화면에서 확인하는 Windows HUD", styles["cover_desc"]),
             Spacer(1, 5 * mm),
-            Paragraph("실제 UI를 따라 한 단계씩 설정하는 초보자용 Release Guide", styles["cover_meta"]),
+            Paragraph("Remote 페어링부터 HUD·판매 사용까지 안내하는 초보자용 Release Guide", styles["cover_meta"]),
             Spacer(1, 7 * mm),
-            Paragraph("Manual 1.1 · 2026-09-01", styles["cover_meta"]),
+            Paragraph("Manual 1.2 · M9.11 Remote-only · 2026-09-03", styles["cover_meta"]),
         ]
     lower = Table([[left, hud_image]], colWidths=[91 * mm, 67 * mm], hAlign="CENTER")
     lower.setStyle(TableStyle([
@@ -737,7 +736,7 @@ def build_cover(repo: Path, styles, palette: dict, document_kind: str):
         ("BOTTOMPADDING", (0, 0), (-1, -1), 6 * mm),
     ]))
     security = Paragraph(
-        "Client Secret과 token은 비밀번호처럼 보호하세요. Discord User Token이나 DevTools token은 사용하지 않습니다.",
+        "WPF 사용자는 Bot Token이나 Client Secret을 입력하지 않습니다. Remote 페어링 코드는 본인 설치본에서만 사용하세요.",
         styles["cover_meta"],
     )
     return [
@@ -774,7 +773,7 @@ def build_pdf(repo: Path, source: Path, theme_path: Path, output: Path, document
         topMargin=page["margin_top_mm"] * mm,
         bottomMargin=page["margin_bottom_mm"] * mm,
         document_label="빠른 시작" if is_quick_start else "사용자 설명서",
-        footer_label="Quick Start 1.0" if is_quick_start else "Controlled Test Release · Manual 1.1",
+        footer_label="Quick Start 1.1" if is_quick_start else "Remote-only · Manual 1.2",
         title=title,
         author="Gacha Overlay",
         subject=subject,

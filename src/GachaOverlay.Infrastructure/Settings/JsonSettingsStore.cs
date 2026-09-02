@@ -6,7 +6,6 @@ using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Logging;
 using GachaOverlay.Core.Settings;
-using GachaOverlay.Core.Discord.Connection;
 using GachaOverlay.Core.Themes;
 
 namespace GachaOverlay.Infrastructure.Settings;
@@ -318,7 +317,8 @@ public sealed class JsonSettingsStore : ISettingsStore
         var scrollPositions = (settings.SettingsCategoryScrollPositions ??
                 new Dictionary<string, double>())
             .Where(pair =>
-                Enum.TryParse<SettingsCategory>(pair.Key, ignoreCase: true, out _) &&
+                Enum.TryParse<SettingsCategory>(pair.Key, ignoreCase: true, out var category) &&
+                category != SettingsCategory.Server &&
                 double.IsFinite(pair.Value))
             .ToDictionary(
                 pair => pair.Key,
@@ -355,15 +355,14 @@ public sealed class JsonSettingsStore : ISettingsStore
             SchemaVersion = schemaVersion,
             Language = language,
             ColorTheme = colorTheme,
-            LastSettingsCategory = Enum.IsDefined(settings.LastSettingsCategory)
-                ? settings.LastSettingsCategory
-                : SettingsCategory.General,
+            LastSettingsCategory = settings.LastSettingsCategory == SettingsCategory.Server
+                ? SettingsCategory.Discord
+                : Enum.IsDefined(settings.LastSettingsCategory)
+                    ? settings.LastSettingsCategory
+                    : SettingsCategory.General,
             SettingsCategoryScrollPositions = scrollPositions,
-            DiscordClientId = NormalizeText(settings.DiscordClientId),
-            DiscordRedirectUri = NormalizeRedirectUri(settings.DiscordRedirectUri),
-            DiscordGuildId = ProductionServerProfile.GuildId,
-            DiscordMainChannelId = NormalizeText(settings.DiscordMainChannelId),
-            DiscordSalesChannelId = ProductionServerProfile.SalesChannelId,
+            RemoteBackendBaseUrl = NormalizeRemoteBackendBaseUrl(settings.RemoteBackendBaseUrl),
+            RemoteSelectedChannelId = NormalizeNumericText(settings.RemoteSelectedChannelId),
             OnboardingVersion = Math.Clamp(
                 settings.OnboardingVersion,
                 0,
@@ -383,6 +382,9 @@ public sealed class JsonSettingsStore : ISettingsStore
             HotkeysCustomized = hotkeysCustomized,
             HudVisibilityMode = visibilityMode,
             HudWindowGeometry = geometry,
+            SelectedSessionHost = Enum.IsDefined(settings.SelectedSessionHost)
+                ? settings.SelectedSessionHost
+                : SessionHostSelection.Host1,
             ChatLayoutMode = Enum.IsDefined(settings.ChatLayoutMode)
                 ? settings.ChatLayoutMode
                 : ChatLayoutMode.Balanced,
@@ -408,8 +410,39 @@ public sealed class JsonSettingsStore : ISettingsStore
                 : ChatImageSizeMode.Compact,
             SalesQueueDetailMaxHeight = ChatSettings.NormalizeQueueDetailMaxHeight(
                 settings.SalesQueueDetailMaxHeight),
+            SalesTurnSoundVolume = double.IsFinite(settings.SalesTurnSoundVolume)
+                ? Math.Clamp(settings.SalesTurnSoundVolume, 0, 100)
+                : 50,
             ExtensionData = RemoveDeprecatedFields(settings.ExtensionData),
         };
+    }
+
+    private string NormalizeRemoteBackendBaseUrl(string? value)
+    {
+        const string fallback = "http://127.0.0.1:5188";
+        if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) ||
+            (uri.Scheme == Uri.UriSchemeHttp && !uri.IsLoopback))
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                _logger.Warning(
+                    "SETTINGS",
+                    "Invalid remote backend endpoint was replaced with the safe loopback default.");
+            }
+
+            return fallback;
+        }
+
+        return uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+    }
+
+    private static string? NormalizeNumericText(string? value)
+    {
+        var normalized = NormalizeText(value);
+        return normalized is not null && normalized.All(char.IsAsciiDigit)
+            ? normalized
+            : null;
     }
 
     private HotkeySetting NormalizeHotkey(
@@ -434,17 +467,11 @@ public sealed class JsonSettingsStore : ISettingsStore
         source.ChatFontPreset == ChatFontPreset.KoPubWorldDotum ||
         !Enum.IsDefined(source.ColorTheme) ||
         ContainsDeprecatedFields(source.ExtensionData) ||
-        !string.Equals(
-            source.DiscordGuildId,
-            normalized.DiscordGuildId,
-            StringComparison.Ordinal) ||
-        !string.Equals(
-            source.DiscordSalesChannelId,
-            normalized.DiscordSalesChannelId,
-            StringComparison.Ordinal) ||
+        source.LastSettingsCategory != normalized.LastSettingsCategory ||
         source.OnboardingVersion != normalized.OnboardingVersion ||
         source.HudLockHotkey != normalized.HudLockHotkey ||
-        source.HudVisibilityHotkey != normalized.HudVisibilityHotkey;
+        source.HudVisibilityHotkey != normalized.HudVisibilityHotkey ||
+        source.SelectedSessionHost != normalized.SelectedSessionHost;
 
     private static bool IsKnownLegacyDefaultPair(
         HotkeySetting lockSetting,
@@ -489,7 +516,22 @@ public sealed class JsonSettingsStore : ISettingsStore
         extensionData?.Keys.Any(IsDeprecatedField) == true;
 
     private static bool IsDeprecatedField(string name) =>
-        IsLegacyColorField(name) || IsLegacyChatShadowField(name);
+        name.Equals("salesAcquisitionPreference", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordClientId", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordClientSecret", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordRedirectUri", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordOAuthScopes", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordOAuthToken", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordAccessToken", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordRefreshToken", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordGuildId", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordMainChannelId", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordSalesChannelId", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("chatSource", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("mainChatSource", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("discordAutoLaunch", StringComparison.OrdinalIgnoreCase) ||
+        IsLegacyColorField(name) ||
+        IsLegacyChatShadowField(name);
 
     private static bool IsLegacyColorField(string name) => name.Equals(
             "chatNicknameColor",
@@ -509,20 +551,6 @@ public sealed class JsonSettingsStore : ISettingsStore
         name.Equals("chatShadowStrength", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("chatShadowDepth", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("chatShadowOffset", StringComparison.OrdinalIgnoreCase);
-
-    private string NormalizeRedirectUri(string? value)
-    {
-        const string fallback = "https://127.0.0.1";
-        var candidate = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
-        if (Uri.TryCreate(candidate, UriKind.Absolute, out var uri) &&
-            (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp))
-        {
-            return candidate;
-        }
-
-        _logger.Warning("SETTINGS", "Invalid Discord redirect URI was replaced with the safe default.");
-        return fallback;
-    }
 
     private static void TryDeleteTemporaryFile(string temporaryPath)
     {

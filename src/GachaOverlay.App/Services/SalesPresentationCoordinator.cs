@@ -8,59 +8,69 @@ using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Logging;
 using GachaOverlay.Core.Sales;
 using GachaOverlay.Core.Settings;
+using LSOverlay.Protocol;
+using LSOverlay.RemoteClient;
 
 namespace GachaOverlay.App.Services;
 
+/// <summary>
+/// Projects the canonical Remote Sales window into the existing Sales domain and HUD.
+/// Remote Sales is the sole production authority for queue and completion state.
+/// </summary>
 internal sealed class SalesPresentationCoordinator : IDisposable
 {
+    private const int AuthoritativeWindowSize = AuthoritativeSalesWindow.Size;
     private readonly object _sync = new();
     private readonly SalesStateEngine _engine;
-    private readonly ISalesReactionObservationSource _observationSource;
     private readonly SalesQueueViewModel _viewModel;
     private readonly ILocalizationService _localization;
     private readonly IAppLogger _logger;
     private readonly UiUpdateCoalescer _uiUpdates;
+    private readonly IRuntimeMetrics? _metrics;
+    private readonly ISalesTurnNotificationObserver? _turnNotification;
+    private readonly Dictionary<string, NormalizedDiscordMessage> _remoteSource =
+        new(StringComparer.Ordinal);
+    private readonly Dictionary<string, SalesCompletionObservation> _remoteEvidence =
+        new(StringComparer.Ordinal);
     private IReadOnlyList<NormalizedDiscordMessage> _latestSource =
         Array.Empty<NormalizedDiscordMessage>();
-    private SalesObservationTargetSet _observationTargets =
-        SalesObservationTargetSet.Empty;
     private SalesQueueSnapshot _pendingSnapshot;
-    private SalesSensorHealth _sensorHealth = SalesSensorHealth.Disabled;
-    private DiscordConnectionStatus _rpcStatus = DiscordConnectionStatus.Initial;
     private SalesQueueChangeContext _pendingChange = SalesQueueChangeContext.None;
     private SalesQueueChangeContext _publishingChange = SalesQueueChangeContext.None;
     private SalesFeatureHealthSnapshot? _lastHealth;
     private SalesQueuePresentationState? _lastPresentation;
     private AppSettings _settings;
-    private string _salesChannelId;
-    private string _salesChannelName = DiscordTargetOptions.DefaultSalesChannelName;
-    private long _sourceGeneration;
-    private long _targetSetRevision;
-    private bool _sourceReady;
-    private bool _sourceSubscribed;
+    private long _observationGeneration;
+    private bool _remoteCanonicalReady;
+    private string? _remoteGeneration;
+    private long _remoteLatestSequence;
+    private RemoteSalesPresentationPhase _remoteSalesPhase;
+    private EffectiveSalesSource _effectiveSalesSource = EffectiveSalesSource.RemoteStarting;
+    private DateTimeOffset? _remoteSalesReadyAt;
     private bool _started;
     private bool _disposed;
-    private readonly IRuntimeMetrics? _metrics;
 
     public SalesPresentationCoordinator(
         SalesStateEngine engine,
-        ISalesReactionObservationSource observationSource,
         SalesQueueViewModel viewModel,
         ILocalizationService localization,
         IAppLogger logger,
         AppSettings initialSettings,
         System.Windows.Threading.Dispatcher dispatcher,
-        IRuntimeMetrics? metrics = null)
+        IRuntimeMetrics? metrics = null,
+        ISalesTurnNotificationObserver? turnNotification = null)
     {
-        _engine = engine;
-        _observationSource = observationSource;
-        _viewModel = viewModel;
-        _localization = localization;
-        _logger = logger;
-        _settings = initialSettings;
-        _salesChannelId = initialSettings.DiscordSalesChannelId ?? string.Empty;
+        _engine = engine ?? throw new ArgumentNullException(nameof(engine));
+        _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+        _localization = localization ?? throw new ArgumentNullException(nameof(localization));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _settings = initialSettings ?? throw new ArgumentNullException(nameof(initialSettings));
         _pendingSnapshot = engine.Current;
+        _remoteSalesPhase = initialSettings.SalesTrackingEnabled
+            ? RemoteSalesPresentationPhase.Connecting
+            : RemoteSalesPresentationPhase.Disabled;
         _metrics = metrics;
+        _turnNotification = turnNotification;
         _uiUpdates = new UiUpdateCoalescer(
             new DispatcherCallbackScheduler(dispatcher),
             requestCount =>
@@ -100,8 +110,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
                 Message = message,
                 Emoji = emoji,
             }))
-            .GroupBy(
-                item => (item.Message.GuildId, item.Emoji.EmojiId))
+            .GroupBy(item => (item.Message.GuildId, item.Emoji.EmojiId))
             .Select(group =>
             {
                 var representative = group.First().Emoji;
@@ -135,41 +144,6 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         _uiUpdates.Request();
     }
 
-    public ManualSalesResyncResult RequestManualResync()
-    {
-        _metrics?.Increment(RuntimeMetricNames.SalesManualResync);
-        lock (_sync)
-        {
-            if (!_settings.SalesTrackingEnabled)
-            {
-                return ManualSalesResyncResult.TrackingDisabled;
-            }
-
-            if (_rpcStatus.State != DiscordConnectionState.Connected)
-            {
-                return ManualSalesResyncResult.DiscordDisconnected;
-            }
-
-            if (string.IsNullOrWhiteSpace(_salesChannelId) ||
-                _sensorHealth.TargetChannelStatus == SalesTargetChannelStatus.NotSelected)
-            {
-                return ManualSalesResyncResult.TargetChannelUnavailable;
-            }
-
-            if (_sensorHealth.Status == SalesObservationStatus.Resyncing)
-            {
-                _metrics?.Increment(RuntimeMetricNames.SalesResyncAttempts);
-                _observationSource.RequestFullResync();
-                return ManualSalesResyncResult.Coalesced;
-            }
-        }
-
-        _metrics?.Increment(RuntimeMetricNames.SalesResyncAttempts);
-        _observationSource.RequestFullResync();
-        _logger.Information("SALES", "Manual full resync requested from Settings.");
-        return ManualSalesResyncResult.Requested;
-    }
-
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -182,107 +156,186 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         _engine.SnapshotChanged += OnSnapshotChanged;
         _localization.LanguageChanged += OnLanguageChanged;
         _engine.SetTrackingEnabled(_settings.SalesTrackingEnabled);
-        if (_settings.SalesTrackingEnabled)
-        {
-            RefreshObservationTargets(force: true);
-            StartObservationSource();
-        }
-
         OnSnapshotChanged(_engine.Current);
     }
 
-    public void ApplySourceState(DiscordMessageState state)
+    public void ApplyRemoteSalesBootstrap(SalesBootstrapResponse bootstrap)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        lock (_sync)
+        ArgumentNullException.ThrowIfNull(bootstrap);
+        if (!_settings.SalesTrackingEnabled)
         {
-            _latestSource = state.SalesSource.ToArray();
-            _sourceGeneration = state.Generation;
-            _sourceReady = !state.IsBootstrapping;
-            if (string.IsNullOrWhiteSpace(_salesChannelId))
+            return;
+        }
+
+        if (!IsCanonicalBootstrap(bootstrap))
+        {
+            lock (_sync)
             {
-                _salesChannelId = state.SalesSource
-                    .Select(message => message.ChannelId)
-                    .FirstOrDefault(channelId => !string.IsNullOrWhiteSpace(channelId)) ??
-                    string.Empty;
+                InvalidateRemoteAuthorityUnderLock(RemoteSalesPresentationPhase.Resyncing);
             }
+
+            _metrics?.Increment(RuntimeMetricNames.RemotePromotionFailures);
+            _logger.Warning(
+                "REMOTE-SALES",
+                $"Non-canonical bootstrap rejected coverage={bootstrap.Coverage} messages={bootstrap.RecentMessages.Count} observations={bootstrap.CompletionObservations.Count}.");
+            _uiUpdates.Request();
+            return;
         }
 
-        if (_settings.SalesTrackingEnabled)
-        {
-            _engine.ApplySourceSnapshot(state.SalesSource);
-            RefreshObservationTargets();
-        }
-
-        _uiUpdates.Request();
-    }
-
-    public void ApplyRpcStatus(DiscordConnectionStatus status)
-    {
-        ArgumentNullException.ThrowIfNull(status);
+        IReadOnlyList<NormalizedDiscordMessage> productionSource;
         lock (_sync)
         {
-            _rpcStatus = status;
-        }
-
-        _uiUpdates.Request();
-    }
-
-    public void SetTargetChannel(string channelId, string channelName)
-    {
-        var normalizedId = channelId?.Trim() ?? string.Empty;
-        var normalizedName = string.IsNullOrWhiteSpace(channelName)
-            ? DiscordTargetOptions.DefaultSalesChannelName
-            : channelName.Trim();
-        lock (_sync)
-        {
-            if (string.Equals(_salesChannelId, normalizedId, StringComparison.Ordinal) &&
-                string.Equals(_salesChannelName, normalizedName, StringComparison.Ordinal))
+            _remoteSource.Clear();
+            foreach (var message in bootstrap.RecentMessages)
             {
+                var normalized = RemoteChatIngressAdapter.MapNormalizedMessage(message);
+                _remoteSource[normalized.MessageId] = normalized;
+            }
+
+            _remoteEvidence.Clear();
+            foreach (var observation in bootstrap.CompletionObservations)
+            {
+                _remoteEvidence[Id(observation.MessageId)] = observation;
+            }
+
+            TrimRemoteCachesUnderLock();
+            _remoteCanonicalReady = true;
+            _remoteGeneration = bootstrap.Generation;
+            _remoteLatestSequence = bootstrap.LatestSequence;
+            _remoteSalesPhase = RemoteSalesPresentationPhase.Live;
+            _remoteSalesReadyAt = DateTimeOffset.UtcNow;
+            productionSource = ComposeRemoteSourceUnderLock();
+            _latestSource = productionSource;
+        }
+
+        _engine.ApplyAuthoritativeWindowSnapshot(productionSource);
+        ApplyRemoteEvidence(bootstrap.CompletionObservations);
+        _metrics?.Increment(RuntimeMetricNames.RemotePromotionSucceeded);
+        _uiUpdates.Request();
+        _logger.Information(
+            "REMOTE-SALES",
+            $"Canonical bootstrap promoted coverage={bootstrap.Coverage} messages={bootstrap.RecentMessages.Count} observations={bootstrap.CompletionObservations.Count}.");
+    }
+
+    public void ApplyRemoteSalesMutation(SalesMutationEnvelope mutation)
+    {
+        ArgumentNullException.ThrowIfNull(mutation);
+        if (!_settings.SalesTrackingEnabled)
+        {
+            return;
+        }
+
+        var messageId = Id(mutation.MessageId);
+        IReadOnlyList<NormalizedDiscordMessage>? productionSource = null;
+        lock (_sync)
+        {
+            if (!_remoteCanonicalReady ||
+                _remoteSalesPhase != RemoteSalesPresentationPhase.Live ||
+                !string.Equals(_remoteGeneration, mutation.Generation, StringComparison.Ordinal) ||
+                mutation.Sequence != _remoteLatestSequence + 1)
+            {
+                InvalidateRemoteAuthorityUnderLock(RemoteSalesPresentationPhase.Resyncing);
+                _logger.Warning(
+                    "REMOTE-SALES",
+                    $"Mutation cursor rejected generation={Sanitize(mutation.Generation)} sequence={mutation.Sequence}; canonical resync required.");
+                _uiUpdates.Request();
                 return;
             }
 
-            _salesChannelId = normalizedId;
-            _salesChannelName = normalizedName;
+            _remoteLatestSequence = mutation.Sequence;
+            if (mutation.EventType == OverlayTransportProtocol.SalesMessageDelete)
+            {
+                _remoteSource.Remove(messageId);
+                _remoteEvidence.Remove(messageId);
+            }
+            else if (mutation.Message is not null)
+            {
+                var normalized = RemoteChatIngressAdapter.MapNormalizedMessage(mutation.Message);
+                _remoteSource[normalized.MessageId] = normalized;
+            }
+
+            if (mutation.CompletionObservation is { } observation)
+            {
+                _remoteEvidence[Id(observation.MessageId)] = observation;
+            }
+
+            TrimRemoteCachesUnderLock();
+            productionSource = ComposeRemoteSourceUnderLock();
+            _latestSource = productionSource;
         }
 
-        RefreshObservationTargets(force: true);
+        if (mutation.EventType == OverlayTransportProtocol.SalesMessageDelete)
+        {
+            _engine.ApplySourceDelete(messageId);
+        }
+
+        _engine.ApplyAuthoritativeWindowSnapshot(productionSource);
+        if (mutation.CompletionObservation is { } completion)
+        {
+            ApplyRemoteEvidence(new[] { completion });
+        }
+
         _uiUpdates.Request();
     }
 
-    public void SetAuthenticatedUser(string userId) =>
+    public void ApplyRemoteSalesStatus(string status)
+    {
+        var phase = MapRemoteSalesPhase(status);
+        lock (_sync)
+        {
+            if (phase == RemoteSalesPresentationPhase.Live && _remoteCanonicalReady)
+            {
+                _remoteSalesPhase = RemoteSalesPresentationPhase.Live;
+            }
+            else
+            {
+                InvalidateRemoteAuthorityUnderLock(phase);
+            }
+        }
+
+        _logger.Information("REMOTE-SALES", $"State={status}.");
+        _metrics?.SetState(RuntimeMetricNames.RemoteSalesState, status);
+        _uiUpdates.Request();
+    }
+
+    public void SetAuthenticatedUser(string userId)
+    {
+        _turnNotification?.ResetBaseline();
         _engine.SetAuthenticatedUser(userId);
+    }
 
     public void ApplySettings(AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
         var wasEnabled = _settings.SalesTrackingEnabled;
         _settings = settings;
-        if (!string.IsNullOrWhiteSpace(settings.DiscordSalesChannelId))
-        {
-            SetTargetChannel(settings.DiscordSalesChannelId, _salesChannelName);
-        }
-
         if (wasEnabled != settings.SalesTrackingEnabled)
         {
-            _engine.SetTrackingEnabled(settings.SalesTrackingEnabled);
             if (settings.SalesTrackingEnabled)
             {
-                IReadOnlyList<NormalizedDiscordMessage> source;
+                _engine.SetTrackingEnabled(true);
+                _engine.ApplyAuthoritativeWindowSnapshot(Array.Empty<NormalizedDiscordMessage>());
                 lock (_sync)
                 {
-                    source = _latestSource;
+                    _remoteSource.Clear();
+                    _remoteEvidence.Clear();
+                    _latestSource = Array.Empty<NormalizedDiscordMessage>();
+                    InvalidateRemoteAuthorityUnderLock(RemoteSalesPresentationPhase.Connecting);
+                    _remoteSalesReadyAt = null;
                 }
-
-                _engine.ApplySourceSnapshot(source);
-                RefreshObservationTargets(force: true);
-                StartObservationSource();
-                _metrics?.Increment(RuntimeMetricNames.SalesResyncAttempts);
-                _observationSource.RequestFullResync();
             }
             else
             {
-                StopObservationSource();
+                lock (_sync)
+                {
+                    _remoteSource.Clear();
+                    _remoteEvidence.Clear();
+                    _latestSource = Array.Empty<NormalizedDiscordMessage>();
+                    InvalidateRemoteAuthorityUnderLock(RemoteSalesPresentationPhase.Disabled);
+                    _remoteSalesReadyAt = null;
+                }
+
+                _engine.SetTrackingEnabled(false);
             }
         }
 
@@ -299,36 +352,46 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         _disposed = true;
         _engine.SnapshotChanged -= OnSnapshotChanged;
         _localization.LanguageChanged -= OnLanguageChanged;
-        StopObservationSource();
-        _observationSource.Dispose();
         _uiUpdates.Dispose();
     }
 
-    private void StartObservationSource()
+    private void ApplyRemoteEvidence(
+        IReadOnlyCollection<SalesCompletionObservation> observations)
     {
-        if (!_sourceSubscribed)
+        var complete = observations
+            .Where(observation => observation.Coverage == SalesEvidenceCoverage.Complete)
+            .ToArray();
+        _metrics?.Increment(RuntimeMetricNames.RemoteSalesObservations, complete.Length);
+        long generation;
+        lock (_sync)
         {
-            _observationSource.BatchAvailable += OnObservationBatch;
-            _observationSource.HealthChanged += OnSensorHealthChanged;
-            _sourceSubscribed = true;
+            generation = ++_observationGeneration;
         }
 
-        _observationSource.Start();
-        OnSensorHealthChanged(_observationSource.Health);
+        var observedAt = complete.Length == 0
+            ? _remoteSalesReadyAt ?? DateTimeOffset.UtcNow
+            : complete.Max(item => item.ObservedAt);
+        var batch = new SalesObservationBatch(
+            generation,
+            observedAt,
+            SalesObservationStatus.Live,
+            true,
+            SalesObservationCompleteness.Full,
+            complete.Select(item => new SaleReactionObservation(
+                Id(item.MessageId),
+                item.IsSold ? SaleReactionOutcome.Sold : SaleReactionOutcome.NotSold,
+                true,
+                item.ObservedAt,
+                generation)).ToArray(),
+            SalesCoverageState.Complete,
+            TargetMessageCount: complete.Length,
+            ObservedMessageCount: complete.Length,
+            SoldCount: complete.Count(item => item.IsSold),
+            NotSoldCount: complete.Count(item => !item.IsSold));
+        ApplyObservationBatch(batch);
     }
 
-    private void StopObservationSource()
-    {
-        _observationSource.Stop();
-        if (_sourceSubscribed)
-        {
-            _observationSource.BatchAvailable -= OnObservationBatch;
-            _observationSource.HealthChanged -= OnSensorHealthChanged;
-            _sourceSubscribed = false;
-        }
-    }
-
-    private void OnObservationBatch(SalesObservationBatch batch)
+    private void ApplyObservationBatch(SalesObservationBatch batch)
     {
         var previous = _engine.Current;
         var trustedSoldCurrent = batch.IsTrusted &&
@@ -365,85 +428,6 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         }
     }
 
-    private void OnSensorHealthChanged(SalesSensorHealth health)
-    {
-        SalesSensorHealth previous;
-        lock (_sync)
-        {
-            previous = _sensorHealth;
-            _sensorHealth = health;
-        }
-
-        _metrics?.SetState(RuntimeMetricNames.SalesState, health.Status.ToString());
-        _metrics?.SetGauge(RuntimeMetricNames.SalesSold, health.SoldCount);
-        _metrics?.SetGauge(RuntimeMetricNames.SalesCoverageTarget, health.TargetMessageCount);
-        _metrics?.SetGauge(RuntimeMetricNames.SalesCoverageObserved, health.ObservedMessageCount);
-        if (health.LastCompleteResyncAt.HasValue)
-        {
-            _metrics?.SetGauge(
-                RuntimeMetricNames.SalesLastCompleteUnixSeconds,
-                health.LastCompleteResyncAt.Value.ToUnixTimeSeconds());
-        }
-        if (previous.Status != health.Status)
-        {
-            _metrics?.Increment(RuntimeMetricNames.SalesHealthTransitions);
-            if (health.Status == SalesObservationStatus.Live && health.IsComplete)
-            {
-                _metrics?.Increment(RuntimeMetricNames.SalesResyncSucceeded);
-            }
-            else if (health.Status is SalesObservationStatus.Error or
-                     SalesObservationStatus.Unavailable or
-                     SalesObservationStatus.AccessibilityUnavailable)
-            {
-                _metrics?.Increment(RuntimeMetricNames.SalesResyncFailed);
-            }
-        }
-
-        _uiUpdates.Request();
-    }
-
-    private void RefreshObservationTargets(bool force = false)
-    {
-        SalesObservationTargetSet targetSet;
-        lock (_sync)
-        {
-            var targets = _engine.Records
-                .Where(record => record.DomainState != SaleDomainState.Deleted)
-                .Select(record => new SalesObservationTarget(
-                    record.MessageId,
-                    record.SourceRevision))
-                .OrderBy(target => target.MessageId, StringComparer.Ordinal)
-                .ToArray();
-            var unchanged = !force &&
-                _observationTargets.SourceGeneration == _sourceGeneration &&
-                _observationTargets.IsSourceReady == _sourceReady &&
-                string.Equals(
-                    _observationTargets.SalesChannelId,
-                    _salesChannelId,
-                    StringComparison.Ordinal) &&
-                string.Equals(
-                    _observationTargets.SalesChannelName,
-                    _salesChannelName,
-                    StringComparison.Ordinal) &&
-                _observationTargets.Targets.SequenceEqual(targets);
-            if (unchanged)
-            {
-                return;
-            }
-
-            targetSet = new SalesObservationTargetSet(
-                ++_targetSetRevision,
-                _sourceGeneration,
-                _sourceReady,
-                _salesChannelId,
-                _salesChannelName,
-                targets);
-            _observationTargets = targetSet;
-        }
-
-        _observationSource.UpdateTargets(targetSet);
-    }
-
     private void OnSnapshotChanged(SalesQueueSnapshot snapshot)
     {
         _metrics?.SetGauge(RuntimeMetricNames.SalesActiveQueue, snapshot.ActiveCount);
@@ -476,54 +460,133 @@ internal sealed class SalesPresentationCoordinator : IDisposable
     {
         var started = Stopwatch.GetTimestamp();
         SalesQueueSnapshot snapshot;
-        SalesSensorHealth sensorHealth;
-        DiscordConnectionStatus rpcStatus;
-        SalesObservationTargetSet observationTargets;
         SalesQueueChangeContext change;
-        string salesChannelName;
-        bool sourceReady;
+        RemoteSalesPresentationPhase phase;
+        bool canonicalReady;
+        DateTimeOffset? readyAt;
+        IReadOnlyDictionary<string, SalesCompletionObservation> evidence;
+        EffectiveSalesSource effectiveSource;
+        bool effectiveSourceChanged;
+        int targetCount;
+        int observedCount;
+        SalesCoverageState coverage;
         lock (_sync)
         {
             snapshot = _pendingSnapshot;
-            sensorHealth = _sensorHealth;
-            rpcStatus = _rpcStatus;
-            observationTargets = _observationTargets;
             change = _pendingChange;
-            salesChannelName = _salesChannelName;
-            sourceReady = _sourceReady &&
-                rpcStatus.State == DiscordConnectionState.Connected &&
-                _sourceGeneration == rpcStatus.Generation;
             _pendingChange = SalesQueueChangeContext.None;
+            phase = _remoteSalesPhase;
+            canonicalReady = _remoteCanonicalReady;
+            readyAt = _remoteSalesReadyAt;
+            evidence = new Dictionary<string, SalesCompletionObservation>(
+                _remoteEvidence,
+                StringComparer.Ordinal);
+            targetCount = _remoteSource.Count;
+            observedCount = _remoteSource.Keys.Count(id =>
+                _remoteEvidence.TryGetValue(id, out var observation) &&
+                observation.Coverage == SalesEvidenceCoverage.Complete);
+            coverage = canonicalReady && observedCount == targetCount
+                ? SalesCoverageState.Complete
+                : observedCount > 0
+                    ? SalesCoverageState.Partial
+                    : SalesCoverageState.None;
+            effectiveSource = ResolveDecisionUnderLock().EffectiveSource;
+            effectiveSourceChanged = effectiveSource != _effectiveSalesSource;
+            _effectiveSalesSource = effectiveSource;
         }
 
-        var currentGenerationResyncComplete = sensorHealth.Status == SalesObservationStatus.Live &&
-            sensorHealth.Coverage == SalesCoverageState.Complete &&
-            sensorHealth.IsComplete &&
-            sensorHealth.LastCompleteResyncAt.HasValue &&
-            sensorHealth.TargetSetRevision == observationTargets.Revision;
+        if (effectiveSourceChanged)
+        {
+            _metrics?.Increment(RuntimeMetricNames.EffectiveSalesSourceTransitions);
+            _metrics?.SetState(RuntimeMetricNames.EffectiveSalesSource, effectiveSource.ToString());
+            if (effectiveSource == EffectiveSalesSource.RemotePrimary)
+            {
+                _metrics?.Increment(RuntimeMetricNames.RemotePrimaryTransitions);
+            }
+            else if (effectiveSource == EffectiveSalesSource.RemoteRecovering)
+            {
+                _metrics?.Increment(RuntimeMetricNames.RemoteRecoveryTransitions);
+            }
+        }
+
         var health = SalesFeatureHealthEvaluator.Evaluate(new SalesFeatureHealthInput(
             _settings.SalesTrackingEnabled,
-            rpcStatus.State,
-            sourceReady,
-            sensorHealth,
-            currentGenerationResyncComplete));
+            phase,
+            canonicalReady,
+            coverage,
+            canonicalReady && coverage == SalesCoverageState.Complete ? readyAt : null,
+            targetCount,
+            observedCount));
         if (health != _lastHealth)
         {
             _logger.Information(
                 "SALES-HEALTH",
-                $"state={health.State} reason={health.Reason} coverage={health.Coverage} target={health.TargetMessageCount} observed={health.ObservedMessageCount}.");
+                $"state={health.State} reason={health.Reason} source={effectiveSource} coverage={health.Coverage} target={health.TargetMessageCount} observed={health.ObservedMessageCount}.");
             _lastHealth = health;
         }
 
         _metrics?.SetState(RuntimeMetricNames.SalesState, health.State.ToString());
+        _metrics?.SetGauge(RuntimeMetricNames.SalesCoverageTarget, targetCount);
+        _metrics?.SetGauge(RuntimeMetricNames.SalesCoverageObserved, observedCount);
+        if (readyAt.HasValue)
+        {
+            _metrics?.SetGauge(
+                RuntimeMetricNames.SalesLastCompleteUnixSeconds,
+                readyAt.Value.ToUnixTimeSeconds());
+        }
 
-        _viewModel.Apply(snapshot, _settings, health, salesChannelName, change);
+        var presentationSnapshot = effectiveSource == EffectiveSalesSource.AccessRevoked
+            ? RedactForAccessRevocation(snapshot)
+            : snapshot;
+        var activeIds = presentationSnapshot.ActiveItems
+            .Select(entry => entry.MessageId)
+            .ToHashSet(StringComparer.Ordinal);
+        var statusActionTargets = effectiveSource != EffectiveSalesSource.RemotePrimary ||
+            string.IsNullOrWhiteSpace(presentationSnapshot.AuthenticatedUserId)
+                ? Array.Empty<SalesStatusActionTarget>()
+                : _engine.Records
+                    .Where(record =>
+                        record.DomainState != SaleDomainState.Deleted &&
+                        string.Equals(
+                            record.AuthorId,
+                            presentationSnapshot.AuthenticatedUserId,
+                            StringComparison.Ordinal) &&
+                        !activeIds.Contains(record.MessageId) &&
+                        evidence.TryGetValue(record.MessageId, out var observation) &&
+                        observation.Coverage == SalesEvidenceCoverage.Complete &&
+                        observation.HasAnyBotStatus)
+                    .Select(record => new SalesStatusActionTarget(
+                        record.MessageId,
+                        record.DisplayName.DisplayName,
+                        SalesProductSummaryFormatter.Format(record.AllProducts),
+                        record.DisplayName.IsExactGuildNickname))
+                    .ToArray();
+
+        _viewModel.ApplyRemoteStatusContext(evidence, effectiveSource, statusActionTargets);
+        _viewModel.Apply(
+            presentationSnapshot,
+            _settings,
+            health,
+            ProductionServerProfile.SalesChannelName,
+            change);
         var presentation = _viewModel.Presentation;
+        try
+        {
+            _turnNotification?.Observe(presentation, effectiveSourceChanged);
+        }
+        catch (Exception exception)
+        {
+            _logger.Error(
+                "SALES-SOUND",
+                "Sales turn notification failed without affecting Sales presentation.",
+                exception);
+        }
+
         if (presentation != _lastPresentation)
         {
             _logger.Information(
                 "QUEUE-UI",
-                $"mode={presentation.ContentMode} health={presentation.HealthMode} current={Sanitize(presentation.CurrentMessageId)} next={Sanitize(presentation.NextMessageId)} waiting={snapshot.WaitingCount} animation={presentation.AnimationRequest}.");
+                $"mode={presentation.ContentMode} health={presentation.HealthMode} current={Sanitize(presentation.CurrentMessageId)} next={Sanitize(presentation.NextMessageId)} waiting={presentationSnapshot.WaitingCount} animation={presentation.AnimationRequest}.");
             _lastPresentation = presentation;
         }
 
@@ -534,6 +597,105 @@ internal sealed class SalesPresentationCoordinator : IDisposable
             _metrics?.Increment(RuntimeMetricNames.DispatcherLongOperations);
         }
     }
+
+    private static SalesQueueSnapshot RedactForAccessRevocation(SalesQueueSnapshot snapshot) =>
+        snapshot with
+        {
+            ActiveItems = Array.Empty<SalesQueueEntry>(),
+            CurrentSeller = null,
+            ActiveCount = 0,
+            WaitingCount = 0,
+            NextWaitingEntry = null,
+            CurrentSellerIsSelf = false,
+            NextSellerIsSelf = false,
+            ContainsUnverifiedActiveItems = false,
+            IsObservationSourceAvailable = false,
+            ObservationStatus = SalesObservationStatus.Unavailable,
+        };
+
+    private SalesAcquisitionDecision ResolveDecisionUnderLock() =>
+        SalesAcquisitionPolicy.Evaluate(new SalesAcquisitionPolicyInput(
+            _settings.SalesTrackingEnabled,
+            _remoteSalesPhase,
+            _remoteCanonicalReady));
+
+    private void InvalidateRemoteAuthorityUnderLock(RemoteSalesPresentationPhase phase)
+    {
+        _remoteSalesPhase = phase;
+        _remoteCanonicalReady = false;
+        _remoteGeneration = null;
+        _remoteLatestSequence = 0;
+    }
+
+    private IReadOnlyList<NormalizedDiscordMessage> ComposeRemoteSourceUnderLock() =>
+        _remoteSource.Values
+            .OrderBy(message => message.CreatedAt)
+            .ThenBy(message => message.MessageId, StringComparer.Ordinal)
+            .ToArray();
+
+    private static bool IsCanonicalBootstrap(SalesBootstrapResponse bootstrap)
+    {
+        if (bootstrap.ProtocolVersion != OverlayTransportProtocol.Version ||
+            string.IsNullOrWhiteSpace(bootstrap.Generation) ||
+            bootstrap.Coverage != SalesBootstrapCoverage.Complete ||
+            bootstrap.RecentMessages.Count > AuthoritativeWindowSize)
+        {
+            return false;
+        }
+
+        var messageIds = bootstrap.RecentMessages.Select(message => message.MessageId).ToHashSet();
+        var observations = bootstrap.CompletionObservations
+            .GroupBy(observation => observation.MessageId)
+            .ToArray();
+        return observations.All(group =>
+                   group.Count() == 1 &&
+                   group.Single().Coverage == SalesEvidenceCoverage.Complete) &&
+               observations.Select(group => group.Key).ToHashSet().SetEquals(messageIds);
+    }
+
+    private void TrimRemoteCachesUnderLock()
+    {
+        foreach (var id in _remoteSource.Values
+                     .OrderByDescending(message => message.CreatedAt)
+                     .ThenByDescending(message => message.MessageId, StringComparer.Ordinal)
+                     .Skip(AuthoritativeWindowSize)
+                     .Select(message => message.MessageId)
+                     .ToArray())
+        {
+            _remoteSource.Remove(id);
+            _remoteEvidence.Remove(id);
+        }
+
+        foreach (var id in _remoteEvidence.Keys.Where(id => !_remoteSource.ContainsKey(id)).ToArray())
+        {
+            _remoteEvidence.Remove(id);
+        }
+    }
+
+    private static RemoteSalesPresentationPhase MapRemoteSalesPhase(string status) =>
+        status switch
+        {
+            RemoteSalesStatusNames.Connecting => RemoteSalesPresentationPhase.Connecting,
+            RemoteSalesStatusNames.Bootstrapping => RemoteSalesPresentationPhase.Bootstrapping,
+            RemoteSalesStatusNames.Reconnecting => RemoteSalesPresentationPhase.Reconnecting,
+            RemoteSalesStatusNames.CredentialUnavailable =>
+                RemoteSalesPresentationPhase.CredentialUnavailable,
+            RemoteSalesStatusNames.Disabled => RemoteSalesPresentationPhase.Disabled,
+            OverlayTransportProtocol.SalesReady => RemoteSalesPresentationPhase.Live,
+            OverlayTransportProtocol.SalesResyncRequired =>
+                RemoteSalesPresentationPhase.Resyncing,
+            OverlayTransportProtocol.SalesAuthorizationUnavailable =>
+                RemoteSalesPresentationPhase.AuthorizationUnavailable,
+            OverlayTransportProtocol.SalesAccessRevoked =>
+                RemoteSalesPresentationPhase.AccessRevoked,
+            OverlayTransportProtocol.SalesChannelUnavailable =>
+                RemoteSalesPresentationPhase.ChannelUnavailable,
+            OverlayTransportProtocol.SalesFailed => RemoteSalesPresentationPhase.Failed,
+            _ => RemoteSalesPresentationPhase.Failed,
+        };
+
+    private static string Id(ulong value) =>
+        value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private static string Sanitize(string? value)
     {

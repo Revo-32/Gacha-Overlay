@@ -1,0 +1,142 @@
+{
+  "schema": "LSOverlay.M99.LegacyDependencyInventory.v1",
+  "scope": "M9.9 final consolidation audit",
+  "policy": {
+    "automaticRemovalAllowed": false,
+    "normalRemoteMode": "Remote Chat and Remote Sales are primary; Local RPC and UIA remain fallback paths.",
+    "remoteOnlyAuditMode": "Local RPC is not started and UIA cannot supply production evidence."
+  },
+  "dependencies": [
+    {
+      "id": "legacy-local-rpc-chat",
+      "component": "Discord Local RPC main-chat source",
+      "classification": "Fallback Required",
+      "callPath": "ApplicationHost.StartDiscordCore -> DiscordConnectionCoordinator -> DiscordMessagePipeline -> HudWindowController",
+      "remoteReplacement": "RemoteChatProductionCoordinator -> LSOverlayRemoteClient -> RemoteChatIngressAdapter -> DiscordMessagePipeline -> HudWindowController",
+      "fallbackValue": "Restores local main chat when the Backend or Remote authorization path is unavailable.",
+      "removalRisk": "High until Remote-only soak and recovery evidence is complete.",
+      "recommendation": "KEEP AS FALLBACK",
+      "sourcePaths": [
+        "src/GachaOverlay.App/Lifecycle/ApplicationHost.cs",
+        "src/GachaOverlay.Infrastructure/Discord/Connection/DiscordConnectionCoordinator.cs",
+        "src/GachaOverlay.Core/Discord/Messages/DiscordMessagePipeline.cs"
+      ]
+    },
+    {
+      "id": "legacy-local-rpc-sales-message-source",
+      "component": "Discord Local RPC Sales message source",
+      "classification": "Fallback Required",
+      "callPath": "DiscordConnectionCoordinator -> DiscordMessagePipeline.SalesSource -> SalesPresentationCoordinator",
+      "remoteReplacement": "RemoteChatProductionCoordinator -> SalesBootstrap/SalesMutation -> SalesPresentationCoordinator",
+      "fallbackValue": "Supplies Sales messages when ForceLegacy is selected or Remote Sales cannot establish a canonical source.",
+      "removalRisk": "High while the supported rollback policy includes Legacy Sales.",
+      "recommendation": "KEEP AS FALLBACK",
+      "sourcePaths": [
+        "src/GachaOverlay.Infrastructure/Discord/Connection/DiscordConnectionCoordinator.cs",
+        "src/GachaOverlay.App/Services/SalesPresentationCoordinator.cs"
+      ]
+    },
+    {
+      "id": "legacy-oauth",
+      "component": "Local Discord RPC OAuth and protected client secret",
+      "classification": "Fallback Required",
+      "callPath": "ApplicationHost.StartDiscordCore -> DiscordAuthenticationService -> Discord RPC AUTHORIZE/AUTHENTICATE",
+      "remoteReplacement": "Remote pairing claim -> DPAPI-protected Remote access credential",
+      "fallbackValue": "Authenticates the supported Local RPC fallback without a Bot credential in WPF.",
+      "removalRisk": "High if Local RPC is retained; otherwise removable only with the entire Legacy path.",
+      "recommendation": "KEEP AS FALLBACK",
+      "sourcePaths": [
+        "src/GachaOverlay.Infrastructure/Discord/Authentication/DiscordAuthenticationService.cs",
+        "src/GachaOverlay.App/Lifecycle/ApplicationHost.cs"
+      ]
+    },
+    {
+      "id": "uia-sales-evidence",
+      "component": "Discord UI Automation Sales completion evidence",
+      "classification": "Fallback Required",
+      "callPath": "SalesPresentationCoordinator -> DiscordUiaSalesReactionObservationSource -> WindowsDiscordAccessibilityAdapter",
+      "remoteReplacement": "Backend canonical completion observations in Sales bootstrap/mutation events",
+      "fallbackValue": "Supplies completion evidence only when policy explicitly enters UIA fallback; it may run as a non-production shadow in normal mode.",
+      "removalRisk": "Medium to high until Remote-only soak, authorization, and reconnect evidence is accepted.",
+      "recommendation": "KEEP AS FALLBACK",
+      "sourcePaths": [
+        "src/GachaOverlay.App/Services/Sales/DiscordUiaSalesReactionObservationSource.cs",
+        "src/GachaOverlay.App/Services/Sales/WindowsDiscordAccessibilityAdapter.cs",
+        "src/GachaOverlay.Core/Sales/SalesAcquisitionPolicy.cs"
+      ]
+    },
+    {
+      "id": "accessibility-remediation",
+      "component": "Discord accessibility launch and remediation UI",
+      "classification": "Fallback Required",
+      "callPath": "Settings/health remediation -> ApplicationHost.LaunchDiscordAccessibility -> Discord UI",
+      "remoteReplacement": "Not used by normal Remote production paths",
+      "fallbackValue": "Makes the retained UIA fallback recoverable by the user.",
+      "removalRisk": "Medium while UIA remains supported.",
+      "recommendation": "KEEP AS FALLBACK",
+      "sourcePaths": [
+        "src/GachaOverlay.App/Lifecycle/ApplicationHost.cs",
+        "src/GachaOverlay.App/Presentation/FoundationViewModel.cs"
+      ]
+    },
+    {
+      "id": "legacy-rich-message-fallbacks",
+      "component": "Legacy forwarded-message, sticker, and rich-message normalization fallbacks",
+      "classification": "Compatibility Only",
+      "callPath": "DiscordMessagePipeline normalization -> ChatPresentationCoordinator -> ChatMessageViewModel",
+      "remoteReplacement": "Structured Protocol v1 Chat contracts and Backend Discord normalizer",
+      "fallbackValue": "Preserves presentation when older/local payloads omit structured fields.",
+      "removalRisk": "Low to medium; removal can regress uncommon Discord payload variants.",
+      "recommendation": "REMOVE LATER",
+      "sourcePaths": [
+        "src/GachaOverlay.Core/Discord/Messages/DiscordMessagePipeline.cs",
+        "src/GachaOverlay.App/Services/ChatPresentationCoordinator.cs",
+        "src/LSOverlay.Backend/Chat/DiscordChatMessageNormalizer.cs"
+      ]
+    },
+    {
+      "id": "legacy-channel-bootstrap",
+      "component": "Local RPC guild/channel resolution, subscription, and bootstrap",
+      "classification": "Fallback Required",
+      "callPath": "DiscordConnectionCoordinator -> channel resolver -> MESSAGE_CREATE/UPDATE/DELETE subscriptions -> snapshots",
+      "remoteReplacement": "Authorized Remote channel catalog plus independent Chat bootstrap/stream",
+      "fallbackValue": "Required by the Local RPC rollback path.",
+      "removalRisk": "High if removed before Local RPC retirement.",
+      "recommendation": "KEEP AS FALLBACK",
+      "sourcePaths": [
+        "src/GachaOverlay.Infrastructure/Discord/Connection/DiscordConnectionCoordinator.cs",
+        "src/GachaOverlay.Infrastructure/Discord/Channels"
+      ]
+    },
+    {
+      "id": "legacy-onboarding-and-health",
+      "component": "Legacy onboarding, reconnect, and health/remediation surfaces",
+      "classification": "Fallback Required",
+      "callPath": "FoundationViewModel/OnboardingViewModel -> ApplicationHost Legacy setup actions",
+      "remoteReplacement": "Remote settings, pairing, channel selection, and health snapshot surfaces",
+      "fallbackValue": "Keeps the supported Legacy rollback understandable and operable.",
+      "removalRisk": "Medium; UI must be migrated with any later Legacy retirement.",
+      "recommendation": "KEEP AS FALLBACK",
+      "sourcePaths": [
+        "src/GachaOverlay.App/Presentation/OnboardingViewModel.cs",
+        "src/GachaOverlay.App/Presentation/FoundationViewModel.cs",
+        "src/GachaOverlay.App/Lifecycle/ApplicationHost.cs"
+      ]
+    },
+    {
+      "id": "rc1-release-assets",
+      "component": "Gacha Overlay rc.1 manifest, packaging, manual, and public naming",
+      "classification": "Release/Documentation Only",
+      "callPath": "Release tooling and documentation; not a runtime data path",
+      "remoteReplacement": "Future LS Overlay 2.0 release engineering",
+      "fallbackValue": "Preserves the published rc.1 contract during M9.x development.",
+      "removalRisk": "High if changed before the dedicated 2.0 release stage.",
+      "recommendation": "KEEP AS FALLBACK",
+      "sourcePaths": [
+        "tools/release/release-manifest.json",
+        "docs/manual",
+        "README.md"
+      ]
+    }
+  ]
+}

@@ -8,7 +8,7 @@ namespace GachaOverlay.App.Presentation;
 
 internal sealed class OnboardingViewModel : INotifyPropertyChanged, IDisposable
 {
-    public const int StepCount = 6;
+    public const int StepCount = 3;
     private readonly ISettingsStore _settingsStore;
     private readonly ILocalizationService _localization;
     private readonly Action _completed;
@@ -84,54 +84,25 @@ internal sealed class OnboardingViewModel : INotifyPropertyChanged, IDisposable
 
     public bool IsDiscordStep => StepIndex == 1;
 
-    public bool IsServerStep => StepIndex == 2;
-
-    public bool IsMainStep => StepIndex == 3;
-
-    public bool IsAccessibilityStep => StepIndex == 4;
-
-    public bool IsHudStep => StepIndex == 5;
+    public bool IsHudStep => StepIndex == 2;
 
     private void Previous() => StepIndex--;
 
-    private async Task NextAsync()
+    private Task NextAsync()
     {
         switch (StepIndex)
         {
-            case 1 when !Settings.DiscordCanReconnect:
+            case 1 when Settings.RemoteChatSettings?.IsReady != true:
                 ValidationMessage = _localization["OnboardingDiscordRequired"];
-                return;
-            case 2:
-                await Settings.ServerSettings.LoadAsync(forceRefresh: false);
-                if (!Settings.ServerSettings.IsReady)
-                {
-                    ValidationMessage = _localization["OnboardingServerRequired"];
-                    return;
-                }
-
-                break;
-            case 3 when string.IsNullOrWhiteSpace(
-                _settingsStore.Current.DiscordMainChannelId):
-                ValidationMessage = _localization["OnboardingMainRequired"];
-                return;
-            case 4 when Settings.SalesTrackingEnabled &&
-                Settings.SalesUiaStatusText == _localization["SettingsUiaUnavailable"]:
-                ValidationMessage = _localization["OnboardingAccessibilityRequired"];
-                return;
+                return Task.CompletedTask;
         }
 
         StepIndex++;
+        return Task.CompletedTask;
     }
 
     private void Finish()
     {
-        if (string.IsNullOrWhiteSpace(_settingsStore.Current.DiscordMainChannelId))
-        {
-            ValidationMessage = _localization["OnboardingMainRequired"];
-            StepIndex = 3;
-            return;
-        }
-
         if (!_settingsStore.Update(settings => settings with
         {
             OnboardingVersion = AppSettings.CurrentOnboardingVersion,
@@ -144,34 +115,18 @@ internal sealed class OnboardingViewModel : INotifyPropertyChanged, IDisposable
         _completed();
     }
 
-    private void EnterStep()
-    {
-        if (StepIndex is 2 or 3)
-        {
-            Settings.ServerSettings.EnsureLoaded();
-        }
-    }
+    private void EnterStep() { }
 
     private static int FindFirstIncompleteStep(
         AppSettings persisted,
         FoundationViewModel settings)
     {
-        if (string.IsNullOrWhiteSpace(persisted.DiscordClientId))
-        {
-            return 0;
-        }
-
-        if (!settings.DiscordCanReconnect)
+        if (settings.RemoteChatSettings?.IsReady != true)
         {
             return 1;
         }
 
-        if (string.IsNullOrWhiteSpace(persisted.DiscordMainChannelId))
-        {
-            return 2;
-        }
-
-        return 4;
+        return 2;
     }
 
     private void RaiseStepProperties()
@@ -182,9 +137,6 @@ internal sealed class OnboardingViewModel : INotifyPropertyChanged, IDisposable
             nameof(StepProgressText),
             nameof(IsLanguageStep),
             nameof(IsDiscordStep),
-            nameof(IsServerStep),
-            nameof(IsMainStep),
-            nameof(IsAccessibilityStep),
             nameof(IsHudStep),
         })
         {

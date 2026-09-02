@@ -1,0 +1,87 @@
+{
+  "milestone": "M9.13",
+  "date": "2026-09-03",
+  "source": "Current local working tree; not committed or pushed by this task",
+  "previousTestBaseline": 1227,
+  "addedTests": 57,
+  "restore": "PASS",
+  "debug": {
+    "build": "PASS",
+    "passed": 1284,
+    "failed": 0,
+    "skipped": 0,
+    "buildWarnings": 0,
+    "buildErrors": 0
+  },
+  "release": {
+    "build": "PASS",
+    "passed": 1284,
+    "failed": 0,
+    "skipped": 0,
+    "buildWarnings": 0,
+    "buildErrors": 0
+  },
+  "formatVerifyNoChanges": "PASS",
+  "gitDiffCheck": "PASS",
+  "untrackedM913FileWhitespaceCheck": "PASS",
+  "gitNotes": "Existing tracked files emitted CRLF normalization notices; no whitespace errors. Unrelated files were not rewritten.",
+  "backendPublish": {
+    "status": "PASS",
+    "configuration": "Release",
+    "runtimeIdentifier": "linux-x64",
+    "selfContained": false,
+    "useAppHost": false,
+    "path": "artifacts/m913-6af4110880cf4dceb698ebb399d6801c/backend-linux-x64",
+    "fileCount": 11,
+    "totalBytes": 5540940,
+    "wpfOrTestBinaries": 0,
+    "runtimeExecution": "NOT RUN"
+  },
+  "wpfPublish": {
+    "status": "PASS",
+    "configuration": "Release",
+    "runtimeIdentifier": "win-x64",
+    "selfContained": false,
+    "path": "artifacts/m913-6af4110880cf4dceb698ebb399d6801c/wpf-win-x64",
+    "fileCount": 21,
+    "totalBytes": 34072710,
+    "applicationLaunched": false
+  },
+  "docker": {
+    "recipeStaticInspection": "PASS",
+    "contextStaticInspection": "PASS",
+    "staticContextFileCount": 127,
+    "disallowedRuntimeArtifactCount": 0,
+    "build": "NOT RUN",
+    "reason": "Docker CLI and Docker Desktop executable unavailable on this development machine",
+    "imageLayerInspection": "NOT RUN",
+    "staticInspectionIsNotDockerEngineExecution": true
+  },
+  "coverage": [
+    "Railway PORT and ASPNETCORE_URLS template/expanded handling",
+    "Explicit data override, attached-volume fallback and unchanged local helper defaults",
+    "Missing/not-mounted/invalid storage fails before credential issue",
+    "Nested paths, hash-only credential recreation and previous-generation backup recovery",
+    "Real ASP.NET Forwarded Headers middleware: trusted private hop, public spoof, IPv4-mapped IPv6 and malformed headers",
+    "Only exact GET /healthz is exempt from plaintext transport rejection",
+    "Readiness started/stopping/Gateway/registry states and bounded value-free response",
+    "Generic Host StopApplication cancellation with fake active Discord Gateway and live Chat/Sales/Presence WebSocket",
+    "Connection/subscription cleanup and credential reload after shutdown",
+    "Existing callback-drain, idempotent-stop, authentication, query-token and protocol regressions"
+  ],
+  "limitations": [
+    "Filesystem tests ran on Windows; Linux path/API audit and cross-publish are not a live Linux Volume durability test",
+    "No real SIGTERM delivered to a Linux process; the same Generic Host stopping path was exercised locally",
+    "Actual Railway edge HTTPS/WSS and Volume mount/permissions require first manual deployment",
+    "Proxy trust requires one trusted service/environment, Railway edge-only public ingress, no raw TCP proxy and no untrusted private peers",
+    "Not a production deployment, multi-hour soak or ordinary-member onboarding PASS"
+  ],
+  "productionDiscordCalls": "NOT RUN",
+  "railwayDeployment": "NOT RUN",
+  "githubPush": "NOT RUN",
+  "dnsChanges": "NOT RUN",
+  "cafe24CustomDomain": "NOT STARTED",
+  "discordWebOAuth2": "NOT STARTED",
+  "m10UiUx": "NOT STARTED",
+  "finalStatus": "RAILWAY DEPLOYMENT FOUNDATION READY"
+}

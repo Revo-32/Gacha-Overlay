@@ -5,8 +5,7 @@ public sealed record HudSessionState(
     bool UserHudEnabled,
     HudVisibilityMode VisibilityMode,
     bool IsTargetGameForeground,
-    bool HasInitialConnectionReady,
-    bool IsRpcConnected)
+    bool HasInitialConnectionReady)
 {
     public bool IsClickThrough => IsLocked;
 
@@ -24,6 +23,5 @@ public sealed record HudSessionState(
             UserHudEnabled: true,
             VisibilityMode: visibilityMode,
             IsTargetGameForeground: false,
-            HasInitialConnectionReady: false,
-            IsRpcConnected: false);
+            HasInitialConnectionReady: false);
 }

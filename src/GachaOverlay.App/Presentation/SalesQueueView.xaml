@@ -1,7 +1,6 @@
 <UserControl x:Class="GachaOverlay.App.Presentation.SalesQueueView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
              xmlns:local="clr-namespace:GachaOverlay.App.Presentation"
              xmlns:sales="clr-namespace:GachaOverlay.Core.Sales;assembly=GachaOverlay.Core"
              SizeChanged="OnSizeChanged">
@@ -36,7 +35,7 @@
             Grid.Row="0"
             Margin="0,8,0,0"
             Padding="10,7"
-            automation:AutomationProperties.Name="{Binding AccessibleStatus}"
+            AutomationProperties.Name="{Binding AccessibleStatus}"
             CornerRadius="{DynamicResource CornerRadius.Sales}"
             Style="{StaticResource SalesBarStyle}"
             Visibility="{Binding IsVisible, Converter={StaticResource BoolVisibility}}">
@@ -116,6 +115,10 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Grid Margin="4,5">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="28" />
                                     <ColumnDefinition Width="*" />
@@ -130,6 +133,36 @@
                                     <TextBlock Margin="0,0,6,0" Foreground="{DynamicResource StatusLiveBrush}" Text="{Binding CurrentLabel}" Visibility="{Binding IsCurrent, Converter={StaticResource BoolVisibility}}" />
                                     <TextBlock Foreground="{DynamicResource ChatSelfMentionBrush}" Text="{Binding SelfLabel}" Visibility="{Binding IsSelf, Converter={StaticResource BoolVisibility}}" />
                                 </StackPanel>
+                                <WrapPanel Grid.Row="1"
+                                           Grid.Column="1"
+                                           Grid.ColumnSpan="2"
+                                           Margin="0,6,0,0"
+                                           Orientation="Horizontal"
+                                           Visibility="{Binding IsStatusActionVisible, Converter={StaticResource BoolVisibility}}">
+                                    <Button Margin="0,0,4,0"
+                                            Padding="6,2"
+                                            Command="{Binding SetNegotiatingCommand}"
+                                            Content="{Binding NegotiatingLabel}"
+                                            IsEnabled="{Binding IsStatusActionEnabled}" />
+                                    <Button Margin="0,0,4,0"
+                                            Padding="6,2"
+                                            Command="{Binding SetSellingCommand}"
+                                            Content="{Binding SellingLabel}"
+                                            IsEnabled="{Binding IsStatusActionEnabled}" />
+                                    <Button Margin="0,0,4,0"
+                                            Padding="6,2"
+                                            Command="{Binding SetCompletedCommand}"
+                                            Content="{Binding CompletedLabel}"
+                                            IsEnabled="{Binding IsStatusActionEnabled}" />
+                                    <Button Margin="0,0,8,0"
+                                            Padding="6,2"
+                                            Command="{Binding ClearStatusCommand}"
+                                            Content="{Binding ClearLabel}"
+                                            IsEnabled="{Binding IsStatusActionEnabled}" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               Text="{Binding StatusText}" />
+                                </WrapPanel>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

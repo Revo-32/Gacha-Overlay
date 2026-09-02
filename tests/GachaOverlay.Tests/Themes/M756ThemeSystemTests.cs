@@ -279,10 +279,10 @@ public sealed class M756ThemeSystemTests
         Assert.Equal(AppSettings.CurrentSchemaVersion, migrated.SchemaVersion);
         Assert.Equal(ColorThemeId.GitHubDark, migrated.ColorTheme);
         Assert.Equal("ko", migrated.Language);
-        Assert.Equal("123456", migrated.DiscordClientId);
-        Assert.Equal(ProductionServerProfile.GuildId, migrated.DiscordGuildId);
-        Assert.Equal("345678", migrated.DiscordMainChannelId);
-        Assert.Equal("https://localhost/callback", migrated.DiscordRedirectUri);
+        Assert.False(migrated.ExtensionData?.ContainsKey("discordClientId"));
+        Assert.False(migrated.ExtensionData?.ContainsKey("discordGuildId"));
+        Assert.False(migrated.ExtensionData?.ContainsKey("discordMainChannelId"));
+        Assert.False(migrated.ExtensionData?.ContainsKey("discordRedirectUri"));
         Assert.Equal("Control+Shift", migrated.HudLockHotkey.Modifiers);
         Assert.Equal("K", migrated.HudLockHotkey.Key);
         Assert.Equal("Alt", migrated.HudVisibilityHotkey.Modifiers);

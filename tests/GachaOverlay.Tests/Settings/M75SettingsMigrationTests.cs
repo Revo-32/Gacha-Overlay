@@ -96,8 +96,7 @@ public sealed class M75SettingsMigrationTests
     [InlineData(ManualSalesResyncResult.Requested)]
     [InlineData(ManualSalesResyncResult.Coalesced)]
     [InlineData(ManualSalesResyncResult.TrackingDisabled)]
-    [InlineData(ManualSalesResyncResult.DiscordDisconnected)]
-    [InlineData(ManualSalesResyncResult.TargetChannelUnavailable)]
+    [InlineData(ManualSalesResyncResult.RemoteUnavailable)]
     public void ManualResyncResult_ProducesLocalizedActionableFeedback(
         ManualSalesResyncResult result)
     {

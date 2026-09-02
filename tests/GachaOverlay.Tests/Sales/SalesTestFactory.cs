@@ -47,10 +47,10 @@ internal static class SalesTestFactory
             AuthorGuildNickname = nickname,
             AuthorDisplayNameSource = nickname is null
             ? DiscordDisplayNameSource.GlobalDisplayName
-            : DiscordDisplayNameSource.RpcGuildNickname,
+            : DiscordDisplayNameSource.GuildNickname,
             AuthorGuildNicknameObservationSource = nickname is null
             ? DiscordDisplayNameSource.Unknown
-            : DiscordDisplayNameSource.RpcGuildNickname,
+            : DiscordDisplayNameSource.GuildNickname,
         };
 
     public static SalesObservationBatch Batch(

@@ -18,6 +18,7 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
     private UnifiedTextLayout? _layout;
     private LayoutKey? _layoutKey;
     private int _contentRevision;
+    private bool _unloaded;
 
     public static readonly DependencyProperty TextProperty = DependencyProperty.Register(
         nameof(Text),
@@ -101,7 +102,19 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
     public CrispOutlinedText()
     {
         ClipToBounds = false;
-        Unloaded += (_, _) => ClearLayout();
+        Loaded += (_, _) =>
+        {
+            _unloaded = false;
+            Detach(Tokens);
+            Attach(Tokens);
+            InvalidateTextLayout();
+        };
+        Unloaded += (_, _) =>
+        {
+            _unloaded = true;
+            Detach(Tokens);
+            ClearLayout();
+        };
     }
 
     public string Text
@@ -565,6 +578,10 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
 
     private void Attach(IEnumerable<ChatTokenViewModel>? tokens)
     {
+        if (_unloaded)
+        {
+            return;
+        }
         _observableTokens = tokens as INotifyCollectionChanged;
         if (_observableTokens is not null)
         {

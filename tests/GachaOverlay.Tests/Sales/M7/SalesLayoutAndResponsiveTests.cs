@@ -91,7 +91,7 @@ public sealed class SalesLayoutAndResponsiveTests
             measurements: Metrics);
         Assert.True(result.IsTwoLine);
         Assert.False(result.VisibleFields.HasFlag(SalesQueueVisibleFields.NextWaitingUser));
-        Assert.Contains("open", result.SecondaryText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("paused", result.SecondaryText, StringComparison.OrdinalIgnoreCase);
     }
 
     [Theory]

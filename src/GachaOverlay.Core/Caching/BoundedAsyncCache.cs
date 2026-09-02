@@ -22,6 +22,7 @@ public sealed class BoundedAsyncCache<TValue> : IDisposable
     private readonly Dictionary<string, DateTimeOffset> _retryAfter = new(StringComparer.Ordinal);
     private long _clock;
     private long _generation;
+    private int _outstandingLoads;
     private bool _disposed;
 
     public BoundedAsyncCache(
@@ -63,6 +64,11 @@ public sealed class BoundedAsyncCache<TValue> : IDisposable
         }
     }
 
+    public int InFlightCount
+    {
+        get { lock (_sync) { return _outstandingLoads; } }
+    }
+
     public async Task<TValue?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -88,7 +94,15 @@ public sealed class BoundedAsyncCache<TValue> : IDisposable
 
             if (!_inFlight.TryGetValue(key, out task!))
             {
+                // Clearing a generation must not admit unlimited replacement downloads
+                // while the retired loaders are still running. Do not queue more work.
+                if (_outstandingLoads >= _capacity)
+                {
+                    return null;
+                }
+
                 var generation = _generation;
+                _outstandingLoads++;
                 task = Task.Run(() => LoadAndStoreAsync(key, generation));
                 _inFlight[key] = task;
             }
@@ -137,6 +151,18 @@ public sealed class BoundedAsyncCache<TValue> : IDisposable
     }
 
     private async Task<TValue?> LoadAndStoreAsync(string key, long generation)
+    {
+        try
+        {
+            return await LoadAndStoreCoreAsync(key, generation).ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (_sync) { _outstandingLoads--; }
+        }
+    }
+
+    private async Task<TValue?> LoadAndStoreCoreAsync(string key, long generation)
     {
         TValue? value;
         try

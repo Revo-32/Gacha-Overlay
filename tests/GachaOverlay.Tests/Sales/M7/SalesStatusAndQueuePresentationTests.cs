@@ -52,13 +52,13 @@ public sealed class SalesStatusAndQueuePresentationTests
     }
 
     [Fact]
-    public void Paused_IncludesConfiguredChannelAndAction()
+    public void Paused_UsesGenericRemoteStatusWithoutChannelInstruction()
     {
         var result = M7PresentationTestFactory.Create(
             health: M7PresentationTestFactory.Health(SalesFeatureHealthState.Paused),
             channel: "#🚒판매모집");
-        Assert.Contains("#🚒판매모집", result.StatusText, StringComparison.Ordinal);
-        Assert.Contains("open", result.StatusText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Remote Sales paused", result.StatusText);
+        Assert.DoesNotContain("#🚒판매모집", result.StatusText, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public sealed class SalesStatusAndQueuePresentationTests
         var result = M7PresentationTestFactory.Create(
             health: M7PresentationTestFactory.Health(SalesFeatureHealthState.Paused));
         Assert.Contains("Current Seller", result.PrimaryText, StringComparison.Ordinal);
-        Assert.Contains("Keep #sales open", result.SecondaryText, StringComparison.Ordinal);
+        Assert.Contains("Remote Sales paused", result.SecondaryText, StringComparison.Ordinal);
         Assert.True(result.IsTwoLine);
     }
 

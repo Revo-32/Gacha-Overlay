@@ -108,45 +108,14 @@
   <data name="SettingsHotkeySaveFailed" xml:space="preserve"><value>ホットキーを保存できませんでした。以前の有効な設定を復元しました。</value></data>
   <data name="SettingsHotkeyDefaultsRestored" xml:space="preserve"><value>既定値を復元しました: F9 表示/非表示、F10 ロック/解除。</value></data>
   <data name="SettingsDiscordTitle" xml:space="preserve"><value>Discord 接続</value></data>
-  <data name="SettingsDiscordClientIdStatus" xml:space="preserve"><value>Application ID</value></data>
-  <data name="SettingsDiscordOAuthStatus" xml:space="preserve"><value>OAuth 認証</value></data>
-  <data name="SettingsDiscordGuildStatus" xml:space="preserve"><value>Guild</value></data>
-  <data name="SettingsDiscordChannelStatus" xml:space="preserve"><value>メイン / 販売チャンネル</value></data>
-  <data name="SettingsDiscordClientId" xml:space="preserve"><value>Discord Application / Client ID</value></data>
-  <data name="SettingsDiscordClientSecret" xml:space="preserve"><value>Discord Client Secret</value></data>
-  <data name="SettingsDiscordClientSecretHint" xml:space="preserve"><value>現在の Windows ユーザー用 DPAPI で保護保存します。既存値を維持する場合は空欄にします。</value></data>
-  <data name="SettingsDiscordRedirectUri" xml:space="preserve"><value>OAuth Redirect URI</value></data>
-  <data name="SettingsDiscordGuildId" xml:space="preserve"><value>Guild ID（任意）</value></data>
-  <data name="SettingsDiscordMainChannelId" xml:space="preserve"><value>メインチャンネル ID（任意）</value></data>
-  <data name="SettingsDiscordSalesChannelId" xml:space="preserve"><value>販売チャンネル ID（任意）</value></data>
-  <data name="SettingsDiscordIdHint" xml:space="preserve"><value>ID が空の場合は正確な名前で検索し、解決した ID を自動保存します。</value></data>
-  <data name="SettingsDiscordSaveAndConnect" xml:space="preserve"><value>保存して接続</value></data>
-  <data name="SettingsDiscordReconnect" xml:space="preserve"><value>再接続</value></data>
-  <data name="SettingsDiscordSavedAndConnecting" xml:space="preserve"><value>設定を安全に保存し、Discord 接続を要求しました。</value></data>
-  <data name="SettingsDiscordSaveFailed" xml:space="preserve"><value>Discord 接続設定を保存できませんでした。</value></data>
-  <data name="SettingsDiscordInvalidClientId" xml:space="preserve"><value>数字の Discord Application ID を入力してください。</value></data>
-  <data name="SettingsDiscordInvalidRedirectUri" xml:space="preserve"><value>有効な HTTP または HTTPS Redirect URI を入力してください。</value></data>
-  <data name="SettingsDiscordInvalidTargetId" xml:space="preserve"><value>Guild とチャンネル ID は数字のみ、または空欄にしてください。</value></data>
-  <data name="SettingsDiscordSecretRequired" xml:space="preserve"><value>保護設定を完了するには Client Secret を入力してください。</value></data>
-  <data name="SettingsDiscordProtectedSaveFailed" xml:space="preserve"><value>Windows 保護ストレージに Client Secret を保存できませんでした。</value></data>
-  <data name="SettingsDiscordReconnectRequested" xml:space="preserve"><value>Discord の再接続を要求しました。</value></data>
   <data name="DiscordStatusConnected" xml:space="preserve"><value>接続済み</value></data>
   <data name="DiscordStatusConnecting" xml:space="preserve"><value>接続中</value></data>
   <data name="DiscordStatusAuthenticating" xml:space="preserve"><value>認証中</value></data>
   <data name="DiscordStatusReconnecting" xml:space="preserve"><value>再接続中</value></data>
-  <data name="DiscordStatusConfigurationRequired" xml:space="preserve"><value>Discord 設定が必要</value></data>
   <data name="DiscordStatusAuthenticationRequired" xml:space="preserve"><value>Discord 認証が必要</value></data>
   <data name="DiscordStatusTargetConfigurationRequired" xml:space="preserve"><value>Guild またはチャンネル設定が必要</value></data>
   <data name="DiscordStatusFailed" xml:space="preserve"><value>接続失敗</value></data>
-  <data name="DiscordStatusDiscordNotRunning" xml:space="preserve"><value>Discord の起動待ち</value></data>
   <data name="DiscordStatusDisconnected" xml:space="preserve"><value>未接続</value></data>
-  <data name="DiscordConfigurationConfigured" xml:space="preserve"><value>設定済み</value></data>
-  <data name="DiscordConfigurationMissing" xml:space="preserve"><value>設定が必要</value></data>
-  <data name="DiscordConfigurationAutoResolve" xml:space="preserve"><value>正確な名前で自動検索</value></data>
-  <data name="DiscordAuthenticationComplete" xml:space="preserve"><value>認証済み</value></data>
-  <data name="DiscordAuthenticationSaved" xml:space="preserve"><value>保護された認証を保存済み</value></data>
-  <data name="DiscordAuthenticationRequired" xml:space="preserve"><value>認証が必要</value></data>
-  <data name="DiscordAuthenticationUnreadable" xml:space="preserve"><value>保護された認証の再設定が必要</value></data>
   <data name="TrayDiscordStatusFormat" xml:space="preserve"><value>状態: {0}</value></data>
   <data name="TrayDiscordConnectionSetup" xml:space="preserve"><value>Discord 接続設定</value></data>
   <data name="TrayDiscordReconnect" xml:space="preserve"><value>Discord を再接続</value></data>
@@ -158,13 +127,6 @@
   <data name="SettingsSalesShowWaitingCount" xml:space="preserve"><value>待機人数を表示</value></data>
   <data name="SettingsSalesShowProduct" xml:space="preserve"><value>商品を表示</value></data>
   <data name="SettingsSalesShowNextWaitingUser" xml:space="preserve"><value>次の待機者を表示</value></data>
-  <data name="SalesStatusPreparing" xml:space="preserve"><value>販売状態センサーを準備中</value></data>
-  <data name="SalesStatusUnavailable" xml:space="preserve"><value>Discord 販売センサーを利用できません</value></data>
-  <data name="SalesStatusAccessibilityUnavailable" xml:space="preserve"><value>Discord アクセシビリティツリーを利用できません</value></data>
-  <data name="SalesStatusPaused" xml:space="preserve"><value>販売センサーを一時停止中</value></data>
-  <data name="SalesStatusResyncing" xml:space="preserve"><value>販売状態を再同期中</value></data>
-  <data name="SalesStatusPartial" xml:space="preserve"><value>販売状態を一部観測中</value></data>
-  <data name="SalesStatusError" xml:space="preserve"><value>販売センサーエラー</value></data>
   <data name="SalesQueueEmpty" xml:space="preserve"><value>待機者はいません</value></data>
   <data name="SalesNoDisplayFields" xml:space="preserve"><value>販売キューの表示項目が選択されていません</value></data>
   <data name="SalesCurrentSellerFormat" xml:space="preserve"><value>現在 {0}</value></data>
@@ -174,10 +136,16 @@
   <data name="SalesHealthLiveAccessible" xml:space="preserve"><value>販売キューは最新で完全に同期されています</value></data>
   <data name="SalesHealthConnecting" xml:space="preserve"><value>Discord に接続中</value></data>
   <data name="SalesHealthResyncing" xml:space="preserve"><value>販売状態を再同期中</value></data>
-  <data name="SalesHealthOpenChannelFormat" xml:space="preserve"><value>{0} チャンネルを開いてください</value></data>
+  <data name="SalesHealthRemoteConnecting" xml:space="preserve"><value>Remote Sales に接続中</value></data>
+  <data name="SalesHealthRemoteSynchronizing" xml:space="preserve"><value>Remote Sales を同期中</value></data>
+  <data name="SalesHealthRemoteResyncing" xml:space="preserve"><value>Remote Sales を再同期中</value></data>
+  <data name="SalesHealthRemoteReconnecting" xml:space="preserve"><value>Remote Sales に再接続中</value></data>
+  <data name="SalesHealthPaused" xml:space="preserve"><value>Remote 販売を一時停止中</value></data>
+  <data name="SalesHealthRemoteUnavailable" xml:space="preserve"><value>Remote 販売を利用できません</value></data>
+  <data name="SalesHealthRemoteAccessRevoked" xml:space="preserve"><value>Remote 販売へのアクセスが取り消されました</value></data>
   <data name="SalesHealthDegraded" xml:space="preserve"><value>販売状態の一部のみ確認できました</value></data>
   <data name="SalesHealthDisconnected" xml:space="preserve"><value>Discord の接続が切れました</value></data>
-  <data name="SalesHealthSensorError" xml:space="preserve"><value>販売状態センサーを利用できません</value></data>
+  <data name="SalesHealthRemoteError" xml:space="preserve"><value>Remote 販売を利用できません</value></data>
   <data name="SalesHealthDisabled" xml:space="preserve"><value>販売状況の追跡はオフです</value></data>
   <data name="SalesNextTurnSelf" xml:space="preserve"><value>次は自分の番</value></data>
   <data name="SalesCurrentTurnSelf" xml:space="preserve"><value>販売の順番です！販売を始めてください</value></data>
@@ -232,11 +200,9 @@
   <data name="SettingsSalesPreview" xml:space="preserve"><value>販売プレビュー / テストセンターを開く</value></data>
   <data name="HudOpenSettings" xml:space="preserve"><value>HUD 設定を開く</value></data>
   <data name="SalesQueueDetails" xml:space="preserve"><value>キュー詳細</value></data>
-  <data name="SettingsDeleteDiscordAuthentication" xml:space="preserve"><value>保存済み Discord サインインを削除</value></data>
-  <data name="SettingsDeleteDiscordAuthenticationConfirm" xml:space="preserve"><value>この Windows ユーザーに保護保存された Discord OAuth サインインを削除しますか？</value></data>
   <data name="SettingsClearMediaCache" xml:space="preserve"><value>メディアキャッシュを消去</value></data>
   <data name="SettingsResetAll" xml:space="preserve"><value>すべての設定をリセット</value></data>
-  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>すべての設定を安全な既定値に戻しますか？保護保存された Discord サインインは削除されません。</value></data>
+  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>すべての設定を安全な既定値に戻しますか？保護されたリモートペアリング資格情報は削除されません。</value></data>
   <data name="SettingsProductSelectEmoji" xml:space="preserve"><value>先に観測された絵文字を選択してください。</value></data>
   <data name="SettingsProductDuplicate" xml:space="preserve"><value>同じサーバー範囲ですでにマッピングされています。</value></data>
   <data name="SettingsProductSaveFailed" xml:space="preserve"><value>マッピングを保存できませんでした。以前のファイルは保持されています。</value></data>
@@ -264,10 +230,8 @@
   <data name="SalesPreviewLongNames" xml:space="preserve"><value>長い名前</value></data>
   <data name="SettingsAppVersion" xml:space="preserve"><value>アプリのバージョン</value></data>
   <data name="SettingsAutoSaveHint" xml:space="preserve"><value>変更内容はすぐに適用され、自動保存されます。</value></data>
-  <data name="SettingsResetAllHint" xml:space="preserve"><value>表示、HUD、チャット、メディア、販売、ホットキー設定をリセットします。保護された Discord サインインは別に保持されます。</value></data>
+  <data name="SettingsResetAllHint" xml:space="preserve"><value>表示、HUD、チャット、メディア、販売、ホットキー設定をリセットします。保護されたリモートペアリング資格情報は別に保持されます。</value></data>
   <data name="SettingsM8AutoStartPlaceholder" xml:space="preserve"><value>Windows 自動起動は M8 のオンボーディングでここに追加されます。</value></data>
-  <data name="SettingsRevealSecret" xml:space="preserve"><value>Client Secret を表示または非表示</value></data>
-  <data name="SettingsM8DiscordRestartPlaceholder" xml:space="preserve"><value>Discord 自動起動とアクセシビリティ再起動案内は M8 で追加されます。</value></data>
   <data name="SettingsTransparentHudHint" xml:space="preserve"><value>0% では通常の HUD 表面だけが透明になり、テキスト、メディア、状態表示は鮮明に保たれます。</value></data>
   <data name="SettingsChatMaxLines" xml:space="preserve"><value>最大行数</value></data>
   <data name="SettingsMediaFirstPlusNHint" xml:space="preserve"><value>最初のメディアを表示し、追加分は +N で案内します。</value></data>
@@ -279,12 +243,12 @@
   <data name="SettingsSalesCoverageNone" xml:space="preserve"><value>カバレッジなし</value></data>
   <data name="SettingsSalesLastSyncFormat" xml:space="preserve"><value>最後の完全同期: {0}</value></data>
   <data name="SettingsSalesLastSyncNever" xml:space="preserve"><value>最後の完全同期: まだ完了していません</value></data>
-  <data name="SettingsUiaUnavailable" xml:space="preserve"><value>アクセシビリティセンサー: 利用不可</value></data>
-  <data name="SettingsUiaReady" xml:space="preserve"><value>アクセシビリティセンサー: 準備完了または Discord 待機中</value></data>
+  <data name="SettingsSalesEffectiveSourceFormat" xml:space="preserve"><value>有効な販売ソース: {0}</value></data>
+  <data name="SettingsSalesRemoteStateFormat" xml:space="preserve"><value>Remote 販売: {0}</value></data>
+  <data name="SettingsSalesMergedStateFormat" xml:space="preserve"><value>統合販売状態: {0}</value></data>
   <data name="SettingsManualResyncRequested" xml:space="preserve"><value>販売状態の再同期を要求しました。信頼済みキューは維持されます。</value></data>
   <data name="SettingsManualResyncCoalesced" xml:space="preserve"><value>すでに同期中のため、要求を安全にまとめました。</value></data>
   <data name="SettingsManualResyncDisconnected" xml:space="preserve"><value>Discord に接続してから販売状態を再確認してください。</value></data>
-  <data name="SettingsManualResyncOpenChannel" xml:space="preserve"><value>設定した販売チャンネルを Discord で開いてから再試行してください。</value></data>
   <data name="SettingsManualResyncTrackingDisabled" xml:space="preserve"><value>販売状況の追跡をオンにしてから再確認してください。</value></data>
   <data name="SettingsQueueDetailMaxHeight" xml:space="preserve"><value>キュー詳細の最大高さ</value></data>
   <data name="SettingsOpenLogFolder" xml:space="preserve"><value>ログフォルダーを開く</value></data>
@@ -364,36 +328,104 @@
   <data name="SettingsAutoStartFailed" xml:space="preserve"><value>Windows 自動起動の登録に失敗しました。アプリは引き続き使用できます。</value></data>
   <data name="SettingsRerunOnboarding" xml:space="preserve"><value>初期設定をもう一度実行</value></data>
   <data name="SettingsRerunOnboardingHint" xml:space="preserve"><value>資格情報や現在の設定を削除せずにガイドを再表示します。</value></data>
-  <data name="SettingsDiscordAutoLaunch" xml:space="preserve"><value>Gacha Overlay 起動時に Discord も起動</value></data>
-  <data name="SettingsDiscordReauthenticate" xml:space="preserve"><value>再認証</value></data>
-  <data name="SettingsDiscordAccessibilityLaunch" xml:space="preserve"><value>販売アクセシビリティ用に Discord を起動</value></data>
-  <data name="SettingsDiscordAccessibilityRunningGuidance" xml:space="preserve"><value>Discord はすでに実行中です。安全のため自分で完全に終了してから再実行してください。Gacha Overlay が無断で Discord を終了することはありません。</value></data>
-  <data name="SettingsDiscordAccessibilityLaunchSucceeded" xml:space="preserve"><value>販売アクセシビリティオプションで Discord を起動しました。</value></data>
-  <data name="SettingsDiscordAccessibilityLaunchFailed" xml:space="preserve"><value>アクセシビリティモードで起動できませんでした。Discord を完全に終了し、--force-renderer-accessibility で起動して再接続してください。</value></data>
   <data name="OnboardingTitle" xml:space="preserve"><value>Gacha Overlay 初期設定</value></data>
   <data name="OnboardingProgress" xml:space="preserve"><value>ステップ {0} / {1}</value></data>
   <data name="OnboardingLanguageTitle" xml:space="preserve"><value>言語を選択</value></data>
   <data name="OnboardingLanguageHint" xml:space="preserve"><value>既定は English です。一般設定で後から変更できます。</value></data>
   <data name="OnboardingDiscordTitle" xml:space="preserve"><value>Discord 接続</value></data>
-  <data name="OnboardingDiscordHint" xml:space="preserve"><value>限定配布用アプリ資格情報を入力します。Secret は非表示・DPAPI保護され、ログには記録されません。</value></data>
-  <data name="OnboardingServerTitle" xml:space="preserve"><value>対象サーバーを確認</value></data>
-  <data name="OnboardingServerHint" xml:space="preserve"><value>Gacha Overlay v1.0 は固定 Discord サーバーを1つ使用します。ログイン中のアカウントが参加している必要があります。</value></data>
-  <data name="OnboardingMainTitle" xml:space="preserve"><value>メインチャンネルを選択</value></data>
-  <data name="OnboardingMainHint" xml:space="preserve"><value>HUDに表示する対応テキストチャンネルを1つ選択します。固定販売チャンネルは除外されます。</value></data>
-  <data name="OnboardingAccessibilityTitle" xml:space="preserve"><value>販売アクセシビリティを確認</value></data>
-  <data name="OnboardingAccessibilityHint" xml:space="preserve"><value>販売追跡には Discord のアクセシビリティが必要です。販売追跡をオフにすればメインチャットのみ使用できます。</value></data>
-  <data name="OnboardingNoSilentKill" xml:space="preserve"><value>明示的な操作なしに Discord を終了または再起動しません。</value></data>
+  <data name="OnboardingDiscordHint" xml:space="preserve"><value>リモートバックエンドへ接続し、Discord でこのインストールをペアリングして、許可されたメインチャンネルを選択します。Discord Desktop は不要です。</value></data>
   <data name="OnboardingHudTitle" xml:space="preserve"><value>HUD の準備完了</value></data>
-  <data name="OnboardingHudHint" xml:space="preserve"><value>Discord bootstrap 完了後、選択したメインチャンネルで HUD が表示されます。</value></data>
+  <data name="OnboardingHudHint" xml:space="preserve"><value>リモート初期同期の完了後、選択したメインチャンネルで HUD が表示されます。</value></data>
   <data name="OnboardingHudDragHint" xml:space="preserve"><value>HUD のロックを解除してから移動・サイズ変更できます。</value></data>
   <data name="OnboardingHudClickThroughHint" xml:space="preserve"><value>ロック中はマウス入力が HUD を通過してゲームに届きます。</value></data>
   <data name="OnboardingBack" xml:space="preserve"><value>戻る</value></data>
   <data name="OnboardingNext" xml:space="preserve"><value>次へ</value></data>
   <data name="OnboardingFinish" xml:space="preserve"><value>完了</value></data>
-  <data name="OnboardingDiscordRequired" xml:space="preserve"><value>続行する前に有効な Discord 資格情報を保存してください。</value></data>
-  <data name="OnboardingServerRequired" xml:space="preserve"><value>続行する前に固定対象サーバーを確認してください。</value></data>
-  <data name="OnboardingMainRequired" xml:space="preserve"><value>メインチャンネルを1つ選択して準備を完了してください。</value></data>
-  <data name="OnboardingAccessibilityRequired" xml:space="preserve"><value>Discord アクセシビリティを準備するか、販売追跡をオフにしてください。</value></data>
+  <data name="OnboardingDiscordRequired" xml:space="preserve"><value>続行する前にリモートペアリングを完了し、準備済みのメインチャンネルを選択してください。</value></data>
   <data name="OnboardingSaveFailed" xml:space="preserve"><value>初期設定の完了状態を保存できませんでした。再試行してください。</value></data>
-  <data name="DiscordStatusAutoLaunchFailed" xml:space="preserve"><value>Discord を自動起動できませんでした。手動で起動して再接続してください。</value></data>
+  <data name="SettingsRemoteTitle" xml:space="preserve"><value>リモート Discord 接続</value></data>
+  <data name="SettingsRemoteDescription" xml:space="preserve"><value>認証済みリモートバックエンドが、チャット、販売、セッション、状態変更の唯一の運用ソースです。Discord Desktop は不要です。</value></data>
+  <data name="SettingsRemoteEndpoint" xml:space="preserve"><value>リモートバックエンドのアドレス（HTTPS、この PC 内のみ HTTP）</value></data>
+  <data name="SettingsRemoteApply" xml:space="preserve"><value>アドレスを適用</value></data>
+  <data name="SettingsRemoteRefresh" xml:space="preserve"><value>再接続 / 更新</value></data>
+  <data name="SettingsRemotePair" xml:space="preserve"><value>ペアリング開始</value></data>
+  <data name="SettingsRemotePairCancel" xml:space="preserve"><value>ペアリングを取消</value></data>
+  <data name="SettingsRemoteForget" xml:space="preserve"><value>ペアリング解除 / 削除</value></data>
+  <data name="SettingsRemotePairingInstruction" xml:space="preserve"><value>Discord で実行してください: /lsoverlay pair code:{0}</value></data>
+  <data name="SettingsRemoteCredentialSaved" xml:space="preserve"><value>アクセストークン: 現在の Windows ユーザー用に保護済み</value></data>
+  <data name="SettingsRemoteCredentialMissing" xml:space="preserve"><value>アクセストークン: ペアリングが必要</value></data>
+  <data name="SettingsRemoteChannel" xml:space="preserve"><value>許可されたメインチャットチャンネル</value></data>
+  <data name="SettingsRemoteUseChannel" xml:space="preserve"><value>選択したチャンネルを使用</value></data>
+  <data name="SettingsRemoteConfigurationApplied" xml:space="preserve"><value>リモートバックエンドのアドレスを適用しました。</value></data>
+  <data name="SettingsRemoteConfigurationFailed" xml:space="preserve"><value>リモートバックエンドのアドレスを適用できませんでした。アドレスとログを確認してください。</value></data>
+  <data name="SettingsRemotePairingForgotten" xml:space="preserve"><value>保護された認証情報とチャンネル選択を削除しました。</value></data>
+  <data name="SettingsRemotePairingForgetFailed" xml:space="preserve"><value>保護された認証情報を削除できませんでした。</value></data>
+  <data name="SettingsRemoteChannelSwitchRequested" xml:space="preserve"><value>新しいチャンネルの準備後に切り替えが確定します。</value></data>
+  <data name="SettingsRemoteChannelSwitchFailed" xml:space="preserve"><value>チャンネルを切り替えられませんでした。</value></data>
+  <data name="RemoteHealthPairingRequired" xml:space="preserve"><value>リモート: ペアリングが必要</value></data>
+  <data name="RemoteHealthPairingInProgress" xml:space="preserve"><value>リモート: ペアリング中</value></data>
+  <data name="RemoteHealthAuthenticating" xml:space="preserve"><value>リモート: 認証中</value></data>
+  <data name="RemoteHealthConnecting" xml:space="preserve"><value>リモート: 接続中</value></data>
+  <data name="RemoteHealthBootstrapping" xml:space="preserve"><value>リモート: 最近のチャットを読込中</value></data>
+  <data name="RemoteHealthChannelSelectionRequired" xml:space="preserve"><value>リモート: チャンネル選択が必要</value></data>
+  <data name="RemoteHealthLive" xml:space="preserve"><value>リモート: ライブ</value></data>
+  <data name="RemoteHealthReconnecting" xml:space="preserve"><value>リモート: 再接続中</value></data>
+  <data name="RemoteHealthAuthorizationUnavailable" xml:space="preserve"><value>リモート: Discord 認可を利用不可</value></data>
+  <data name="RemoteHealthAccessRevoked" xml:space="preserve"><value>リモート: アクセスが取り消されました</value></data>
+  <data name="RemoteHealthDisconnected" xml:space="preserve"><value>リモート: 切断</value></data>
+  <data name="RemoteHealthError" xml:space="preserve"><value>リモート: エラー</value></data>
+  <data name="RemoteDetailPairingRequired" xml:space="preserve"><value>このインストールを許可するにはペアリングを開始してください。</value></data>
+  <data name="RemoteDetailPairing" xml:space="preserve"><value>表示されたコマンドを Discord で完了してください。安全に取消できます。</value></data>
+  <data name="RemoteDetailConnecting" xml:space="preserve"><value>認証し、許可されたチャンネル一覧を準備しています。</value></data>
+  <data name="RemoteDetailChannel" xml:space="preserve"><value>サーバーが許可した一覧からチャンネルを選択してください。</value></data>
+  <data name="RemoteDetailLive" xml:space="preserve"><value>最近のメッセージと作成・更新・削除イベントが有効です。</value></data>
+  <data name="RemoteDetailNetwork" xml:space="preserve"><value>認証情報は保持されます。制限付きバックオフで再接続します。</value></data>
+  <data name="RemoteDetailAuthentication" xml:space="preserve"><value>認可を利用できません。再ペアリングするかサーバー認可を修復してください。</value></data>
+  <data name="RemoteDetailStorage" xml:space="preserve"><value>Windows 保護ストレージの確認が必要です。平文トークンは使用していません。</value></data>
+  <data name="RemoteDetailError" xml:space="preserve"><value>リモートチャットを安全に停止しました。ログを確認して再接続してください。</value></data>
+  <data name="RemoteDetailDisconnected" xml:space="preserve"><value>リモートチャットは停止中です。</value></data>
+  <data name="ChatRemoteReply" xml:space="preserve"><value>↳ 返信</value></data>
+  <data name="ChatRemoteReplyResolved" xml:space="preserve"><value>↳ {0}: {1}</value></data>
+  <data name="ChatRemoteReplyUnknownAuthor" xml:space="preserve"><value>不明</value></data>
+  <data name="ChatRemoteForwarded" xml:space="preserve"><value>転送メッセージ ({0})</value></data>
+  <data name="ChatRemoteForwardedLabel" xml:space="preserve"><value>転送されたメッセージ</value></data>
+  <data name="ChatRemoteStickerNamed" xml:space="preserve"><value>ステッカー: {0}</value></data>
+  <data name="ChatRemoteVoice" xml:space="preserve"><value>ボイスメッセージ · {0}</value></data>
+  <data name="ChatRemoteAttachment" xml:space="preserve"><value>添付ファイル · {0}</value></data>
+  <data name="ChatRemoteUnnamedAttachment" xml:space="preserve"><value>名称未設定ファイル</value></data>
+  <data name="ChatRemoteEmbed" xml:space="preserve"><value>埋め込み · {0}</value></data>
+  <data name="ChatRemotePoll" xml:space="preserve"><value>投票 · {0} — {1}</value></data>
+  <data name="ChatRemotePollUntitled" xml:space="preserve"><value>無題の投票</value></data>
+  <data name="ChatRemoteComponents" xml:space="preserve"><value>読み取り専用コントロール · {0}</value></data>
+  <data name="SalesStatusSelling" xml:space="preserve"><value>販売中</value></data>
+  <data name="SalesStatusNegotiating" xml:space="preserve"><value>交渉中</value></data>
+  <data name="SalesStatusCompleted" xml:space="preserve"><value>販売完了</value></data>
+  <data name="SalesStatusClear" xml:space="preserve"><value>Bot状態を解除</value></data>
+  <data name="SalesStatusActionPending" xml:space="preserve"><value>Discordへの反映を確認中…</value></data>
+  <data name="SalesStatusActionFailed" xml:space="preserve"><value>状態の変更に失敗しました</value></data>
+  <data name="SalesStatusBotNone" xml:space="preserve"><value>Bot状態なし</value></data>
+  <data name="SalesStatusNotAvailable" xml:space="preserve"><value>状態変更を利用できません</value></data>
+  <data name="SalesStatusPermissionDenied" xml:space="preserve"><value>権限が拒否されました</value></data>
+  <data name="SessionLabel" xml:space="preserve"><value>セッション</value></data>
+  <data name="SessionNumberFormat" xml:space="preserve"><value>セッション {0}</value></data>
+  <data name="SessionGtaOnline" xml:space="preserve"><value>GTAオンライン</value></data>
+  <data name="SessionAwaiting" xml:space="preserve"><value>セッション情報を待機中</value></data>
+  <data name="SessionOffline" xml:space="preserve"><value>オフライン</value></data>
+  <data name="SessionReconnecting" xml:space="preserve"><value>再接続中</value></data>
+  <data name="SessionUnavailable" xml:space="preserve"><value>セッション情報なし</value></data>
+  <data name="SessionHostNotConfigured" xml:space="preserve"><value>ホストが設定されていません</value></data>
+  <data name="SessionHost1" xml:space="preserve"><value>ホスト 1</value></data>
+  <data name="SessionHost2" xml:space="preserve"><value>ホスト 2</value></data>
+  <data name="SessionOccupancyFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="SettingsShowGtaSession" xml:space="preserve"><value>GTAセッション人数を表示</value></data>
+  <data name="SettingsShowGtaSessionHint" xml:space="preserve"><value>設定済みのRemoteサービスから届く正規化されたGTAオンライン人数を表示します。</value></data>
+  <data name="SettingsSessionHost" xml:space="preserve"><value>セッションホスト</value></data>
+  <data name="SettingsSessionHost1" xml:space="preserve"><value>ホスト 1</value></data>
+  <data name="SettingsSessionHost2" xml:space="preserve"><value>ホスト 2</value></data>
+  <data name="SettingsSalesTurnSound" xml:space="preserve"><value>販売順番の通知音</value></data>
+  <data name="SettingsSalesTurnSoundHint" xml:space="preserve"><value>信頼できるキュー位置が新しく変わったとき、ローカル通知音を1回再生します。起動時やプロバイダー復旧時は再生しません。</value></data>
+  <data name="SettingsNotifySalesNext" xml:space="preserve"><value>自分が次の順番になったとき通知</value></data>
+  <data name="SettingsNotifySalesCurrent" xml:space="preserve"><value>自分の販売順番が始まったとき通知</value></data>
+  <data name="SettingsSalesTurnSoundVolume" xml:space="preserve"><value>通知音量</value></data>
+  <data name="SettingsTestSalesTurnSound" xml:space="preserve"><value>通知音をテスト</value></data>
 </root>

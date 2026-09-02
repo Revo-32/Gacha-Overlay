@@ -71,7 +71,7 @@ public sealed class SalesPersonalAlertTests
             previous: live);
         Assert.Equal(SalesQueueContentMode.CurrentTurnSelf, paused.ContentMode);
         Assert.Equal("Sell now", paused.PrimaryText);
-        Assert.Contains("open", paused.SecondaryText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("paused", paused.SecondaryText, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(SalesQueueAnimationRequest.None, paused.AnimationRequest);
     }
 
@@ -209,7 +209,7 @@ public sealed class SalesPersonalAlertTests
             previous: live);
         Assert.Equal(SalesQueueContentMode.NextTurnSelf, paused.ContentMode);
         Assert.Contains("I'm next", paused.SecondaryText, StringComparison.Ordinal);
-        Assert.Contains("open", paused.SecondaryText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("paused", paused.SecondaryText, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

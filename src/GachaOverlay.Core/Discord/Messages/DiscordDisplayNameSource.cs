@@ -3,11 +3,9 @@ namespace GachaOverlay.Core.Discord.Messages;
 public enum DiscordDisplayNameSource
 {
     Unknown,
-    RpcGuildNickname,
-    GuildNickname = RpcGuildNickname,
+    GuildNickname,
     CachedGuildNickname,
     GlobalDisplayName,
     Username,
-    UiAutomationGuildNickname,
     ManualOverride,
 }

@@ -30,4 +30,6 @@ public sealed record NormalizedDiscordMessage(
     public DiscordForwardMetadata? Forward { get; init; }
 
     public DiscordMessageFallbackKind FallbackKind { get; init; }
+
+    public DiscordRemoteMessageMetadata? RemoteMetadata { get; init; }
 }

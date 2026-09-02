@@ -17,10 +17,12 @@ public sealed class M7LocalizationTests
             "SalesHealthLiveAccessible",
             "SalesHealthConnecting",
             "SalesHealthResyncing",
-            "SalesHealthOpenChannelFormat",
+            "SalesHealthPaused",
+            "SalesHealthRemoteUnavailable",
+            "SalesHealthRemoteAccessRevoked",
             "SalesHealthDegraded",
             "SalesHealthDisconnected",
-            "SalesHealthSensorError",
+            "SalesHealthRemoteError",
             "SalesHealthDisabled",
             "SalesCurrentSellerFormat",
             "SalesWaitingCountFormat",
@@ -52,26 +54,6 @@ public sealed class M7LocalizationTests
         Assert.Equal(current, localization["SalesCurrentTurnSelf"]);
     }
 
-    [Theory]
-    [InlineData("en", "Keep #sales open")]
-    [InlineData("ko", "#판매모집 채널을 열어두세요")]
-    [InlineData("ja", "#販売募集 チャンネルを開いてください")]
-    public void DynamicChannelGuidance_UsesLocalizedFormat(
-        string locale,
-        string expected)
-    {
-        var localization = new ResourceLocalizationService(locale, NullAppLogger.Instance);
-        var channel = locale switch
-        {
-            "ko" => "#판매모집",
-            "ja" => "#販売募集",
-            _ => "#sales",
-        };
-        Assert.Equal(
-            expected,
-            string.Format(localization["SalesHealthOpenChannelFormat"], channel));
-    }
-
     [Fact]
     public void KoreanFixedUxPhrases_MatchSpecification()
     {
@@ -81,7 +63,7 @@ public sealed class M7LocalizationTests
         Assert.Equal("판매 상태 일부만 확인됨", localization["SalesHealthDegraded"]);
         Assert.Equal("Discord 연결 끊김", localization["SalesHealthDisconnected"]);
         Assert.Equal(
-            "판매 상태 센서를 사용할 수 없습니다",
-            localization["SalesHealthSensorError"]);
+            "Remote 판매를 사용할 수 없습니다",
+            localization["SalesHealthRemoteError"]);
     }
 }

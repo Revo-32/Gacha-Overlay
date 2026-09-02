@@ -10,6 +10,7 @@
     <Window.Resources>
         <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
         <DataTemplate x:Key="OptionTemplate"><TextBlock Text="{Binding DisplayText}" /></DataTemplate>
+        <DataTemplate x:Key="RemoteDisplayNameTemplate"><TextBlock Text="{Binding DisplayName}" /></DataTemplate>
     </Window.Resources>
     <Grid Margin="30">
         <Grid.RowDefinitions>
@@ -32,32 +33,25 @@
                     <StackPanel Visibility="{Binding IsDiscordStep, Converter={StaticResource BoolVisibility}}">
                         <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingDiscordTitle]}" />
                         <TextBlock Margin="0,7,0,14" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingDiscordHint]}" TextWrapping="Wrap" />
-                        <TextBlock Margin="0,8,0,5" Text="{Binding Settings.Localization[SettingsDiscordClientId]}" /><TextBox Text="{Binding Settings.DiscordClientIdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Margin="0,12,0,5" Text="{Binding Settings.Localization[SettingsDiscordClientSecret]}" /><PasswordBox PasswordChanged="OnDiscordClientSecretChanged" AutomationProperties.Name="{Binding Settings.Localization[SettingsDiscordClientSecret]}" />
-                        <TextBlock Margin="0,12,0,5" Text="{Binding Settings.Localization[SettingsDiscordRedirectUri]}" /><TextBox Text="{Binding Settings.DiscordRedirectUriText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <Button Margin="0,18,0,0" HorizontalAlignment="Left" Style="{StaticResource Style.Button.Primary}" Command="{Binding Settings.SaveAndConnectDiscordCommand}" Content="{Binding Settings.Localization[SettingsDiscordSaveAndConnect]}" />
-                        <TextBlock Margin="0,10,0,0" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding Settings.DiscordSetupMessage}" TextWrapping="Wrap" />
-                    </StackPanel>
-                    <StackPanel Visibility="{Binding IsServerStep, Converter={StaticResource BoolVisibility}}">
-                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingServerTitle]}" />
-                        <TextBlock Margin="0,7,0,18" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingServerHint]}" TextWrapping="Wrap" />
-                        <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding Settings.ServerSettings.GuildName}" />
-                        <TextBlock Margin="0,8,0,14" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding Settings.ServerSettings.StatusText}" TextWrapping="Wrap" />
-                        <Button HorizontalAlignment="Left" Command="{Binding Settings.ServerSettings.RefreshCommand}" Content="{Binding Settings.Localization[SettingsServerRefresh]}" />
-                    </StackPanel>
-                    <StackPanel Visibility="{Binding IsMainStep, Converter={StaticResource BoolVisibility}}">
-                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingMainTitle]}" />
-                        <TextBlock Margin="0,7,0,18" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingMainHint]}" TextWrapping="Wrap" />
-                        <ComboBox Width="400" HorizontalAlignment="Left" ItemsSource="{Binding Settings.ServerSettings.MainChannels}" ItemTemplate="{StaticResource OptionTemplate}" SelectedItem="{Binding Settings.ServerSettings.SelectedMainChannel, Mode=TwoWay}" AutomationProperties.Name="{Binding Settings.Localization[SettingsServerMainChannel]}" />
-                        <TextBlock Margin="0,10,0,0" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding Settings.ServerSettings.StatusText}" TextWrapping="Wrap" />
-                    </StackPanel>
-                    <StackPanel Visibility="{Binding IsAccessibilityStep, Converter={StaticResource BoolVisibility}}">
-                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingAccessibilityTitle]}" />
-                        <TextBlock Margin="0,7,0,18" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingAccessibilityHint]}" TextWrapping="Wrap" />
-                        <TextBlock FontWeight="SemiBold" Text="{Binding Settings.SalesUiaStatusText}" />
-                        <CheckBox Margin="0,16,0,0" IsChecked="{Binding Settings.SalesTrackingEnabled, Mode=TwoWay}" Content="{Binding Settings.Localization[SettingsSalesTracking]}" />
-                        <Button Margin="0,16,0,0" HorizontalAlignment="Left" Command="{Binding Settings.LaunchDiscordAccessibilityCommand}" Content="{Binding Settings.Localization[SettingsDiscordAccessibilityLaunch]}" />
-                        <TextBlock Margin="0,12,0,0" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingNoSilentKill]}" TextWrapping="Wrap" />
+                        <TextBlock Margin="0,8,0,5" Text="{Binding Settings.Localization[SettingsRemoteEndpoint]}" />
+                        <TextBox Text="{Binding Settings.RemoteChatSettings.BackendBaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <WrapPanel Margin="0,14,0,0">
+                            <Button Margin="0,0,8,8" Command="{Binding Settings.RemoteChatSettings.ApplyConfigurationCommand}" Content="{Binding Settings.Localization[SettingsRemoteApply]}" />
+                            <Button Margin="0,0,8,8" Command="{Binding Settings.RemoteChatSettings.RefreshCommand}" Content="{Binding Settings.Localization[SettingsRemoteRefresh]}" />
+                            <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Primary}" Command="{Binding Settings.RemoteChatSettings.BeginPairingCommand}" Content="{Binding Settings.Localization[SettingsRemotePair]}" />
+                            <Button Margin="0,0,8,8" Command="{Binding Settings.RemoteChatSettings.CancelPairingCommand}" Content="{Binding Settings.Localization[SettingsRemotePairCancel]}" />
+                        </WrapPanel>
+                        <TextBlock Margin="0,4,0,0" FontWeight="SemiBold" Foreground="{DynamicResource StatusInfoBrush}" Text="{Binding Settings.RemoteChatSettings.HealthText}" />
+                        <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.RemoteChatSettings.HealthDetailText}" TextWrapping="Wrap" />
+                        <Border Margin="0,10,0,0" Padding="12" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="6" Visibility="{Binding Settings.RemoteChatSettings.HasPairingCode, Converter={StaticResource BoolVisibility}}">
+                            <StackPanel><TextBlock FontSize="18" FontWeight="Bold" Text="{Binding Settings.RemoteChatSettings.PairingCode}"/><TextBlock Margin="0,5,0,0" Text="{Binding Settings.RemoteChatSettings.PairingInstruction}" TextWrapping="Wrap"/></StackPanel>
+                        </Border>
+                        <TextBlock Margin="0,12,0,5" Text="{Binding Settings.Localization[SettingsRemoteChannel]}" />
+                        <WrapPanel>
+                            <ComboBox Width="400" Margin="0,0,8,8" ItemsSource="{Binding Settings.RemoteChatSettings.Channels}" ItemTemplate="{StaticResource RemoteDisplayNameTemplate}" SelectedItem="{Binding Settings.RemoteChatSettings.SelectedChannel, Mode=TwoWay}" />
+                            <Button Margin="0,0,8,8" Command="{Binding Settings.RemoteChatSettings.SwitchChannelCommand}" Content="{Binding Settings.Localization[SettingsRemoteUseChannel]}" />
+                        </WrapPanel>
+                        <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding Settings.RemoteChatSettings.StatusMessage}" TextWrapping="Wrap" />
                     </StackPanel>
                     <StackPanel Visibility="{Binding IsHudStep, Converter={StaticResource BoolVisibility}}">
                         <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingHudTitle]}" />

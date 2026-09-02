@@ -184,7 +184,7 @@ public sealed class JsonSettingsStoreTests
     }
 
     [Fact]
-    public void AtomicUpdates_PreserveLanguageAndResolvedDiscordIds()
+    public void AtomicUpdates_PreserveLanguageAndRemoteConfiguration()
     {
         using var directory = new TemporaryDirectory();
         var store = new JsonSettingsStore(directory.File("settings.json"));
@@ -193,16 +193,14 @@ public sealed class JsonSettingsStoreTests
         store.Update(current => current with { Language = SupportedLocales.Korean });
         store.Update(current => current with
         {
-            DiscordGuildId = "guild",
-            DiscordMainChannelId = "main",
-            DiscordSalesChannelId = "sales",
+            RemoteBackendBaseUrl = "https://overlay.example/path",
+            RemoteSelectedChannelId = "1234",
         });
 
         var loaded = new JsonSettingsStore(directory.File("settings.json")).Load();
         Assert.Equal(SupportedLocales.Korean, loaded.Language);
-        Assert.Equal(ProductionServerProfile.GuildId, loaded.DiscordGuildId);
-        Assert.Equal("main", loaded.DiscordMainChannelId);
-        Assert.Equal(ProductionServerProfile.SalesChannelId, loaded.DiscordSalesChannelId);
+        Assert.Equal("https://overlay.example", loaded.RemoteBackendBaseUrl);
+        Assert.Equal("1234", loaded.RemoteSelectedChannelId);
         Assert.Equal(AppSettings.CurrentSchemaVersion, loaded.SchemaVersion);
     }
 
@@ -420,7 +418,7 @@ public sealed class JsonSettingsStoreTests
     }
 
     [Fact]
-    public void DefaultSerialization_PreservesNoneModifierAndPublicDiscordConfiguration()
+    public void DefaultSerialization_PreservesNoneModifierAndRemoteConfiguration()
     {
         using var directory = new TemporaryDirectory();
         var path = directory.File("settings.json");
@@ -428,11 +426,8 @@ public sealed class JsonSettingsStoreTests
 
         Assert.True(store.Save(AppSettings.CreateDefault() with
         {
-            DiscordClientId = "123456789",
-            DiscordRedirectUri = "https://127.0.0.1",
-            DiscordGuildId = "111",
-            DiscordMainChannelId = "222",
-            DiscordSalesChannelId = "333",
+            RemoteBackendBaseUrl = "https://overlay.example/path",
+            RemoteSelectedChannelId = "222",
         }));
 
         var json = System.IO.File.ReadAllText(path);
@@ -440,10 +435,8 @@ public sealed class JsonSettingsStoreTests
         Assert.Contains("\"modifiers\": \"\"", json, StringComparison.Ordinal);
         Assert.DoesNotContain("clientSecret", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("accessToken", json, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal("123456789", loaded.DiscordClientId);
-        Assert.Equal(ProductionServerProfile.GuildId, loaded.DiscordGuildId);
-        Assert.Equal("222", loaded.DiscordMainChannelId);
-        Assert.Equal(ProductionServerProfile.SalesChannelId, loaded.DiscordSalesChannelId);
+        Assert.Equal("https://overlay.example", loaded.RemoteBackendBaseUrl);
+        Assert.Equal("222", loaded.RemoteSelectedChannelId);
     }
 
     [Fact]

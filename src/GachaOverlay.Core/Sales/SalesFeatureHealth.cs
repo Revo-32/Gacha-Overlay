@@ -1,5 +1,3 @@
-using GachaOverlay.Core.Discord.Connection;
-
 namespace GachaOverlay.Core.Sales;
 
 public enum SalesFeatureHealthState
@@ -18,29 +16,53 @@ public enum SalesFeatureHealthReason
 {
     None,
     SalesTrackingDisabled,
-    DiscordDisconnected,
-    DiscordConfigurationRequired,
-    DiscordFaulted,
-    DiscordConnecting,
-    DiscordAuthenticating,
-    DiscordReconnecting,
-    SalesSourceNotReady,
-    DiscordWindowUnavailable,
-    AccessibilityUnavailable,
-    TargetChannelNotSelected,
-    TargetChannelUnknown,
     CoveragePartial,
-    ResyncInProgress,
     InitialResyncRequired,
+    TargetChannelNotSelected,
+    ResyncInProgress,
     SensorFailure,
+    DiscordDisconnected,
+    RemoteSalesConnecting,
+    RemoteSalesSynchronizing,
+    RemoteSalesResyncing,
+    RemoteSalesReconnecting,
+    RemoteSalesAuthorizationUnavailable,
+    RemoteSalesAccessRevoked,
+    RemoteSalesUnavailable,
+}
+
+public enum EffectiveSalesSource
+{
+    RemoteStarting,
+    RemotePrimary,
+    RemoteRecovering,
+    RemoteUnavailable,
+    AccessRevoked,
+}
+
+public enum RemoteSalesPresentationPhase
+{
+    Disabled,
+    Connecting,
+    Bootstrapping,
+    Live,
+    Resyncing,
+    Reconnecting,
+    AuthorizationUnavailable,
+    CredentialUnavailable,
+    AccessRevoked,
+    ChannelUnavailable,
+    Failed,
 }
 
 public sealed record SalesFeatureHealthInput(
     bool SalesTrackingEnabled,
-    DiscordConnectionState RpcConnectionState,
-    bool SalesSourceReady,
-    SalesSensorHealth SensorHealth,
-    bool CurrentGenerationResyncComplete);
+    RemoteSalesPresentationPhase RemotePhase,
+    bool RemoteCanonicalReady,
+    SalesCoverageState Coverage,
+    DateTimeOffset? LastCompleteResyncAt,
+    int TargetMessageCount,
+    int ObservedMessageCount);
 
 public sealed record SalesFeatureHealthSnapshot(
     SalesFeatureHealthState State,
@@ -51,7 +73,9 @@ public sealed record SalesFeatureHealthSnapshot(
     bool IsFullyTrustworthy,
     DateTimeOffset? LastCompleteResyncAt,
     int TargetMessageCount,
-    int ObservedMessageCount)
+    int ObservedMessageCount,
+    EffectiveSalesSource EffectiveSource = EffectiveSalesSource.RemoteStarting,
+    RemoteSalesPresentationPhase RemotePhase = RemoteSalesPresentationPhase.Disabled)
 {
     public static SalesFeatureHealthSnapshot Disabled { get; } = new(
         SalesFeatureHealthState.Disabled,
@@ -62,7 +86,8 @@ public sealed record SalesFeatureHealthSnapshot(
         false,
         null,
         0,
-        0);
+        0,
+        EffectiveSalesSource.RemoteUnavailable);
 }
 
 public static class SalesFeatureHealthEvaluator
@@ -70,136 +95,104 @@ public static class SalesFeatureHealthEvaluator
     public static SalesFeatureHealthSnapshot Evaluate(SalesFeatureHealthInput input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        ArgumentNullException.ThrowIfNull(input.SensorHealth);
+        var decision = SalesAcquisitionPolicy.Evaluate(new SalesAcquisitionPolicyInput(
+            input.SalesTrackingEnabled,
+            input.RemotePhase,
+            input.RemoteCanonicalReady));
 
-        var sensor = input.SensorHealth;
         if (!input.SalesTrackingEnabled)
         {
             return Create(
                 SalesFeatureHealthState.Disabled,
-                SalesFeatureHealthReason.SalesTrackingDisabled);
+                SalesFeatureHealthReason.SalesTrackingDisabled,
+                SalesObservationStatus.Disabled);
         }
 
-        if (input.RpcConnectionState == DiscordConnectionState.Faulted)
+        if (decision.EffectiveSource == EffectiveSalesSource.AccessRevoked)
         {
             return Create(
                 SalesFeatureHealthState.Error,
-                SalesFeatureHealthReason.DiscordFaulted);
+                SalesFeatureHealthReason.RemoteSalesAccessRevoked,
+                SalesObservationStatus.Unavailable);
         }
 
-        if (input.RpcConnectionState is
-            DiscordConnectionState.Disconnected or
-            DiscordConnectionState.ConfigurationRequired)
+        if (decision.EffectiveSource == EffectiveSalesSource.RemoteUnavailable)
         {
             return Create(
-                SalesFeatureHealthState.Disconnected,
-                input.RpcConnectionState == DiscordConnectionState.ConfigurationRequired
-                    ? SalesFeatureHealthReason.DiscordConfigurationRequired
-                    : SalesFeatureHealthReason.DiscordDisconnected);
+                SalesFeatureHealthState.Error,
+                input.RemotePhase == RemoteSalesPresentationPhase.AuthorizationUnavailable
+                    ? SalesFeatureHealthReason.RemoteSalesAuthorizationUnavailable
+                    : SalesFeatureHealthReason.RemoteSalesUnavailable,
+                SalesObservationStatus.Unavailable);
         }
 
-        if (input.RpcConnectionState is
-            DiscordConnectionState.Connecting or
-            DiscordConnectionState.Authenticating or
-            DiscordConnectionState.Reconnecting)
+        if (decision.EffectiveSource == EffectiveSalesSource.RemoteStarting)
         {
             return Create(
                 SalesFeatureHealthState.Connecting,
-                input.RpcConnectionState switch
-                {
-                    DiscordConnectionState.Authenticating =>
-                        SalesFeatureHealthReason.DiscordAuthenticating,
-                    DiscordConnectionState.Reconnecting =>
-                        SalesFeatureHealthReason.DiscordReconnecting,
-                    _ => SalesFeatureHealthReason.DiscordConnecting,
-                });
+                input.RemotePhase == RemoteSalesPresentationPhase.Bootstrapping
+                    ? SalesFeatureHealthReason.RemoteSalesSynchronizing
+                    : SalesFeatureHealthReason.RemoteSalesConnecting,
+                SalesObservationStatus.Resyncing);
         }
 
-        if (!input.SalesSourceReady)
+        if (decision.EffectiveSource == EffectiveSalesSource.RemoteRecovering)
         {
-            return Create(
-                SalesFeatureHealthState.Connecting,
-                SalesFeatureHealthReason.SalesSourceNotReady);
-        }
-
-        if (sensor.Status == SalesObservationStatus.AccessibilityUnavailable ||
-            sensor.Reason == SalesObservationReason.AccessibilityTreeUnavailable)
-        {
-            return Create(
-                SalesFeatureHealthState.Error,
-                SalesFeatureHealthReason.AccessibilityUnavailable);
-        }
-
-        if (sensor.Status is SalesObservationStatus.Error or SalesObservationStatus.Unavailable)
-        {
-            return Create(
-                SalesFeatureHealthState.Error,
-                sensor.Reason is SalesObservationReason.DiscordNotRunning or
-                    SalesObservationReason.DiscordWindowNotFound
-                    ? SalesFeatureHealthReason.DiscordWindowUnavailable
-                    : SalesFeatureHealthReason.SensorFailure);
-        }
-
-        if (sensor.Reason == SalesObservationReason.TargetChannelUnknown)
-        {
-            return Create(
-                SalesFeatureHealthState.Paused,
-                SalesFeatureHealthReason.TargetChannelUnknown);
-        }
-
-        if (sensor.Status == SalesObservationStatus.Paused ||
-            sensor.Reason == SalesObservationReason.TargetChannelNotSelected)
-        {
-            return Create(
-                SalesFeatureHealthState.Paused,
-                SalesFeatureHealthReason.TargetChannelNotSelected);
-        }
-
-        if (sensor.Status == SalesObservationStatus.Resyncing)
-        {
+            var reason = input.RemotePhase switch
+            {
+                RemoteSalesPresentationPhase.Reconnecting =>
+                    SalesFeatureHealthReason.RemoteSalesReconnecting,
+                RemoteSalesPresentationPhase.AuthorizationUnavailable =>
+                    SalesFeatureHealthReason.RemoteSalesAuthorizationUnavailable,
+                _ => SalesFeatureHealthReason.RemoteSalesResyncing,
+            };
             return Create(
                 SalesFeatureHealthState.Resyncing,
-                SalesFeatureHealthReason.ResyncInProgress);
+                reason,
+                SalesObservationStatus.Resyncing);
         }
 
-        if (sensor.Status == SalesObservationStatus.Partial ||
-            sensor.Coverage == SalesCoverageState.Partial ||
-            sensor.Reason == SalesObservationReason.CoverageIncomplete)
+        if (input.Coverage != SalesCoverageState.Complete ||
+            input.ObservedMessageCount != input.TargetMessageCount)
         {
             return Create(
                 SalesFeatureHealthState.Degraded,
-                SalesFeatureHealthReason.CoveragePartial);
+                SalesFeatureHealthReason.CoveragePartial,
+                SalesObservationStatus.Partial);
         }
 
-        if (sensor.Status == SalesObservationStatus.Live &&
-            sensor.Coverage == SalesCoverageState.Complete &&
-            sensor.IsComplete &&
-            input.CurrentGenerationResyncComplete &&
-            sensor.LastCompleteResyncAt.HasValue)
+        if (!input.LastCompleteResyncAt.HasValue)
         {
             return Create(
-                SalesFeatureHealthState.Live,
-                SalesFeatureHealthReason.None,
-                isFullyTrustworthy: true);
+                SalesFeatureHealthState.Resyncing,
+                SalesFeatureHealthReason.InitialResyncRequired,
+                SalesObservationStatus.Resyncing);
         }
 
         return Create(
-            SalesFeatureHealthState.Resyncing,
-            SalesFeatureHealthReason.InitialResyncRequired);
+            SalesFeatureHealthState.Live,
+            SalesFeatureHealthReason.None,
+            SalesObservationStatus.Live,
+            isFullyTrustworthy: true);
 
         SalesFeatureHealthSnapshot Create(
             SalesFeatureHealthState state,
             SalesFeatureHealthReason reason,
+            SalesObservationStatus observationStatus,
             bool isFullyTrustworthy = false) => new(
                 state,
                 reason,
-                sensor.Reason,
-                sensor.Status,
-                sensor.Coverage,
+                input.Coverage == SalesCoverageState.Partial
+                    ? SalesObservationReason.CoverageIncomplete
+                    : SalesObservationReason.None,
+                observationStatus,
+                input.Coverage,
                 isFullyTrustworthy,
-                sensor.LastCompleteResyncAt,
-                sensor.TargetMessageCount,
-                sensor.ObservedMessageCount);
+                input.LastCompleteResyncAt,
+                input.TargetMessageCount,
+                input.ObservedMessageCount,
+                decision.EffectiveSource,
+                input.RemotePhase);
     }
 }
 

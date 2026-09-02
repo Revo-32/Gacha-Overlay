@@ -72,7 +72,7 @@ public sealed class DiscordMessageStore
         string guildId,
         string authorId,
         string nickname,
-        DiscordDisplayNameSource observationSource = DiscordDisplayNameSource.RpcGuildNickname)
+        DiscordDisplayNameSource observationSource = DiscordDisplayNameSource.GuildNickname)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(guildId);
         ArgumentException.ThrowIfNullOrWhiteSpace(authorId);
@@ -147,6 +147,9 @@ public sealed class DiscordMessageStore
             FallbackKind = patch.FallbackKind.HasValue
                 ? patch.FallbackKind.Value
                 : DiscordMessageFallbackKind.None,
+            RemoteMetadata = patch.RemoteMetadata.HasValue
+                ? patch.RemoteMetadata.Value
+                : null,
         };
         return true;
     }
@@ -200,6 +203,9 @@ public sealed class DiscordMessageStore
             FallbackKind = patch.FallbackKind.HasValue
                 ? patch.FallbackKind.Value
                 : existing.FallbackKind,
+            RemoteMetadata = patch.RemoteMetadata.HasValue
+                ? patch.RemoteMetadata.Value
+                : existing.RemoteMetadata,
         };
 
     private static IReadOnlyList<T> Copy<T>(

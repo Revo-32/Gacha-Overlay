@@ -2,7 +2,6 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Windows;
 using GachaOverlay.Core.Hud;
-using GachaOverlay.Core.Discord.Connection;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Logging;
 
@@ -29,7 +28,7 @@ internal sealed class TrayIconService : IDisposable
     private readonly NotifyIcon _notifyIcon;
     private readonly Icon _applicationIcon;
     private HudSessionState _state = HudSessionState.CreateDefault();
-    private DiscordConnectionStatus _connectionStatus = DiscordConnectionStatus.Initial;
+    private RemoteChatHealthState _connectionState = RemoteChatHealthState.Disconnected;
     private bool _canReconnectDiscord;
     private bool _disposed;
 
@@ -104,10 +103,10 @@ internal sealed class TrayIconService : IDisposable
         RefreshText();
     }
 
-    public void UpdateDiscordStatus(DiscordConnectionStatus status, bool canReconnect)
+    public void UpdateRemoteStatus(RemoteChatSnapshot snapshot)
     {
-        _connectionStatus = status;
-        _canReconnectDiscord = canReconnect;
+        _connectionState = snapshot.Health;
+        _canReconnectDiscord = snapshot.HasProtectedCredential;
         RefreshText();
     }
 
@@ -185,21 +184,20 @@ internal sealed class TrayIconService : IDisposable
         _notifyIcon.Text = appName.Length <= 63 ? appName : appName[..63];
     }
 
-    private string GetConnectionStatusKey() => _connectionStatus.State switch
+    private string GetConnectionStatusKey() => _connectionState switch
     {
-        DiscordConnectionState.Connected => "DiscordStatusConnected",
-        DiscordConnectionState.Connecting => "DiscordStatusConnecting",
-        DiscordConnectionState.Authenticating => "DiscordStatusAuthenticating",
-        DiscordConnectionState.Reconnecting => "DiscordStatusReconnecting",
-        DiscordConnectionState.ConfigurationRequired when
-            _connectionStatus.Detail == "AuthenticationRequired" =>
-                "DiscordStatusAuthenticationRequired",
-        DiscordConnectionState.ConfigurationRequired when
-            _connectionStatus.Detail == "TargetConfigurationInvalid" =>
-                "DiscordStatusTargetConfigurationRequired",
-        DiscordConnectionState.ConfigurationRequired => "DiscordStatusConfigurationRequired",
-        DiscordConnectionState.Faulted => "DiscordStatusFailed",
-        _ when _connectionStatus.Detail == "DiscordNotRunning" => "DiscordStatusDiscordNotRunning",
+        RemoteChatHealthState.Live => "DiscordStatusConnected",
+        RemoteChatHealthState.Connecting or
+            RemoteChatHealthState.Bootstrapping => "DiscordStatusConnecting",
+        RemoteChatHealthState.Authenticating => "DiscordStatusAuthenticating",
+        RemoteChatHealthState.Reconnecting => "DiscordStatusReconnecting",
+        RemoteChatHealthState.PairingRequired or
+            RemoteChatHealthState.PairingInProgress => "DiscordStatusAuthenticationRequired",
+        RemoteChatHealthState.ChannelSelectionRequired =>
+            "DiscordStatusTargetConfigurationRequired",
+        RemoteChatHealthState.Error or
+            RemoteChatHealthState.AccessRevoked or
+            RemoteChatHealthState.AuthorizationUnavailable => "DiscordStatusFailed",
         _ => "DiscordStatusDisconnected",
     };
 }

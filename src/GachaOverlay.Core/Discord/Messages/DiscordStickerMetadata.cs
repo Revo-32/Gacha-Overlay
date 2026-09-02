@@ -4,4 +4,7 @@ public sealed record DiscordStickerMetadata(
     string StickerId,
     string Name,
     int? FormatType,
-    string? AssetUrl);
+    string? AssetUrl)
+{
+    public string? RemoteFormat { get; init; }
+}

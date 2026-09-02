@@ -47,6 +47,9 @@ public partial class SalesQueueView : System.Windows.Controls.UserControl
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs args)
+        => BindViewModel(_unloaded ? null : args.NewValue as SalesQueueViewModel);
+
+    private void BindViewModel(SalesQueueViewModel? viewModel)
     {
         if (_viewModel is not null)
         {
@@ -54,7 +57,7 @@ public partial class SalesQueueView : System.Windows.Controls.UserControl
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         }
 
-        _viewModel = args.NewValue as SalesQueueViewModel;
+        _viewModel = viewModel;
         if (_viewModel is not null)
         {
             _viewModel.AnimationRequested += OnAnimationRequested;
@@ -145,12 +148,14 @@ public partial class SalesQueueView : System.Windows.Controls.UserControl
     private void OnLoaded(object sender, RoutedEventArgs args)
     {
         _unloaded = false;
+        BindViewModel(DataContext as SalesQueueViewModel);
         UpdateSpinner();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         _unloaded = true;
+        BindViewModel(null);
         UpdateSpinner();
         ResetPresentationAnimations();
     }

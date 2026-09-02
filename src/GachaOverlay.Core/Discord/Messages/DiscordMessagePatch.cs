@@ -45,4 +45,6 @@ public sealed record DiscordMessagePatch
     public OptionalValue<DiscordForwardMetadata?> Forward { get; init; }
 
     public OptionalValue<DiscordMessageFallbackKind> FallbackKind { get; init; }
+
+    public OptionalValue<DiscordRemoteMessageMetadata?> RemoteMetadata { get; init; }
 }

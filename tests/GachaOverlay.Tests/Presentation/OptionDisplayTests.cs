@@ -14,7 +14,6 @@ using GachaOverlay.Core.Settings;
 using GachaOverlay.Core.Sales;
 using GachaOverlay.Core.Themes;
 using GachaOverlay.Infrastructure.Localization;
-using GachaOverlay.Infrastructure.Discord.Authentication;
 using GachaOverlay.Infrastructure.Sales;
 using GachaOverlay.Infrastructure.Settings;
 using GachaOverlay.Tests.TestSupport;
@@ -464,9 +463,9 @@ public sealed class OptionDisplayTests
                      "SettingsFontResolvedBundled",
                      "SettingsFontResolvedSystem",
                      "SettingsFontResolvedFallback",
-                     "DiscordStatusConfigurationRequired",
+                     "RemoteHealthPairingRequired",
                      "DiscordStatusAuthenticationRequired",
-                     "SettingsDiscordSaveAndConnect",
+                     "SettingsRemotePair",
                      "TrayDiscordConnectionSetup",
                      "TrayDiscordReconnect",
                      "SettingsResetHotkeys",
@@ -490,11 +489,24 @@ public sealed class OptionDisplayTests
         using var directory = new TemporaryDirectory();
         var store = new JsonSettingsStore(directory.File("settings.json"));
         store.Load();
-        Assert.True(store.Update(settings => settings with
-        {
-            DiscordClientId = "client-id",
-        }));
         var localization = new ResourceLocalizationService(SupportedLocales.English);
+        var remoteSettings = new RemoteChatSettingsViewModel(
+            localization,
+            new RemoteChatSnapshot(
+                "http://127.0.0.1:5188",
+                RemoteChatHealthState.Live,
+                "Live",
+                true,
+                null,
+                null,
+                [new RemoteChannelOption("100", "🏠메인", "1", 0, false)],
+                "100"),
+            _ => Task.FromResult(true),
+            () => Task.CompletedTask,
+            () => { },
+            () => Task.FromResult(true),
+            () => Task.CompletedTask,
+            _ => Task.FromResult(true));
         using var settings = new FoundationViewModel(
             store,
             localization,
@@ -503,31 +515,8 @@ public sealed class OptionDisplayTests
             () => { },
             _ => { },
             () => { },
-            getDiscordSetupSnapshot: () => new DiscordConnectionSetupSnapshot(
-                true,
-                ProtectedCredentialStatus.Available,
-                ProtectedCredentialStatus.Available,
-                true,
-                false,
-                true),
             getSalesHealthSnapshot: () => SalesFeatureHealthSnapshot.Disabled,
-            discoverServer: (_, _) => Task.FromResult(new DiscordServerDiscoverySnapshot(
-                DiscordServerDiscoveryState.Ready,
-                "Production Guild",
-                ProductionServerProfile.SalesChannelName,
-                [new DiscordMainChannelOption("main-selected", "🏠메인")],
-                1)),
-            switchMain: (channel, _) =>
-            {
-                Assert.True(store.Update(current => current with
-                {
-                    DiscordMainChannelId = channel.ChannelId,
-                }));
-                return Task.FromResult(new MainChannelSwitchResult(
-                    MainChannelSwitchStatus.Succeeded,
-                    channel.ChannelId,
-                    channel.Name));
-            });
+            remoteChatSettings: remoteSettings);
         var completed = false;
         using var onboarding = new OnboardingViewModel(
             settings,
@@ -558,18 +547,6 @@ public sealed class OptionDisplayTests
         Assert.Equal(1, onboarding.StepIndex);
         onboarding.NextCommand.Execute(null);
         Assert.Equal(2, onboarding.StepIndex);
-        Assert.True(settings.ServerSettings.IsReady);
-        onboarding.NextCommand.Execute(null);
-        Assert.Equal(3, onboarding.StepIndex);
-
-        var main = Assert.Single(settings.ServerSettings.MainChannels);
-        Assert.Equal("#🏠메인", main.DisplayText);
-        settings.ServerSettings.SelectedMainChannel = main;
-        Assert.Equal("main-selected", store.Current.DiscordMainChannelId);
-        onboarding.NextCommand.Execute(null);
-        Assert.Equal(4, onboarding.StepIndex);
-        onboarding.NextCommand.Execute(null);
-        Assert.Equal(5, onboarding.StepIndex);
         onboarding.FinishCommand.Execute(null);
 
         Assert.True(completed);

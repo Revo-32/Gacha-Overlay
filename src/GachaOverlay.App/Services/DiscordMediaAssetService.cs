@@ -23,6 +23,7 @@ internal sealed class DiscordMediaAssetService : IDisposable
     private readonly IAppLogger _logger;
     private readonly IRuntimeMetrics? _metrics;
     private int _activeDownloads;
+    private bool _disposed;
 
     public DiscordMediaAssetService(IAppLogger logger, IRuntimeMetrics? metrics = null)
     {
@@ -102,6 +103,8 @@ internal sealed class DiscordMediaAssetService : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) { return; }
+        _disposed = true;
         _shutdown.Cancel();
         _emojiCache.Dispose();
         _thumbnailCache.Dispose();
@@ -130,10 +133,14 @@ internal sealed class DiscordMediaAssetService : IDisposable
 
         try
         {
+            // HttpClient.Timeout with ResponseHeadersRead does not bound body reads.
+            using var requestCancellation = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
+            requestCancellation.CancelAfter(TimeSpan.FromSeconds(10));
+            var token = requestCancellation.Token;
             using var response = await _httpClient.GetAsync(
                 uri,
                 HttpCompletionOption.ResponseHeadersRead,
-                _shutdown.Token).ConfigureAwait(false);
+                token).ConfigureAwait(false);
             var mediaType = response.Content.Headers.ContentType?.MediaType;
             if (stickerDiagnostic)
             {
@@ -149,14 +156,14 @@ internal sealed class DiscordMediaAssetService : IDisposable
                 return null;
             }
 
-            await using var source = await response.Content.ReadAsStreamAsync(_shutdown.Token)
+            await using var source = await response.Content.ReadAsStreamAsync(token)
                 .ConfigureAwait(false);
             using var buffer = new MemoryStream();
             var chunk = new byte[81920];
             var total = 0;
             while (true)
             {
-                var read = await source.ReadAsync(chunk, _shutdown.Token).ConfigureAwait(false);
+                var read = await source.ReadAsync(chunk, token).ConfigureAwait(false);
                 if (read == 0)
                 {
                     break;
@@ -173,20 +180,13 @@ internal sealed class DiscordMediaAssetService : IDisposable
                     return null;
                 }
 
-                await buffer.WriteAsync(chunk.AsMemory(0, read), _shutdown.Token)
+                await buffer.WriteAsync(chunk.AsMemory(0, read), token)
                     .ConfigureAwait(false);
             }
 
             buffer.Position = 0;
             var decodeStarted = Stopwatch.GetTimestamp();
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-            image.DecodePixelWidth = decodePixelWidth;
-            image.StreamSource = buffer;
-            image.EndInit();
-            image.Freeze();
+            var image = DecodeImage(buffer, decodePixelWidth);
             _metrics?.RecordDuration(
                 RuntimeMetricNames.MediaDecodeDuration,
                 Stopwatch.GetElapsedTime(decodeStarted));
@@ -234,6 +234,20 @@ internal sealed class DiscordMediaAssetService : IDisposable
                 _metrics?.Increment(RuntimeMetricNames.MediaStaleCompletion);
                 break;
         }
+    }
+
+    internal static BitmapSource DecodeImage(Stream source, int decodePixelWidth)
+    {
+        using var decodeStream = new BitmapDecodeStream(source);
+        var image = new BitmapImage();
+        image.BeginInit();
+        image.CacheOption = BitmapCacheOption.OnLoad;
+        image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+        image.DecodePixelWidth = decodePixelWidth;
+        image.StreamSource = decodeStream;
+        image.EndInit();
+        image.Freeze();
+        return image;
     }
 
     private void UpdateCacheMetrics()
@@ -291,7 +305,9 @@ internal sealed class DiscordMediaAssetService : IDisposable
             return null;
         }
 
-        return $"https://cdn.discordapp.com/stickers/{Uri.EscapeDataString(sticker.StickerId)}.{extension}";
+        return $"https://media.discordapp.net/stickers/" +
+            $"{Uri.EscapeDataString(sticker.StickerId)}.{extension}" +
+            "?size=256&quality=lossless";
     }
 
     internal static bool IsSupportedImageContentType(string? mediaType) =>

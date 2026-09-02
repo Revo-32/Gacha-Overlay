@@ -22,13 +22,34 @@ public sealed record ChatMediaCandidate(
     string? ContentType,
     int? Width,
     int? Height,
-    string? SourceUrl = null);
+    string? SourceUrl = null)
+{
+    public string? DisplayName { get; init; }
+}
 
 public sealed record ChatStickerPresentation(
     string StickerId,
     string Name,
     int? FormatType,
     string? AssetUrl);
+
+public sealed record ChatForwardPresentation(
+    string Text,
+    IReadOnlyList<ChatMediaCandidate> Media,
+    IReadOnlyList<ChatStickerPresentation> Stickers,
+    int AdditionalMediaCount)
+{
+    public IReadOnlyList<ChatToken> Tokens { get; init; } = Array.Empty<ChatToken>();
+
+    public IReadOnlyList<DiscordAttachmentMetadata> Attachments { get; init; } =
+        Array.Empty<DiscordAttachmentMetadata>();
+
+    public IReadOnlyList<DiscordEmbedMetadata> Embeds { get; init; } =
+        Array.Empty<DiscordEmbedMetadata>();
+
+    public IReadOnlyList<DiscordComponentMetadata> Components { get; init; } =
+        Array.Empty<DiscordComponentMetadata>();
+}
 
 public sealed record ChatMessagePresentation(
     string MessageId,
@@ -47,6 +68,17 @@ public sealed record ChatMessagePresentation(
         DiscordDisplayNameSource.Unknown;
 
     public DiscordMessageFallbackKind FallbackKind { get; init; }
+
+    public DiscordRemoteMessageMetadata? RemoteMetadata { get; init; }
+
+    public IReadOnlyList<DiscordAttachmentMetadata> RemoteAttachments { get; init; } =
+        Array.Empty<DiscordAttachmentMetadata>();
+
+    public IReadOnlyList<DiscordEmbedMetadata> RemoteEmbeds { get; init; } =
+        Array.Empty<DiscordEmbedMetadata>();
+
+    public IReadOnlyList<ChatForwardPresentation> ForwardedMessages { get; init; } =
+        Array.Empty<ChatForwardPresentation>();
 }
 
 public enum ChatPresentationChangeKind
@@ -157,6 +189,9 @@ public sealed partial class ChatPresentationSynchronizer
                 sticker.FormatType,
                 sticker.AssetUrl))
             .ToArray();
+        var forwardedMessages = message.RemoteMetadata?.ForwardedSnapshots
+            .Select(snapshot => ProjectForward(snapshot, authenticatedUserId))
+            .ToArray() ?? Array.Empty<ChatForwardPresentation>();
         var author = ResolveAuthor(message);
         return new ChatMessagePresentation(
             message.MessageId,
@@ -173,6 +208,43 @@ public sealed partial class ChatPresentationSynchronizer
         {
             AuthorNameSource = author.Source,
             FallbackKind = message.FallbackKind,
+            RemoteMetadata = message.RemoteMetadata,
+            RemoteAttachments = message.Attachments,
+            RemoteEmbeds = message.Embeds,
+            ForwardedMessages = forwardedMessages,
+        };
+    }
+
+    private static ChatForwardPresentation ProjectForward(
+        DiscordForwardSnapshotMetadata snapshot,
+        string? authenticatedUserId)
+    {
+        var mentions = snapshot.Mentions
+            .GroupBy(mention => mention.UserId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        var tokens = Tokenize(
+            snapshot.Content,
+            mentions,
+            new Dictionary<string, DiscordCustomEmoji>(StringComparer.Ordinal),
+            authenticatedUserId);
+        var media = CreateMediaCandidates(snapshot.Attachments, snapshot.Embeds);
+        var stickers = snapshot.Stickers
+            .Select(sticker => new ChatStickerPresentation(
+                sticker.StickerId,
+                sticker.Name,
+                sticker.FormatType,
+                sticker.AssetUrl))
+            .ToArray();
+        return new ChatForwardPresentation(
+            CreatePlainText(tokens),
+            media,
+            stickers,
+            Math.Max(0, media.Count - 1))
+        {
+            Tokens = tokens,
+            Attachments = snapshot.Attachments,
+            Embeds = snapshot.Embeds,
+            Components = snapshot.Components,
         };
     }
 
@@ -278,10 +350,15 @@ public sealed partial class ChatPresentationSynchronizer
     }
 
     private static IReadOnlyList<ChatMediaCandidate> CreateMediaCandidates(
-        NormalizedDiscordMessage message)
+        NormalizedDiscordMessage message) =>
+        CreateMediaCandidates(message.Attachments, message.Embeds);
+
+    private static IReadOnlyList<ChatMediaCandidate> CreateMediaCandidates(
+        IEnumerable<DiscordAttachmentMetadata> attachments,
+        IEnumerable<DiscordEmbedMetadata> embeds)
     {
         var result = new List<ChatMediaCandidate>();
-        foreach (var attachment in message.Attachments)
+        foreach (var attachment in attachments)
         {
             var url = attachment.ProxyUrl ?? attachment.Url;
             if (url is not null && IsHttps(url) &&
@@ -293,16 +370,22 @@ public sealed partial class ChatPresentationSynchronizer
                     attachment.ContentType,
                     attachment.Width,
                     attachment.Height,
-                    attachment.Url));
+                    attachment.Url)
+                {
+                    DisplayName = attachment.FileName,
+                });
             }
         }
 
-        foreach (var embed in message.Embeds)
+        foreach (var embed in embeds)
         {
             var url = embed.ImageUrl ?? embed.ThumbnailUrl;
             if (IsHttps(url))
             {
-                result.Add(new ChatMediaCandidate(url!, "image/*", null, null, embed.Url));
+                result.Add(new ChatMediaCandidate(url!, "image/*", null, null, embed.Url)
+                {
+                    DisplayName = embed.Title,
+                });
             }
         }
 
@@ -337,7 +420,33 @@ public sealed partial class ChatPresentationSynchronizer
         string.Join('|', message.Mentions.Select(x => $"{x.UserId}:{x.DisplayName}")),
         string.Join('|', message.Attachments.Select(x => $"{x.AttachmentId}:{x.Url}:{x.ProxyUrl}:{x.ContentType}")),
         string.Join('|', message.Embeds.Select(x => $"{x.ImageUrl}:{x.ThumbnailUrl}")),
-        string.Join('|', message.Stickers.Select(x => $"{x.StickerId}:{x.Name}:{x.FormatType}:{x.AssetUrl}")));
+        string.Join('|', message.Stickers.Select(x => $"{x.StickerId}:{x.Name}:{x.FormatType}:{x.AssetUrl}")),
+        message.RemoteMetadata?.MessageType,
+        CreateReplyFingerprint(message.RemoteMetadata?.Reply),
+        message.RemoteMetadata?.Poll?.Question,
+        string.Join('|', message.RemoteMetadata?.ForwardedSnapshots.Select(
+            CreateForwardFingerprint) ?? []),
+        string.Join('|', message.RemoteMetadata?.Components.Select(x => $"{x.Type}:{x.Label}:{x.Content}") ?? []));
+
+    private static string CreateReplyFingerprint(DiscordReplyMetadata? reply) => reply is null
+        ? string.Empty
+        : $"{reply.Kind}:{reply.GuildId}:{reply.ChannelId}:{reply.MessageId}:{reply.ResolvedAuthorName}:{reply.ResolvedContent}";
+
+    private static string CreateForwardFingerprint(DiscordForwardSnapshotMetadata snapshot) =>
+        string.Join(
+            '~',
+            snapshot.MessageType,
+            snapshot.Content,
+            snapshot.CreatedAt?.ToString("O"),
+            snapshot.EditedAt?.ToString("O"),
+            string.Join(',', snapshot.Attachments.Select(x =>
+                $"{x.AttachmentId}:{x.Url}:{x.ProxyUrl}:{x.ContentType}:{x.Width}:{x.Height}")),
+            string.Join(',', snapshot.Embeds.Select(x =>
+                $"{x.Url}:{x.Title}:{x.Description}:{x.ImageUrl}:{x.ThumbnailUrl}")),
+            string.Join(',', snapshot.Stickers.Select(x =>
+                $"{x.StickerId}:{x.Name}:{x.FormatType}:{x.AssetUrl}:{x.RemoteFormat}")),
+            string.Join(',', snapshot.Components.Select(x =>
+                $"{x.Type}:{x.Label}:{x.Content}:{x.Description}:{x.Url}")));
 
     private static bool IsHttps(string? value) =>
         Uri.TryCreate(value, UriKind.Absolute, out var uri) &&

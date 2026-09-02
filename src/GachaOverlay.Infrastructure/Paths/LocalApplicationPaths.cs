@@ -1,3 +1,5 @@
+using GachaOverlay.Core.Product;
+
 namespace GachaOverlay.Infrastructure.Paths;
 
 public sealed class LocalApplicationPaths
@@ -15,10 +17,12 @@ public sealed class LocalApplicationPaths
             throw new InvalidOperationException("A local application data directory is not available.");
         }
 
-        DataDirectory = Path.Combine(localRoot, "GachaOverlay");
+        DataDirectory = Path.Combine(localRoot, ProductIdentity.LocalDataDirectoryName);
         SettingsFilePath = Path.Combine(DataDirectory, "settings.json");
-        DiscordClientSecretFilePath = Path.Combine(DataDirectory, "discord-client-secret.dat");
-        DiscordOAuthTokenFilePath = Path.Combine(DataDirectory, "discord-oauth-token.dat");
+        LegacyDiscordClientSecretFilePath = Path.Combine(DataDirectory, "discord-client-secret.dat");
+        LegacyDiscordOAuthTokenFilePath = Path.Combine(DataDirectory, "discord-oauth-token.dat");
+        RemoteAccessTokenFilePath = Path.Combine(DataDirectory, "remote-access-token.dat");
+        RemoteInstallationIdFilePath = Path.Combine(DataDirectory, "remote-installation-id.txt");
         GuildDisplayNameCacheFilePath = Path.Combine(DataDirectory, "guild-display-names.json");
         SalesProductCatalogFilePath = Path.Combine(DataDirectory, "sales-products.json");
         SalesProductOverrideFilePath = Path.Combine(
@@ -26,15 +30,20 @@ public sealed class LocalApplicationPaths
             "sales-products.override.json");
         LogDirectory = Path.Combine(DataDirectory, "Logs");
         CrashSummaryFilePath = Path.Combine(DataDirectory, "crash-summary.json");
+        NotificationToneDirectory = Path.Combine(DataDirectory, "NotificationTones");
     }
 
     public string DataDirectory { get; }
 
     public string SettingsFilePath { get; }
 
-    public string DiscordClientSecretFilePath { get; }
+    public string LegacyDiscordClientSecretFilePath { get; }
 
-    public string DiscordOAuthTokenFilePath { get; }
+    public string LegacyDiscordOAuthTokenFilePath { get; }
+
+    public string RemoteAccessTokenFilePath { get; }
+
+    public string RemoteInstallationIdFilePath { get; }
 
     public string GuildDisplayNameCacheFilePath { get; }
 
@@ -45,4 +54,6 @@ public sealed class LocalApplicationPaths
     public string LogDirectory { get; }
 
     public string CrashSummaryFilePath { get; }
+
+    public string NotificationToneDirectory { get; }
 }

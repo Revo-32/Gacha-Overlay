@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using GachaOverlay.Core.Discord.Connection;
 using GachaOverlay.Core.Hud;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Settings;
@@ -22,11 +21,13 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
     public HudShellViewModel(
         ILocalizationService localization,
         ChatViewModel chat,
-        SalesQueueViewModel sales)
+        SalesQueueViewModel sales,
+        SessionHudViewModel session)
     {
         _localization = localization;
         Chat = chat;
         Sales = sales;
+        Session = session;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -36,6 +37,8 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
     public ILocalizationService Localization => _localization;
 
     public SalesQueueViewModel Sales { get; }
+
+    public SessionHudViewModel Session { get; }
 
     public string Title
     {
@@ -82,6 +85,7 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
     public void ApplySettings(AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        Session.ApplySettings(settings);
         if (_minimalHudMode == settings.MinimalHudMode)
         {
             return;
@@ -94,7 +98,8 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
 
     public void Update(
         HudSessionState state,
-        DiscordConnectionStatus connection,
+        string connectionState,
+        string connectionDetail,
         string? foregroundProcess)
     {
         if (_isLocked != state.IsLocked)
@@ -109,8 +114,8 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
         LockStatus = _localization[state.IsLocked ? "HudLocked" : "HudUnlocked"];
         ConnectionStatus = string.Format(
             _localization["HudConnectionStatusFormat"],
-            connection.State,
-            connection.Detail);
+            connectionState,
+            connectionDetail);
         VisibilityStatus = _localization[
             state.VisibilityMode == HudVisibilityMode.Always
                 ? "HudVisibilityAlways"
@@ -121,6 +126,7 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
             state.IsTargetGameForeground
                 ? _localization["HudTargetYes"]
                 : _localization["HudTargetNo"]);
+        Session.RefreshLocalization();
     }
 
     private void SetField(ref string field, string value, [CallerMemberName] string? name = null)

@@ -36,10 +36,20 @@ public sealed class HudStateServiceTests
     {
         var service = new HudStateService();
 
-        service.SetRpcConnected(true);
+        service.MarkInitialConnectionReady();
 
         Assert.True(service.Current.HasInitialConnectionReady);
-        Assert.True(service.Current.IsRpcConnected);
+        Assert.True(service.Current.EffectiveVisible);
+    }
+
+    [Fact]
+    public void RemoteInitialConnectionReady_OpensGate()
+    {
+        var service = new HudStateService();
+
+        service.MarkInitialConnectionReady();
+
+        Assert.True(service.Current.HasInitialConnectionReady);
         Assert.True(service.Current.EffectiveVisible);
     }
 
@@ -48,7 +58,7 @@ public sealed class HudStateServiceTests
     {
         var service = new HudStateService(HudVisibilityMode.Always);
         service.SetTargetGameForeground(false);
-        service.SetRpcConnected(true);
+        service.MarkInitialConnectionReady();
 
         Assert.True(service.Current.EffectiveVisible);
 
@@ -57,15 +67,13 @@ public sealed class HudStateServiceTests
     }
 
     [Fact]
-    public void RuntimeDisconnect_DoesNotResetLatchedInitialReadiness()
+    public void RepeatedReadySignal_DoesNotResetLatchedInitialReadiness()
     {
         var service = new HudStateService();
-        service.SetRpcConnected(true);
-
-        service.SetRpcConnected(false);
+        service.MarkInitialConnectionReady();
+        service.MarkInitialConnectionReady();
 
         Assert.True(service.Current.HasInitialConnectionReady);
-        Assert.False(service.Current.IsRpcConnected);
         Assert.True(service.Current.EffectiveVisible);
     }
 
@@ -73,7 +81,7 @@ public sealed class HudStateServiceTests
     public void GameOnlyMode_TracksForegroundWithoutChangingUserIntent()
     {
         var service = new HudStateService(HudVisibilityMode.GameForegroundOnly);
-        service.SetRpcConnected(true);
+        service.MarkInitialConnectionReady();
 
         Assert.False(service.Current.EffectiveVisible);
 
@@ -90,7 +98,7 @@ public sealed class HudStateServiceTests
     public void ManualHide_IsNeverOverriddenByGameForegroundChanges()
     {
         var service = new HudStateService(HudVisibilityMode.GameForegroundOnly);
-        service.SetRpcConnected(true);
+        service.MarkInitialConnectionReady();
         service.SetTargetGameForeground(true);
         service.SetUserHudEnabled(false);
 
@@ -105,7 +113,7 @@ public sealed class HudStateServiceTests
     public void ManualHide_IsRespectedByAlwaysMode()
     {
         var service = new HudStateService(HudVisibilityMode.Always);
-        service.SetRpcConnected(true);
+        service.MarkInitialConnectionReady();
 
         service.SetUserHudEnabled(false);
         service.SetTargetGameForeground(true);
@@ -117,7 +125,7 @@ public sealed class HudStateServiceTests
     public void GameOnlyToAlways_ImmediatelyShowsWithoutGame()
     {
         var service = new HudStateService(HudVisibilityMode.GameForegroundOnly);
-        service.SetRpcConnected(true);
+        service.MarkInitialConnectionReady();
         service.SetTargetGameForeground(false);
         Assert.False(service.Current.EffectiveVisible);
 
@@ -131,7 +139,7 @@ public sealed class HudStateServiceTests
     public void AlwaysToGameOnly_ImmediatelyHidesWithoutChangingUserIntent()
     {
         var service = new HudStateService(HudVisibilityMode.Always);
-        service.SetRpcConnected(true);
+        service.MarkInitialConnectionReady();
         Assert.True(service.Current.EffectiveVisible);
 
         service.SetVisibilityMode(HudVisibilityMode.GameForegroundOnly);
@@ -144,7 +152,7 @@ public sealed class HudStateServiceTests
     public void AlwaysMode_RemainsVisibleWhenMonitorPublishesFalse()
     {
         var service = new HudStateService(HudVisibilityMode.Always);
-        service.SetRpcConnected(true);
+        service.MarkInitialConnectionReady();
 
         service.SetTargetGameForeground(true);
         service.SetTargetGameForeground(false);

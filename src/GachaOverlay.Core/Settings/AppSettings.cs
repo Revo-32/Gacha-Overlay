@@ -4,7 +4,6 @@ using GachaOverlay.Core.Hud;
 using GachaOverlay.Core.Hud.Geometry;
 using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Themes;
-using GachaOverlay.Core.Discord.Connection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -14,9 +13,9 @@ public sealed record AppSettings
 {
     private static readonly Dictionary<string, double> EmptyScrollPositions =
         new(StringComparer.OrdinalIgnoreCase);
-    public const int CurrentSchemaVersion = 11;
+    public const int CurrentSchemaVersion = 17;
 
-    public const int CurrentOnboardingVersion = 1;
+    public const int CurrentOnboardingVersion = 2;
 
     public const int CurrentHotkeySettingsVersion = 1;
 
@@ -31,21 +30,13 @@ public sealed record AppSettings
     public Dictionary<string, double> SettingsCategoryScrollPositions { get; init; } =
         EmptyScrollPositions;
 
-    public string? DiscordClientId { get; init; }
+    public string RemoteBackendBaseUrl { get; init; } = "http://127.0.0.1:5188";
 
-    public string DiscordRedirectUri { get; init; } = "https://127.0.0.1";
-
-    public string? DiscordGuildId { get; init; } = ProductionServerProfile.GuildId;
-
-    public string? DiscordMainChannelId { get; init; }
-
-    public string? DiscordSalesChannelId { get; init; } = ProductionServerProfile.SalesChannelId;
+    public string? RemoteSelectedChannelId { get; init; }
 
     public int OnboardingVersion { get; init; }
 
     public bool WindowsAutoStart { get; init; }
-
-    public bool DiscordAutoLaunch { get; init; }
 
     public double HudSurfaceOpacity { get; init; } = HudSettingsDefaults.SurfaceOpacity;
 
@@ -58,6 +49,11 @@ public sealed record AppSettings
     public double QueueDetailSurfaceOpacity { get; init; } = 1;
 
     public bool MinimalHudMode { get; init; }
+
+    public bool ShowGtaSession { get; init; } = true;
+
+    public SessionHostSelection SelectedSessionHost { get; init; } =
+        SessionHostSelection.Host1;
 
     public bool HudModifierDragEnabled { get; init; }
 
@@ -122,12 +118,62 @@ public sealed record AppSettings
 
     public bool SalesShowNextWaitingUser { get; init; }
 
+    public bool SalesTurnSoundEnabled { get; init; } = true;
+
+    public double SalesTurnSoundVolume { get; init; } = 50;
+
+    public bool NotifySalesNext { get; init; } = true;
+
+    public bool NotifySalesCurrent { get; init; } = true;
+
     public double SalesQueueDetailMaxHeight { get; init; } = 280;
 
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? ExtensionData { get; init; }
 
     public static AppSettings CreateDefault() => new();
+}
+
+[JsonConverter(typeof(SessionHostSelectionJsonConverter))]
+public enum SessionHostSelection
+{
+    Host1 = 1,
+    Host2 = 2,
+}
+
+public sealed class SessionHostSelectionJsonConverter : JsonConverter<SessionHostSelection>
+{
+    public override SessionHostSelection Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.String &&
+            string.Equals(reader.GetString(), "Host2", StringComparison.OrdinalIgnoreCase))
+        {
+            return SessionHostSelection.Host2;
+        }
+
+        if (reader.TokenType == JsonTokenType.Number &&
+            reader.TryGetInt32(out var numeric) &&
+            numeric == (int)SessionHostSelection.Host2)
+        {
+            return SessionHostSelection.Host2;
+        }
+
+        if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+        {
+            reader.Skip();
+        }
+
+        return SessionHostSelection.Host1;
+    }
+
+    public override void Write(
+        Utf8JsonWriter writer,
+        SessionHostSelection value,
+        JsonSerializerOptions options) =>
+        writer.WriteStringValue(value == SessionHostSelection.Host2 ? "Host2" : "Host1");
 }
 
 public enum SettingsCategory

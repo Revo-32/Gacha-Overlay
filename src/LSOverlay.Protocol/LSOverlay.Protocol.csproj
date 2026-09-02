@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>LSOverlay.Protocol</RootNamespace>
+    <AssemblyName>LSOverlay.Protocol</AssemblyName>
+  </PropertyGroup>
+
+</Project>

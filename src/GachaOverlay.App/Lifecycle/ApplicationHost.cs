@@ -9,12 +9,7 @@ using GachaOverlay.Core.Hud.Geometry;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Logging;
 using GachaOverlay.Core.Settings;
-using GachaOverlay.Infrastructure.Discord.Authentication;
-using GachaOverlay.Infrastructure.Discord.Channels;
-using GachaOverlay.Infrastructure.Discord.Connection;
 using GachaOverlay.Infrastructure.Discord.Normalization;
-using GachaOverlay.Infrastructure.Discord.Process;
-using GachaOverlay.Infrastructure.Discord.Rpc;
 using GachaOverlay.Infrastructure.Diagnostics;
 using GachaOverlay.Infrastructure.Lifecycle;
 using GachaOverlay.Infrastructure.Localization;
@@ -23,7 +18,6 @@ using GachaOverlay.Infrastructure.Paths;
 using GachaOverlay.Infrastructure.Settings;
 using GachaOverlay.Core.Sales;
 using GachaOverlay.Infrastructure.Sales;
-using GachaOverlay.App.Services.Sales;
 using GachaOverlay.Core.Themes;
 
 namespace GachaOverlay.App.Lifecycle;
@@ -40,18 +34,17 @@ internal sealed class ApplicationHost : IDisposable
     private SettingsWindowService? _settingsWindowService;
     private TrayIconService? _trayIcon;
     private HudWindowController? _hudController;
-    private DiscordAuthenticationService? _discordAuthentication;
-    private IDiscordConnectionService? _discordConnection;
-    private DiscordMessagePipeline? _messagePipeline;
+    private RemoteChatProductionCoordinator? _remoteChatCoordinator;
+    private RemoteRecoveryAudit? _recoveryAudit;
+    private IRemoteAccessCredentialStore? _remoteAccessCredentials;
     private IGuildDisplayNameResolver? _displayNameResolver;
     private SalesPresentationCoordinator? _salesCoordinator;
-    private IDiscordProtectedCredentialStore? _protectedCredentials;
+    private SessionHudViewModel? _sessionHudViewModel;
+    private ISalesNotificationSoundService? _salesNotificationSoundService;
     private EffectiveSalesProductCatalogStore? _productCatalogStore;
     private ProductMappingManagerWindow? _productMappingWindow;
     private SalesPreviewWindow? _salesPreviewWindow;
     private ColorThemeManager? _colorThemeManager;
-    private DiscordProcessService? _discordProcessService;
-    private IDiscordServerConfigurationService? _serverConfigurationService;
     private WindowsAutoStartService? _windowsAutoStartService;
     private OnboardingWindow? _onboardingWindow;
     private OnboardingViewModel? _onboardingViewModel;
@@ -60,12 +53,11 @@ internal sealed class ApplicationHost : IDisposable
     private LocalApplicationPaths? _paths;
     private DiagnosticBundleExporter? _diagnosticExporter;
     private CrashMetadataWriter? _crashMetadataWriter;
-    private long _lastServerDiscoveryGeneration = -1;
     private int _started;
     private int _shutdownPrepared;
     private int _disposed;
     private int _imagePayloadObserved;
-    private int _connectionSetupShown;
+    private DiscordMessageState _lastRemoteMessageState = DiscordMessageState.Empty;
 
     public ApplicationHost(System.Windows.Application application, Action requestShutdown)
     {
@@ -77,11 +69,6 @@ internal sealed class ApplicationHost : IDisposable
 
     private System.Windows.Window? SettingsOwnerWindow =>
         _settingsWindowService?.CurrentWindow as System.Windows.Window;
-
-    private System.Windows.Window? SetupDialogOwnerWindow =>
-        _onboardingWindow is { IsVisible: true }
-            ? _onboardingWindow
-            : SettingsOwnerWindow;
 
     public string GetLocalizedString(string key, string fallback) =>
         _localization?.GetString(key) ?? fallback;
@@ -103,6 +90,10 @@ internal sealed class ApplicationHost : IDisposable
         _crashMetadataWriter = new CrashMetadataWriter(paths.CrashSummaryFilePath, Logger);
         _ = _processMetrics.Sample();
         Logger.Information("APP", "Starting.");
+        _ = new LegacyCredentialRetirementService(
+            paths.LegacyDiscordClientSecretFilePath,
+            paths.LegacyDiscordOAuthTokenFilePath,
+            Logger).Retire();
 
         _lifetime = new ApplicationLifetime();
         _settingsStore = new JsonSettingsStore(paths.SettingsFilePath, Logger);
@@ -117,10 +108,6 @@ internal sealed class ApplicationHost : IDisposable
         _colorThemeManager = new ColorThemeManager(_application);
         _colorThemeManager.Apply(settings.ColorTheme);
         Logger.Information("THEME", $"Applied {settings.ColorTheme}.");
-        _protectedCredentials = new DpapiDiscordProtectedCredentialStore(
-            paths.DiscordClientSecretFilePath,
-            paths.DiscordOAuthTokenFilePath,
-            Logger);
         _localization = new ResourceLocalizationService(settings.Language, Logger);
         Logger.Information("LOCALIZATION", $"Language = {_localization.CurrentLocale}");
 
@@ -140,10 +127,14 @@ internal sealed class ApplicationHost : IDisposable
         var hudWindow = new HudWindow();
         var chatViewModel = new ChatViewModel();
         var salesViewModel = new SalesQueueViewModel(_localization);
+        var sessionViewModel = new SessionHudViewModel(_localization, settings);
+        sessionViewModel.UpdateRemoteState(true, SessionRemoteState.Awaiting);
+        _sessionHudViewModel = sessionViewModel;
         var hudViewModel = new HudShellViewModel(
             _localization,
             chatViewModel,
-            salesViewModel);
+            salesViewModel,
+            sessionViewModel);
         var typographyResolver = new ChatTypographyResolver(Logger);
         var chatCoordinator = new ChatPresentationCoordinator(
             chatViewModel,
@@ -164,22 +155,27 @@ internal sealed class ApplicationHost : IDisposable
         var hotkeys = new GlobalHotkeyService(interop, Logger);
         var gameMonitor = new GameForegroundMonitor(new TargetGameMatcher(), Logger);
         var modifierDrag = new ModifierDragService(interop, Logger);
+        _salesNotificationSoundService = new SalesNotificationSoundService(
+            hudWindow.Dispatcher,
+            paths.NotificationToneDirectory,
+            Logger);
+        var salesTurnNotifications = new SalesTurnNotificationCoordinator(
+            () => _settingsStore!.Current,
+            _salesNotificationSoundService,
+            Logger);
         _salesCoordinator = new SalesPresentationCoordinator(
             new SalesStateEngine(
                 _displayNameResolver,
                 productCatalog,
                 Logger,
                 _localization.CurrentLocale),
-            new DiscordUiaSalesReactionObservationSource(
-                new WindowsDiscordAccessibilityAdapter(),
-                Logger,
-                metrics: _runtimeMetrics),
             salesViewModel,
             _localization,
             Logger,
             settings,
             hudWindow.Dispatcher,
-            _runtimeMetrics);
+            _runtimeMetrics,
+            salesTurnNotifications);
         _salesCoordinator.Start();
         _hudController = new HudWindowController(
             hudWindow,
@@ -196,6 +192,40 @@ internal sealed class ApplicationHost : IDisposable
             Logger,
             settings);
 
+        var remoteMessagePipeline = new DiscordMessagePipeline(
+            Logger,
+            metrics: _runtimeMetrics);
+        _remoteAccessCredentials = new DpapiRemoteAccessCredentialStore(
+            paths.RemoteAccessTokenFilePath,
+            Logger);
+        _recoveryAudit = RemoteRecoveryAudit.FromEnvironment(Logger);
+        _remoteChatCoordinator = new RemoteChatProductionCoordinator(
+            _settingsStore,
+            _remoteAccessCredentials,
+            remoteMessagePipeline,
+            paths.RemoteInstallationIdFilePath,
+            Logger,
+            recoveryAudit: _recoveryAudit);
+        salesViewModel.ConfigureStatusAction(
+            _remoteChatCoordinator.SetSalesStatusAsync);
+        _remoteChatCoordinator.MessageStateChanged += OnRemoteMessageStateChanged;
+        _remoteChatCoordinator.AuthenticatedUserChanged += OnRemoteAuthenticatedUserChanged;
+        _remoteChatCoordinator.PresenceBootstrapReady += OnRemotePresenceBootstrapReady;
+        _remoteChatCoordinator.HostPresenceChanged += OnRemoteHostPresenceChanged;
+        _remoteChatCoordinator.SnapshotChanged += OnRemoteSnapshotChanged;
+        _remoteChatCoordinator.SalesBootstrapReady += OnRemoteSalesBootstrapReady;
+        _remoteChatCoordinator.SalesMutationReceived += OnRemoteSalesMutationReceived;
+        _remoteChatCoordinator.SalesStatusChanged += OnRemoteSalesStatusChanged;
+        var remoteSettingsViewModel = new RemoteChatSettingsViewModel(
+            _localization,
+            _remoteChatCoordinator.Snapshot,
+            ApplyRemoteConfigurationAsync,
+            _remoteChatCoordinator.BeginPairingAsync,
+            _remoteChatCoordinator.CancelPairing,
+            _remoteChatCoordinator.ForgetPairingAsync,
+            _remoteChatCoordinator.RefreshAsync,
+            _remoteChatCoordinator.SwitchChannelAsync);
+
         _foundationViewModel = new FoundationViewModel(
             _settingsStore,
             _localization,
@@ -209,6 +239,7 @@ internal sealed class ApplicationHost : IDisposable
                 {
                     _hudController?.ApplySettings(updated);
                     _salesCoordinator?.ApplySettings(updated);
+                    _remoteChatCoordinator?.NotifySalesTrackingChanged();
                 }
                 finally
                 {
@@ -225,15 +256,11 @@ internal sealed class ApplicationHost : IDisposable
             () => _hudController?.ResetPlacement(),
             (lockSetting, visibilitySetting) =>
                 _hudController?.TryApplyHotkeys(lockSetting, visibilitySetting) == true,
-            ConfigureDiscord,
-            RequestDiscordReconnect,
-            GetDiscordSetupSnapshot,
             ShowProductMappingManager,
             ExportProductMappings,
             ShowSalesPreview,
             RequestManualSalesResync,
             ClearMediaCache,
-            DeleteDiscordAuthentication,
             ResetAllSettings,
             () => _salesCoordinator?.GetHealthSnapshot() ?? SalesFeatureHealthSnapshot.Disabled,
             OpenLogFolder,
@@ -246,13 +273,13 @@ internal sealed class ApplicationHost : IDisposable
             ResetProductOverrides,
             ShowCredits,
             OpenBundledLicenseNotices,
-            discoverServer: DiscoverServerAsync,
-            switchMain: SwitchMainChannelAsync,
             applyWindowsAutoStart: ApplyWindowsAutoStart,
             rerunOnboarding: () => ShowOnboarding(restartFromBeginning: true),
-            reauthenticateDiscord: ReauthenticateDiscord,
-            launchDiscordAccessibility: LaunchDiscordAccessibility,
-            createDiagnosticBundle: CreateDiagnosticBundleAsync);
+            createDiagnosticBundle: CreateDiagnosticBundleAsync,
+            remoteChatSettings: remoteSettingsViewModel,
+            testSalesTurnSound: () => _salesNotificationSoundService?.Play(
+                SalesTurnNotificationKind.Current,
+                _settingsStore!.Current.SalesTurnSoundVolume));
         _settingsWindowService = new SettingsWindowService(
             new UiDispatcherAdapter(_application.Dispatcher),
             () => new FoundationWindow
@@ -268,13 +295,13 @@ internal sealed class ApplicationHost : IDisposable
             () => _hudController?.ToggleUserVisibility(),
             () => _hudController?.ToggleLock(),
             () => OpenSettings(SettingsOpenSource.Tray, null),
-            RequestDiscordReconnect,
+            () => _ = _remoteChatCoordinator?.RefreshAsync(),
             _requestShutdown);
         _hudController.StateApplied += OnHudStateApplied;
         _hudController.Start();
         _trayIcon.UpdateHudState(_hudController.State);
 
-        StartDiscordCore();
+        _remoteChatCoordinator.Start();
         if (_settingsStore.Current.OnboardingVersion < AppSettings.CurrentOnboardingVersion)
         {
             ShowOnboarding(restartFromBeginning: false);
@@ -322,24 +349,35 @@ internal sealed class ApplicationHost : IDisposable
 
         _salesCoordinator?.Dispose();
         _salesCoordinator = null;
+        _salesNotificationSoundService?.Dispose();
+        _salesNotificationSoundService = null;
+        _sessionHudViewModel = null;
 
-        if (_discordConnection is not null)
+        if (_remoteChatCoordinator is not null)
         {
-            _discordConnection.StatusChanged -= OnDiscordStatusChanged;
-            _discordConnection.MessageStateChanged -= OnDiscordMessageStateChanged;
-            _discordConnection.TargetChannelsResolved -= OnTargetChannelsResolved;
-            _discordConnection.AuthenticatedUserChanged -= OnAuthenticatedUserChanged;
+            _remoteChatCoordinator.MessageStateChanged -= OnRemoteMessageStateChanged;
+            _remoteChatCoordinator.PresenceBootstrapReady -= OnRemotePresenceBootstrapReady;
+            _remoteChatCoordinator.HostPresenceChanged -= OnRemoteHostPresenceChanged;
+            _remoteChatCoordinator.SalesBootstrapReady -= OnRemoteSalesBootstrapReady;
+            _remoteChatCoordinator.SalesMutationReceived -= OnRemoteSalesMutationReceived;
+            _remoteChatCoordinator.SalesStatusChanged -= OnRemoteSalesStatusChanged;
+            _remoteChatCoordinator.AuthenticatedUserChanged -= OnRemoteAuthenticatedUserChanged;
+            _remoteChatCoordinator.SnapshotChanged -= OnRemoteSnapshotChanged;
             try
             {
-                _discordConnection.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                _remoteChatCoordinator.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
             catch (Exception exception)
             {
-                Logger.Error("RPC", "Discord coordinator shutdown failed.", exception);
+                Logger.Error("REMOTE", "Remote chat coordinator shutdown failed.", exception);
             }
 
-            _discordConnection = null;
+            _remoteChatCoordinator = null;
         }
+
+        _recoveryAudit?.Dispose();
+        _recoveryAudit = null;
+        _remoteAccessCredentials = null;
 
         _trayIcon?.Dispose();
         _trayIcon = null;
@@ -351,10 +389,7 @@ internal sealed class ApplicationHost : IDisposable
             _hudController = null;
         }
 
-        _discordAuthentication?.Dispose();
-        _discordAuthentication = null;
         _displayNameResolver = null;
-        _protectedCredentials = null;
         _lifetime?.Dispose();
         _lifetime = null;
 
@@ -367,88 +402,16 @@ internal sealed class ApplicationHost : IDisposable
         _paths = null;
     }
 
-    private void StartDiscordCore()
+    private void OnRemoteMessageStateChanged(DiscordMessageState state)
     {
-        var messagePipeline = new DiscordMessagePipeline(
-            Logger,
-            _displayNameResolver,
-            _runtimeMetrics);
-        _messagePipeline = messagePipeline;
-        _discordAuthentication = new DiscordAuthenticationService(
-            protectedStore: _protectedCredentials);
-        _discordProcessService = new DiscordProcessService();
-        var credentialProvider = new ConfiguredDiscordCredentialProvider(
-                _settingsStore!,
-                _protectedCredentials!);
-        var rpcClientFactory = new DiscordRpcClientFactory(Logger);
-        _serverConfigurationService = new DiscordServerConfigurationService(
-            _discordProcessService,
-            credentialProvider,
-            rpcClientFactory,
-            _discordAuthentication,
-            Logger);
-        _discordConnection = new DiscordConnectionCoordinator(
-            _discordProcessService,
-            credentialProvider,
-            rpcClientFactory,
-            _discordAuthentication,
-            new DiscordChannelResolver(_runtimeMetrics),
-            new DiscordMessageNormalizer(Logger),
-            messagePipeline,
-            BuildDiscordTargetOptions,
-            new ExponentialReconnectDelayStrategy(),
-            Logger,
-            new WindowsDiscordOpaqueMessageResolver(),
-            () => _settingsStore?.Current.DiscordAutoLaunch == true,
-            _runtimeMetrics);
-        _discordConnection.StatusChanged += OnDiscordStatusChanged;
-        _discordConnection.MessageStateChanged += OnDiscordMessageStateChanged;
-        _discordConnection.TargetChannelsResolved += OnTargetChannelsResolved;
-        _discordConnection.AuthenticatedUserChanged += OnAuthenticatedUserChanged;
-        _discordConnection.Start(_lifetime!.Stopping);
-    }
-
-    private void OnDiscordStatusChanged(DiscordConnectionStatus status)
-    {
-        Logger.Information(
-            "RPC",
-            $"State={status.State} detail={status.Detail} generation={status.Generation}.");
-        _salesCoordinator?.ApplyRpcStatus(status);
-        _hudController?.OnDiscordStatusChanged(status);
-        if (status.Generation != Interlocked.Read(ref _lastServerDiscoveryGeneration))
-        {
-            Interlocked.Exchange(ref _lastServerDiscoveryGeneration, status.Generation);
-            _serverConfigurationService?.Invalidate();
-        }
-        DispatchToUi(() =>
-        {
-            _foundationViewModel?.UpdateDiscordStatus(status);
-            _trayIcon?.UpdateDiscordStatus(status, GetDiscordSetupSnapshot().CanConnect);
-            if (status.State == DiscordConnectionState.ConfigurationRequired &&
-                Interlocked.Exchange(ref _connectionSetupShown, 1) == 0)
-            {
-                if (_settingsStore?.Current.OnboardingVersion < AppSettings.CurrentOnboardingVersion)
-                {
-                    ShowOnboarding(restartFromBeginning: false);
-                }
-                else
-                {
-                    OpenSettings(SettingsOpenSource.ConnectionGate, null);
-                }
-            }
-        });
-    }
-
-    private void OnDiscordMessageStateChanged(DiscordMessageState state)
-    {
+        _lastRemoteMessageState = state;
         _runtimeMetrics.SetGauge(RuntimeMetricNames.ChatActiveMainMessages, state.MainChat.Count);
-        _salesCoordinator?.ApplySourceState(state);
         _hudController?.OnDiscordMessageStateChanged(state);
         if (!state.IsBootstrapping)
         {
             Logger.Information(
-                "STATE",
-                $"Published generation={state.Generation} main_count={state.MainChat.Count} sales_count={state.SalesSource.Count}.");
+                "REMOTE",
+                $"Published remote generation={state.Generation} main_count={state.MainChat.Count}.");
             if (_imagePayloadObserved == 0 && state.MainChat.Any(message =>
                     message.Attachments.Any(attachment =>
                         !string.IsNullOrWhiteSpace(attachment.Url) ||
@@ -461,262 +424,71 @@ internal sealed class ApplicationHost : IDisposable
             {
                 Logger.Information(
                     "MEDIA",
-                    "Main chat image or sticker metadata observed; media enrichment is available.");
+                    "Remote Main Chat image or sticker metadata observed.");
             }
         }
     }
 
-    private void OnAuthenticatedUserChanged(DiscordAuthenticatedUser user)
+    private void OnRemoteAuthenticatedUserChanged(DiscordAuthenticatedUser user)
     {
-        _messagePipeline?.SetAuthenticatedUser(user.UserId);
         _salesCoordinator?.SetAuthenticatedUser(user.UserId);
         _hudController?.OnAuthenticatedUserChanged(user);
     }
 
-    private void OnTargetChannelsResolved(DiscordTargetChannels targets)
+    private void OnRemoteSalesBootstrapReady(LSOverlay.Protocol.SalesBootstrapResponse bootstrap) =>
+        _salesCoordinator?.ApplyRemoteSalesBootstrap(bootstrap);
+
+    private void OnRemoteSalesMutationReceived(LSOverlay.Protocol.SalesMutationEnvelope mutation) =>
+        _salesCoordinator?.ApplyRemoteSalesMutation(mutation);
+
+    private void OnRemoteSalesStatusChanged(string status) =>
+        _salesCoordinator?.ApplyRemoteSalesStatus(status);
+
+    private void OnRemotePresenceBootstrapReady(LSOverlay.Protocol.BootstrapResponse bootstrap) =>
+        DispatchToUi(() => _sessionHudViewModel?.ApplyBootstrap(bootstrap));
+
+    private void OnRemoteHostPresenceChanged(LSOverlay.Protocol.HostPresenceSnapshot presence) =>
+        DispatchToUi(() => _sessionHudViewModel?.ApplyPresence(presence));
+
+    private void OnRemoteSnapshotChanged(RemoteChatSnapshot snapshot) =>
+        DispatchToUi(() =>
+        {
+            _hudController?.OnRemoteConnectionStatus(snapshot);
+            _trayIcon?.UpdateRemoteStatus(snapshot);
+            _foundationViewModel?.RemoteChatSettings?.UpdateSnapshot(snapshot);
+            _sessionHudViewModel?.UpdateRemoteState(
+                true,
+                snapshot.Health switch
+                {
+                    RemoteChatHealthState.Live => SessionRemoteState.Live,
+                    RemoteChatHealthState.Reconnecting => SessionRemoteState.Reconnecting,
+                    RemoteChatHealthState.Disconnected or
+                        RemoteChatHealthState.AuthorizationUnavailable or
+                        RemoteChatHealthState.AccessRevoked or
+                        RemoteChatHealthState.Error => SessionRemoteState.Unavailable,
+                    _ => SessionRemoteState.Awaiting,
+                });
+        });
+
+    private async Task<bool> ApplyRemoteConfigurationAsync(string backendBaseUrl)
     {
-        _salesCoordinator?.SetTargetChannel(
-            targets.SalesChannelId,
-            targets.SalesChannelName);
-        DispatchToUi(() => _foundationViewModel?.UpdateDiscordStatus(
-            _discordConnection?.Status ?? DiscordConnectionStatus.Initial));
+        if (_remoteChatCoordinator is null)
+        {
+            return false;
+        }
+
+        return await _remoteChatCoordinator.ApplyConfigurationAsync(backendBaseUrl)
+            .ConfigureAwait(false);
     }
 
     private void OnHudStateApplied(HudSessionState state) =>
         _trayIcon?.UpdateHudState(state);
-
-    private DiscordConnectionSetupResult ConfigureDiscord(
-        DiscordConnectionSetupRequest request)
-    {
-        if (_settingsStore is null || _protectedCredentials is null)
-        {
-            return new DiscordConnectionSetupResult(false, "SettingsDiscordSaveFailed");
-        }
-
-        var clientId = request.ClientId.Trim();
-        if (clientId.Length == 0 || !clientId.All(char.IsAsciiDigit))
-        {
-            return new DiscordConnectionSetupResult(false, "SettingsDiscordInvalidClientId");
-        }
-
-        var redirectUri = request.RedirectUri.Trim();
-        if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out var parsedRedirect) ||
-            (parsedRedirect.Scheme != Uri.UriSchemeHttp &&
-             parsedRedirect.Scheme != Uri.UriSchemeHttps))
-        {
-            return new DiscordConnectionSetupResult(false, "SettingsDiscordInvalidRedirectUri");
-        }
-
-        var targetIds = new[]
-        {
-            request.GuildId,
-            request.MainChannelId,
-            request.SalesChannelId,
-        };
-        if (targetIds.Any(value => !IsNumericOrBlank(value)))
-        {
-            return new DiscordConnectionSetupResult(false, "SettingsDiscordInvalidTargetId");
-        }
-
-        var suppliedSecret = request.ClientSecret;
-        if (string.IsNullOrWhiteSpace(suppliedSecret) &&
-            _protectedCredentials.ClientSecretStatus != ProtectedCredentialStatus.Available)
-        {
-            return new DiscordConnectionSetupResult(false, "SettingsDiscordSecretRequired");
-        }
-
-        var previous = _settingsStore.Current;
-        var next = previous with
-        {
-            DiscordClientId = clientId,
-            DiscordRedirectUri = redirectUri,
-            DiscordGuildId = ProductionServerProfile.GuildId,
-            DiscordMainChannelId = previous.DiscordMainChannelId,
-            DiscordSalesChannelId = ProductionServerProfile.SalesChannelId,
-        };
-        if (!_settingsStore.Save(next))
-        {
-            return new DiscordConnectionSetupResult(false, "SettingsDiscordSaveFailed");
-        }
-
-        if (!string.IsNullOrWhiteSpace(suppliedSecret) &&
-            !_protectedCredentials.SaveClientSecret(suppliedSecret))
-        {
-            _settingsStore.Save(previous);
-            return new DiscordConnectionSetupResult(false, "SettingsDiscordProtectedSaveFailed");
-        }
-
-        if (!string.Equals(previous.DiscordClientId, next.DiscordClientId, StringComparison.Ordinal) ||
-            !string.Equals(previous.DiscordRedirectUri, next.DiscordRedirectUri, StringComparison.Ordinal) ||
-            !string.IsNullOrWhiteSpace(suppliedSecret))
-        {
-            _protectedCredentials.ClearOAuthToken();
-        }
-
-        Logger.Information(
-            "AUTH",
-            "Discord non-secret configuration saved; protected credential state is ready.");
-        RequestDiscordReconnect();
-        return DiscordConnectionSetupResult.Succeeded;
-    }
-
-    private DiscordConnectionSetupSnapshot GetDiscordSetupSnapshot()
-    {
-        var settings = _settingsStore?.Current ?? AppSettings.CreateDefault();
-        return new DiscordConnectionSetupSnapshot(
-            !string.IsNullOrWhiteSpace(settings.DiscordClientId),
-            _protectedCredentials?.ClientSecretStatus ?? ProtectedCredentialStatus.Missing,
-            _protectedCredentials?.OAuthTokenStatus ?? ProtectedCredentialStatus.Missing,
-            !string.IsNullOrWhiteSpace(settings.DiscordGuildId),
-            !string.IsNullOrWhiteSpace(settings.DiscordMainChannelId),
-            !string.IsNullOrWhiteSpace(settings.DiscordSalesChannelId));
-    }
-
-    private void RequestDiscordReconnect() => _discordConnection?.RequestReconnect();
-
-    private Task<DiscordServerDiscoverySnapshot> DiscoverServerAsync(
-        bool forceRefresh,
-        CancellationToken cancellationToken) =>
-        _serverConfigurationService?.DiscoverAsync(forceRefresh, cancellationToken) ??
-        Task.FromResult(DiscordServerDiscoverySnapshot.Unavailable(
-            DiscordServerDiscoveryState.CredentialsMissing));
-
-    private async Task<MainChannelSwitchResult> SwitchMainChannelAsync(
-        DiscordMainChannelOption channel,
-        CancellationToken cancellationToken)
-    {
-        if (_settingsStore is null || _discordConnection is null ||
-            _serverConfigurationService is null)
-        {
-            return new MainChannelSwitchResult(MainChannelSwitchStatus.NotConnected);
-        }
-
-        var previousId = _settingsStore.Current.DiscordMainChannelId;
-        if (string.Equals(previousId, channel.ChannelId, StringComparison.Ordinal))
-        {
-            return new MainChannelSwitchResult(
-                MainChannelSwitchStatus.NoChange,
-                channel.ChannelId,
-                channel.Name);
-        }
-
-        var previousTargets = _messagePipeline?.Targets;
-        var result = await _discordConnection.SwitchMainChannelAsync(channel, cancellationToken)
-            .ConfigureAwait(false);
-        if (result.Status == MainChannelSwitchStatus.NotConnected)
-        {
-            if (!await _serverConfigurationService.ValidateMainChannelAsync(
-                    channel,
-                    cancellationToken)
-                .ConfigureAwait(false))
-            {
-                return new MainChannelSwitchResult(MainChannelSwitchStatus.InvalidChannel);
-            }
-
-            if (!_settingsStore.Update(settings => settings with
-            {
-                DiscordMainChannelId = channel.ChannelId,
-            }))
-            {
-                return new MainChannelSwitchResult(MainChannelSwitchStatus.PersistenceFailed);
-            }
-
-            RequestDiscordReconnect();
-            return new MainChannelSwitchResult(
-                MainChannelSwitchStatus.Succeeded,
-                channel.ChannelId,
-                channel.Name);
-        }
-
-        if (result.Status != MainChannelSwitchStatus.Succeeded)
-        {
-            return result;
-        }
-
-        if (_settingsStore.Update(settings => settings with
-        {
-            DiscordMainChannelId = channel.ChannelId,
-        }))
-        {
-            return result;
-        }
-
-        if (previousTargets is not null)
-        {
-            await _discordConnection.SwitchMainChannelAsync(
-                    new DiscordMainChannelOption(
-                        previousTargets.MainChannelId,
-                        previousTargets.MainChannelName),
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        return new MainChannelSwitchResult(MainChannelSwitchStatus.PersistenceFailed);
-    }
 
     private bool ApplyWindowsAutoStart(bool enabled)
     {
         var applied = _windowsAutoStartService?.Apply(enabled) == true;
         Logger.Information("STARTUP", $"Windows auto-start update result={(applied ? "Applied" : "Failed")}.");
         return applied;
-    }
-
-    private void ReauthenticateDiscord()
-    {
-        _discordAuthentication?.ClearSavedAuthentication();
-        Logger.Information("AUTH", "Discord OAuth session cleared for explicit re-authentication.");
-        RequestDiscordReconnect();
-    }
-
-    private void LaunchDiscordAccessibility()
-    {
-        if (_discordProcessService is null || _localization is null)
-        {
-            return;
-        }
-
-        if (_discordProcessService.IsDiscordRunning())
-        {
-            ShowSetupMessage(
-                _localization["SettingsDiscordAccessibilityRunningGuidance"],
-                _localization["SettingsDiscordAccessibilityLaunch"],
-                System.Windows.MessageBoxImage.Information);
-            return;
-        }
-
-        var launched = _discordProcessService.TryLaunchDiscord(accessibilityMode: true);
-        ShowSetupMessage(
-            _localization[launched
-                ? "SettingsDiscordAccessibilityLaunchSucceeded"
-                : "SettingsDiscordAccessibilityLaunchFailed"],
-            _localization["SettingsDiscordAccessibilityLaunch"],
-            launched
-                ? System.Windows.MessageBoxImage.Information
-                : System.Windows.MessageBoxImage.Warning);
-    }
-
-    private void ShowSetupMessage(
-        string message,
-        string caption,
-        System.Windows.MessageBoxImage image)
-    {
-        var owner = SetupDialogOwnerWindow;
-        if (owner is null)
-        {
-            System.Windows.MessageBox.Show(
-                message,
-                caption,
-                System.Windows.MessageBoxButton.OK,
-                image);
-            return;
-        }
-
-        System.Windows.MessageBox.Show(
-            owner,
-            message,
-            caption,
-            System.Windows.MessageBoxButton.OK,
-            image);
     }
 
     private void ShowOnboarding(bool restartFromBeginning)
@@ -756,10 +528,10 @@ internal sealed class ApplicationHost : IDisposable
 
     private void CompleteOnboarding()
     {
-        Logger.Information("ONBOARDING", "Version 1 setup completed.");
+        Logger.Information("ONBOARDING", "Remote-only setup completed.");
         var window = _onboardingWindow;
         window?.Close();
-        RequestDiscordReconnect();
+        _ = _remoteChatCoordinator?.RefreshAsync();
     }
 
     private void OnOnboardingClosed(object? sender, EventArgs eventArgs)
@@ -772,31 +544,6 @@ internal sealed class ApplicationHost : IDisposable
         _onboardingWindow = null;
         _onboardingViewModel?.Dispose();
         _onboardingViewModel = null;
-    }
-
-    private DiscordTargetOptions BuildDiscordTargetOptions()
-    {
-        var settings = _settingsStore?.Current ?? AppSettings.CreateDefault();
-        return new DiscordTargetOptions
-        {
-            GuildId = ProductionServerProfile.GuildId,
-            MainChannelId = ReadEnvironmentOverride("DISCORD_MAIN_CHANNEL_ID")
-                ?? settings.DiscordMainChannelId,
-            SalesChannelId = ProductionServerProfile.SalesChannelId,
-            RequireConfiguredMainChannel = true,
-        };
-    }
-
-    private static bool IsNumericOrBlank(string value) =>
-        string.IsNullOrWhiteSpace(value) || value.Trim().All(char.IsAsciiDigit);
-
-    private static string? NullIfWhiteSpace(string value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private static string? ReadEnvironmentOverride(string variableName)
-    {
-        var value = Environment.GetEnvironmentVariable(variableName);
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private void DispatchToUi(Action action)
@@ -993,7 +740,8 @@ internal sealed class ApplicationHost : IDisposable
     }
 
     private ManualSalesResyncResult RequestManualSalesResync() =>
-        _salesCoordinator?.RequestManualResync() ?? ManualSalesResyncResult.TrackingDisabled;
+        _remoteChatCoordinator?.RequestSalesResync() ??
+        ManualSalesResyncResult.RemoteUnavailable;
 
     private static void OpenLogFolder()
     {
@@ -1077,11 +825,11 @@ internal sealed class ApplicationHost : IDisposable
     private DiagnosticBundleRequest BuildDiagnosticRequest(string destinationPath)
     {
         var settings = _settingsStore?.Current ?? AppSettings.CreateDefault();
-        var rpc = _discordConnection?.Status ?? DiscordConnectionStatus.Initial;
-        (_discordConnection as DiscordConnectionCoordinator)?.RefreshRuntimeMetrics();
         var runtime = _runtimeMetrics.Snapshot();
         var process = _processMetrics.Sample();
-        var messageState = _discordConnection?.MessageState ?? DiscordMessageState.Empty;
+        var messageState = _lastRemoteMessageState;
+        var remote = _remoteChatCoordinator?.Snapshot ??
+            RemoteChatSnapshot.Disconnected(settings.RemoteBackendBaseUrl);
         var sales = _salesCoordinator?.GetHealthSnapshot() ?? SalesFeatureHealthSnapshot.Disabled;
         var catalog = GetProductCatalogSnapshot();
         var counters = runtime.Counters;
@@ -1105,24 +853,43 @@ internal sealed class ApplicationHost : IDisposable
                     .ProcessArchitecture.ToString(),
                 CurrentLanguage = settings.Language,
                 CurrentTheme = settings.ColorTheme.ToString(),
-                Rpc = new { rpc.State, rpc.Detail, rpc.Generation },
+                Remote = new
+                {
+                    remote.Health,
+                    remote.Detail,
+                    remote.HasProtectedCredential,
+                    AuthorizedChannelCount = remote.Channels.Count,
+                    ChannelSelected = remote.SelectedChannelId is not null,
+                },
                 MainSource = new
                 {
                     messageState.Generation,
                     messageState.IsBootstrapping,
                     MessageCount = messageState.MainChat.Count,
                 },
-                Sales = new { sales.State, sales.Reason, sales.Coverage },
-                UiaState = sales.State.ToString(),
+                Sales = new
+                {
+                    sales.State,
+                    sales.Reason,
+                    sales.Coverage,
+                    sales.EffectiveSource,
+                    sales.RemotePhase,
+                },
                 LatestErrorCount = latestErrorCount,
-                ReconnectCount = counters.GetValueOrDefault(RuntimeMetricNames.RpcReconnects),
                 CatalogLoaded = catalog.BuiltInLoaded,
             },
             ["sanitized-settings.json"] = SanitizedSettingsSnapshot.From(settings),
             ["runtime-metrics.json"] = new { Runtime = runtime, Process = process },
             ["health-snapshot.json"] = new
             {
-                Rpc = new { rpc.State, rpc.Detail, rpc.Generation, rpc.ChangedAt },
+                Remote = new
+                {
+                    remote.Health,
+                    remote.Detail,
+                    remote.HasProtectedCredential,
+                    AuthorizedChannelCount = remote.Channels.Count,
+                    ChannelSelected = remote.SelectedChannelId is not null,
+                },
                 MainMessageCount = messageState.MainChat.Count,
                 SalesSourceCount = messageState.SalesSource.Count,
                 Sales = sales,
@@ -1139,7 +906,6 @@ internal sealed class ApplicationHost : IDisposable
                 TempAvailable = IsDirectoryAvailable(System.IO.Path.GetTempPath()),
                 LocalAppDataAvailable = _paths is not null &&
                     IsDirectoryAvailable(_paths.DataDirectory),
-                DiscordProcessRunning = _discordProcessService?.IsDiscordRunning() == true,
             },
             ["catalog-summary.json"] = new
             {
@@ -1204,24 +970,6 @@ internal sealed class ApplicationHost : IDisposable
     {
         _hudController?.ClearMediaCache();
         Logger.Information("MEDIA", "In-memory media caches cleared by user request.");
-    }
-
-    private void DeleteDiscordAuthentication()
-    {
-        if (_localization is null || System.Windows.MessageBox.Show(
-                SettingsOwnerWindow,
-                _localization["SettingsDeleteDiscordAuthenticationConfirm"],
-                _localization["SettingsDeleteDiscordAuthentication"],
-                System.Windows.MessageBoxButton.YesNo,
-                System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes)
-        {
-            return;
-        }
-
-        _discordAuthentication?.ClearSavedAuthentication();
-        _protectedCredentials?.ClearOAuthToken();
-        Logger.Information("AUTH", "Saved Discord OAuth authentication deleted by user request.");
-        RequestDiscordReconnect();
     }
 
     private void ResetAllSettings()

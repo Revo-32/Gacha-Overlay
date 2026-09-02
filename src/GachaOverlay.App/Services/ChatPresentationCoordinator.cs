@@ -127,12 +127,23 @@ internal sealed class ChatPresentationCoordinator : IDisposable
 
     public void ClearMediaCache()
     {
+        _viewModel.PreviewImage = null;
         _media.ClearCache();
         foreach (var item in _items.Values)
         {
             item.RestartEnrichment();
             item.Thumbnail = null;
             item.StickerImage = null;
+            foreach (var forwarded in item.ForwardedMessages)
+            {
+                forwarded.Thumbnail = null;
+                forwarded.StickerImage = null;
+                foreach (var token in forwarded.Tokens)
+                {
+                    token.Image = null;
+                }
+            }
+
             foreach (var token in item.Tokens)
             {
                 token.Image = null;
@@ -194,7 +205,11 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             time.Width,
             132,
             _viewModel.Messages.Count,
-            _settings.ChatShowImages && _presentations.Values.Any(item => item.Media.Count > 0),
+            _settings.ChatShowImages && _presentations.Values.Any(item =>
+                item.Media.Count > 0 ||
+                item.Stickers.Count > 0 ||
+                item.ForwardedMessages.Any(forwarded =>
+                    forwarded.Media.Count > 0 || forwarded.Stickers.Count > 0)),
             _settings.ChatShowTime);
         ApplyResponsiveLevel(ChatResponsiveLayout.Evaluate(input, _responsiveLevel));
     }
@@ -215,6 +230,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         _items.Clear();
         _presentations.Clear();
         _viewModel.Messages.Clear();
+        _viewModel.PreviewImage = null;
         _media.Dispose();
     }
 
@@ -299,6 +315,38 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             item.StickerImage is null && presentation.Stickers.Count > 0)
         {
             _ = EnrichStickerAsync(item, presentation.Stickers[0], identity);
+        }
+
+        foreach (var forwarded in item.ForwardedMessages)
+        {
+            foreach (var token in forwarded.Tokens.Where(token =>
+                         _settings.ChatCustomEmojiEnabled &&
+                         token.Kind == ChatTokenKind.CustomEmoji &&
+                         !string.IsNullOrWhiteSpace(token.Identity) &&
+                         token.Image is null))
+            {
+                _ = EnrichForwardEmojiAsync(item, forwarded, token, identity);
+            }
+
+            if (item.ShowImages && forwarded.Thumbnail is null &&
+                forwarded.PrimaryMedia is not null)
+            {
+                _ = EnrichForwardThumbnailAsync(
+                    item,
+                    forwarded,
+                    forwarded.PrimaryMedia.Url,
+                    identity);
+            }
+
+            if (item.ShowImages && _settings.ChatStickerEnabled &&
+                forwarded.StickerImage is null && forwarded.PrimarySticker is not null)
+            {
+                _ = EnrichForwardStickerAsync(
+                    item,
+                    forwarded,
+                    forwarded.PrimarySticker,
+                    identity);
+            }
         }
     }
 
@@ -387,6 +435,97 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                     _logger.Information(
                         "STICKER",
                         $"message={item.MessageId} presentation=StaleIgnored.");
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task EnrichForwardThumbnailAsync(
+        ChatMessageViewModel item,
+        ChatForwardMessageViewModel forwarded,
+        string url,
+        ChatEnrichmentIdentity identity)
+    {
+        try
+        {
+            var image = await _media.GetThumbnailAsync(url, item.EnrichmentToken);
+            if (image is null)
+            {
+                return;
+            }
+
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (item.IsCurrent(identity) &&
+                    _items.ContainsKey(item.MessageId) &&
+                    item.ForwardedMessages.Contains(forwarded))
+                {
+                    forwarded.Thumbnail = image;
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task EnrichForwardEmojiAsync(
+        ChatMessageViewModel item,
+        ChatForwardMessageViewModel forwarded,
+        ChatTokenViewModel token,
+        ChatEnrichmentIdentity identity)
+    {
+        try
+        {
+            var image = await _media.GetEmojiAsync(token.Identity!, item.EnrichmentToken);
+            if (image is null)
+            {
+                return;
+            }
+
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (item.IsCurrent(identity) &&
+                    _items.ContainsKey(item.MessageId) &&
+                    item.ForwardedMessages.Contains(forwarded) &&
+                    forwarded.Tokens.Contains(token))
+                {
+                    token.Image = image;
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task EnrichForwardStickerAsync(
+        ChatMessageViewModel item,
+        ChatForwardMessageViewModel forwarded,
+        ChatStickerPresentation sticker,
+        ChatEnrichmentIdentity identity)
+    {
+        try
+        {
+            var image = await _media.GetStickerAsync(
+                sticker,
+                item.MessageId + ":forward",
+                item.EnrichmentToken);
+            if (image is null)
+            {
+                return;
+            }
+
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (item.IsCurrent(identity) &&
+                    _items.ContainsKey(item.MessageId) &&
+                    item.ForwardedMessages.Contains(forwarded))
+                {
+                    forwarded.StickerImage = image;
                 }
             });
         }

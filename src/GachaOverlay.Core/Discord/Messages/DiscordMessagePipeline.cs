@@ -1,10 +1,11 @@
 using GachaOverlay.Core.Discord.Connection;
 using GachaOverlay.Core.Diagnostics;
 using GachaOverlay.Core.Logging;
+using GachaOverlay.Core.Providers;
 
 namespace GachaOverlay.Core.Discord.Messages;
 
-public sealed class DiscordMessagePipeline : IGuildNicknameObservationSink
+public sealed class DiscordMessagePipeline : IGuildNicknameObservationSink, IOverlayMessageIngress
 {
     public const int MainChatRetentionLimit = 20;
 
@@ -142,7 +143,7 @@ public sealed class DiscordMessagePipeline : IGuildNicknameObservationSink
                 return false;
             }
 
-            state = CaptureState();
+            state = CaptureState() with { LastMutation = mutation };
         }
 
         StateChanged?.Invoke(state);
@@ -224,6 +225,23 @@ public sealed class DiscordMessagePipeline : IGuildNicknameObservationSink
 
         StateChanged?.Invoke(state);
         return true;
+    }
+
+    public void ClearForAccessRevocation()
+    {
+        DiscordMessageState state;
+        lock (_sync)
+        {
+            _generation++;
+            _targets = null;
+            _isBootstrapping = false;
+            _liveBuffer.Clear();
+            _mainStore = new DiscordMessageStore(MainChatRetentionLimit);
+            _salesStore = new DiscordMessageStore();
+            state = CaptureState();
+        }
+
+        StateChanged?.Invoke(state);
     }
 
     public bool ReplaceMain(
@@ -342,9 +360,9 @@ public sealed class DiscordMessagePipeline : IGuildNicknameObservationSink
         var previousObservationSource = existing?.AuthorGuildNicknameObservationSource ??
             DiscordDisplayNameSource.Unknown;
         if (previousObservationSource == DiscordDisplayNameSource.Unknown &&
-            existing?.AuthorDisplayNameSource == DiscordDisplayNameSource.RpcGuildNickname)
+            existing?.AuthorDisplayNameSource == DiscordDisplayNameSource.GuildNickname)
         {
-            previousObservationSource = DiscordDisplayNameSource.RpcGuildNickname;
+            previousObservationSource = DiscordDisplayNameSource.GuildNickname;
         }
 
         var resolution = _displayNameResolver.Resolve(new GuildDisplayNameRequest(

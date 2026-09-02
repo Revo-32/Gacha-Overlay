@@ -12,6 +12,8 @@
   <ItemGroup>
     <ProjectReference Include="..\GachaOverlay.Core\GachaOverlay.Core.csproj" />
     <ProjectReference Include="..\GachaOverlay.Infrastructure\GachaOverlay.Infrastructure.csproj" />
+    <ProjectReference Include="..\LSOverlay.RemoteClient\LSOverlay.RemoteClient.csproj" />
+    <ProjectReference Include="..\LSOverlay.Protocol\LSOverlay.Protocol.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\Fonts\KIMM_Bold.ttf" />

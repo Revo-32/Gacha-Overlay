@@ -39,12 +39,8 @@ public sealed class HudStateService
     public void SetTargetGameForeground(bool isForeground) =>
         Update(state => state with { IsTargetGameForeground = isForeground });
 
-    public void SetRpcConnected(bool isConnected) =>
-        Update(state => state with
-        {
-            IsRpcConnected = isConnected,
-            HasInitialConnectionReady = state.HasInitialConnectionReady || isConnected,
-        });
+    public void MarkInitialConnectionReady() =>
+        Update(state => state with { HasInitialConnectionReady = true });
 
     private void Update(Func<HudSessionState, HudSessionState> update)
     {

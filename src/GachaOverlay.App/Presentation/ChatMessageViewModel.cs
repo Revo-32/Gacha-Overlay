@@ -20,6 +20,13 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
     private CancellationTokenSource _enrichmentCancellation = new();
     private string _authorName = string.Empty;
     private string _plainText = string.Empty;
+    private string _replyText = string.Empty;
+    private string _remoteDetailsText = string.Empty;
+    private DiscordRemoteMessageMetadata? _remoteMetadata;
+    private IReadOnlyList<DiscordAttachmentMetadata> _remoteAttachments =
+        Array.Empty<DiscordAttachmentMetadata>();
+    private IReadOnlyList<DiscordEmbedMetadata> _remoteEmbeds =
+        Array.Empty<DiscordEmbedMetadata>();
     private IReadOnlyList<ChatToken> _sourceTokens = Array.Empty<ChatToken>();
     private ChatMediaCandidate? _primaryMedia;
     private string _timeText = string.Empty;
@@ -27,8 +34,10 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
     private ImageSource? _stickerImage;
     private string _stickerFallbackText = string.Empty;
     private string? _stickerName;
+    private bool _hasStructuredRemoteSticker;
     private DiscordMessageFallbackKind _fallbackKind;
     private bool _hasSticker;
+    private bool _hasPrimaryText;
     private double _stickerExtent;
     private int _additionalMediaCount;
     private int _revision;
@@ -75,6 +84,8 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
 
     public ObservableCollection<ChatTokenViewModel> Tokens { get; } = new();
 
+    public ObservableCollection<ChatForwardMessageViewModel> ForwardedMessages { get; } = new();
+
     public ICommand PreviewCommand { get; }
 
     public CancellationToken EnrichmentToken => _enrichmentCancellation.Token;
@@ -82,6 +93,59 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
     public string AuthorName { get => _authorName; private set => SetField(ref _authorName, value); }
 
     public string PlainText { get => _plainText; private set => SetField(ref _plainText, value); }
+
+    public string ReplyText
+    {
+        get => _replyText;
+        private set
+        {
+            if (SetField(ref _replyText, value))
+            {
+                OnPropertyChanged(nameof(HasReply));
+                OnPropertyChanged(nameof(UltraCompactSummaryText));
+                OnPropertyChanged(nameof(ShowUltraCompactSummary));
+            }
+        }
+    }
+
+    public bool HasReply => !string.IsNullOrWhiteSpace(ReplyText);
+
+    public bool HasPrimaryText
+    {
+        get => _hasPrimaryText;
+        private set
+        {
+            if (SetField(ref _hasPrimaryText, value))
+            {
+                OnPropertyChanged(nameof(ShowUltraCompactSummary));
+            }
+        }
+    }
+
+    public bool HasForwardedMessages => ForwardedMessages.Count > 0;
+
+    public string UltraCompactSummaryText => HasForwardedMessages
+        ? _localization["ChatRemoteForwardedLabel"]
+        : HasSticker
+            ? StickerFallbackText
+            : ReplyText;
+
+    public bool ShowUltraCompactSummary =>
+        IsUltraCompact && !HasPrimaryText && !string.IsNullOrWhiteSpace(UltraCompactSummaryText);
+
+    public string RemoteDetailsText
+    {
+        get => _remoteDetailsText;
+        private set
+        {
+            if (SetField(ref _remoteDetailsText, value))
+            {
+                OnPropertyChanged(nameof(HasRemoteDetails));
+            }
+        }
+    }
+
+    public bool HasRemoteDetails => !string.IsNullOrWhiteSpace(RemoteDetailsText);
 
     public string TimeText { get => _timeText; private set => SetField(ref _timeText, value); }
 
@@ -108,6 +172,8 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
                 OnPropertyChanged(nameof(ShowStickerImage));
                 OnPropertyChanged(nameof(ShowStickerFallback));
                 OnPropertyChanged(nameof(HasVisibleMedia));
+                OnPropertyChanged(nameof(UltraCompactSummaryText));
+                OnPropertyChanged(nameof(ShowUltraCompactSummary));
                 RefreshDisplayContent();
             }
         }
@@ -129,6 +195,8 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
                 OnPropertyChanged(nameof(ShowStickerImage));
                 OnPropertyChanged(nameof(ShowStickerFallback));
                 OnPropertyChanged(nameof(HasVisibleMedia));
+                OnPropertyChanged(nameof(UltraCompactSummaryText));
+                OnPropertyChanged(nameof(ShowUltraCompactSummary));
                 RefreshDisplayContent();
             }
         }
@@ -138,7 +206,8 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
 
     public bool ShowStickerFallback =>
         _stickersEnabled &&
-        (_fallbackKind == DiscordMessageFallbackKind.Sticker || HasSticker && !ShowStickerImage);
+        (_fallbackKind == DiscordMessageFallbackKind.Sticker && !_hasStructuredRemoteSticker ||
+         HasSticker && !ShowStickerImage);
 
     public bool HasVisibleMedia =>
         ShowStickerImage ||
@@ -246,6 +315,7 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
             {
                 OnPropertyChanged(nameof(IsBalanced));
                 OnPropertyChanged(nameof(MessageMaxHeight));
+                OnPropertyChanged(nameof(ShowUltraCompactSummary));
             }
         }
     }
@@ -309,16 +379,32 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
         AuthorName = presentation.AuthorName;
         _sourceTokens = presentation.Tokens.ToArray();
         _fallbackKind = presentation.FallbackKind;
+        _remoteMetadata = presentation.RemoteMetadata;
+        _remoteAttachments = presentation.RemoteAttachments;
+        _remoteEmbeds = presentation.RemoteEmbeds;
         _primaryMedia = presentation.Media.FirstOrDefault();
         TimeText = presentation.CreatedAt?.ToLocalTime().ToString("HH:mm") ?? string.Empty;
         AdditionalMediaCount = presentation.AdditionalMediaCount;
         Thumbnail = null;
         StickerImage = null;
         HasSticker = _stickersEnabled && presentation.Stickers.Count > 0;
+        _hasStructuredRemoteSticker =
+            presentation.RemoteMetadata is not null && presentation.Stickers.Count > 0;
         _stickerName = presentation.Stickers.Count == 0
             ? null
             : presentation.Stickers[0].Name;
+        ForwardedMessages.Clear();
+        foreach (var forwarded in presentation.ForwardedMessages)
+        {
+            ForwardedMessages.Add(new ChatForwardMessageViewModel(forwarded, _localization));
+        }
+
+        OnPropertyChanged(nameof(HasForwardedMessages));
+        OnPropertyChanged(nameof(UltraCompactSummaryText));
+        OnPropertyChanged(nameof(ShowUltraCompactSummary));
         RefreshStickerFallback();
+        RefreshReply();
+        RefreshRemoteDetails();
         RefreshDisplayContent();
     }
 
@@ -364,6 +450,15 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
         StickerExtent = layout.ShowImages
             ? ChatVisualMetrics.CalculateStickerExtent(responsiveLevel, largeMedia)
             : 0;
+        foreach (var forwarded in ForwardedMessages)
+        {
+            forwarded.ApplySettings(
+                ShowImages,
+                ThumbnailWidth,
+                ThumbnailMaxHeight,
+                StickerExtent);
+        }
+
         CanEnlarge = layout.CanEnlarge;
         ShowNicknameOutline = settings.ChatNicknameOutlineEnabled;
         ShowMessageOutline = settings.ChatMessageOutlineEnabled;
@@ -404,12 +499,128 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
     private void OnLanguageChanged(object? sender, EventArgs args)
     {
         RefreshStickerFallback();
+        RefreshReply();
+        foreach (var forwarded in ForwardedMessages)
+        {
+            forwarded.RefreshLocalization(_localization);
+        }
+
+        RefreshRemoteDetails();
         RefreshDisplayContent();
     }
 
     private void RefreshStickerFallback()
     {
-        StickerFallbackText = _localization["ChatStickerFallbackUnnamed"];
+        StickerFallbackText = _hasStructuredRemoteSticker &&
+            !string.IsNullOrWhiteSpace(_stickerName)
+                ? string.Format(
+                    System.Globalization.CultureInfo.CurrentUICulture,
+                    _localization["ChatRemoteStickerNamed"],
+                    _stickerName)
+                : _localization["ChatStickerFallbackUnnamed"];
+        OnPropertyChanged(nameof(UltraCompactSummaryText));
+        OnPropertyChanged(nameof(ShowUltraCompactSummary));
+    }
+
+    private void RefreshReply()
+    {
+        if (_remoteMetadata?.Reply is not { } reply)
+        {
+            ReplyText = string.Empty;
+            return;
+        }
+
+        ReplyText = !string.IsNullOrWhiteSpace(reply.ResolvedContent)
+            ? string.Format(
+                System.Globalization.CultureInfo.CurrentUICulture,
+                _localization["ChatRemoteReplyResolved"],
+                reply.ResolvedAuthorName ?? _localization["ChatRemoteReplyUnknownAuthor"],
+                reply.ResolvedContent)
+            : _localization["ChatRemoteReply"];
+    }
+
+    private void RefreshRemoteDetails()
+    {
+        if (_remoteMetadata is null)
+        {
+            RemoteDetailsText = string.Empty;
+            return;
+        }
+
+        var lines = new List<string>();
+        foreach (var attachment in _remoteAttachments.Where(item => item.IsVoiceMessage))
+        {
+            var seconds = Math.Max(0, attachment.DurationSeconds ?? 0);
+            lines.Add(string.Format(
+                System.Globalization.CultureInfo.CurrentUICulture,
+                _localization["ChatRemoteVoice"],
+                TimeSpan.FromSeconds(seconds).ToString(seconds >= 3600 ? "h\\:mm\\:ss" : "m\\:ss")));
+        }
+
+        foreach (var attachment in _remoteAttachments.Where(item =>
+                     !item.IsVoiceMessage &&
+                     item.ContentType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) != true))
+        {
+            lines.Add(string.Format(
+                System.Globalization.CultureInfo.CurrentUICulture,
+                _localization["ChatRemoteAttachment"],
+                attachment.FileName ?? _localization["ChatRemoteUnnamedAttachment"]));
+        }
+
+        foreach (var embed in _remoteEmbeds)
+        {
+            var value = new[] { embed.Title, embed.Description }
+                .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                lines.Add(string.Format(
+                    System.Globalization.CultureInfo.CurrentUICulture,
+                    _localization["ChatRemoteEmbed"],
+                    value));
+            }
+        }
+
+        if (_remoteMetadata.Poll is { } poll)
+        {
+            var answers = string.Join(
+                " · ",
+                poll.Answers
+                    .Select(answer => answer.Text)
+                    .Where(text => !string.IsNullOrWhiteSpace(text)));
+            lines.Add(string.Format(
+                System.Globalization.CultureInfo.CurrentUICulture,
+                _localization["ChatRemotePoll"],
+                poll.Question ?? _localization["ChatRemotePollUntitled"],
+                answers));
+        }
+
+        var componentLabels = FlattenComponents(_remoteMetadata.Components)
+            .Select(component => component.Label ?? component.Content ?? component.Description)
+            .Where(text => !string.IsNullOrWhiteSpace(text))
+            .Take(4)
+            .ToArray();
+        if (componentLabels.Length > 0)
+        {
+            lines.Add(string.Format(
+                System.Globalization.CultureInfo.CurrentUICulture,
+                _localization["ChatRemoteComponents"],
+                string.Join(" · ", componentLabels)));
+        }
+
+        RemoteDetailsText = string.Join(Environment.NewLine, lines.Distinct(StringComparer.Ordinal));
+    }
+
+    private static IEnumerable<DiscordComponentMetadata> FlattenComponents(
+        IEnumerable<DiscordComponentMetadata> components)
+    {
+        foreach (var component in components)
+        {
+            yield return component;
+            foreach (var child in FlattenComponents(component.Children))
+            {
+                yield return child;
+            }
+        }
     }
 
     private void RefreshDisplayContent()
@@ -424,19 +635,23 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
         Tokens.Clear();
         var displayTokens = _fallbackKind switch
         {
-            DiscordMessageFallbackKind.ForwardedMessage =>
+            DiscordMessageFallbackKind.ForwardedMessage when
+                !HasForwardedMessages && !_hasStructuredRemoteSticker =>
             [
                 new(ChatTokenKind.Text, _localization["ChatForwardFallback"]),
             ],
-            DiscordMessageFallbackKind.Message =>
+            DiscordMessageFallbackKind.Message when
+                !HasForwardedMessages && !_hasStructuredRemoteSticker =>
             [
                 new(ChatTokenKind.Text, _localization["ChatMessageFallback"]),
             ],
             _ => _sourceTokens.ToList(),
         };
-        if (_fallbackKind is not (
-                DiscordMessageFallbackKind.ForwardedMessage or
-                DiscordMessageFallbackKind.Message) &&
+        if ((_fallbackKind is not (
+                 DiscordMessageFallbackKind.ForwardedMessage or
+                 DiscordMessageFallbackKind.Message) ||
+             HasForwardedMessages ||
+             _hasStructuredRemoteSticker) &&
             ShowStickerFallback)
         {
             displayTokens.RemoveAll(token =>
@@ -444,7 +659,7 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
             var prefix = displayTokens.Count == 0 ? string.Empty : " ";
             displayTokens.Add(new ChatToken(
                 ChatTokenKind.Text,
-                prefix + _localization["ChatStickerFallbackUnnamed"]));
+                prefix + StickerFallbackText));
         }
         foreach (var source in displayTokens)
         {
@@ -475,6 +690,295 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
         }
 
         PlainText = string.Concat(Tokens.Select(token => token.Text));
+        HasPrimaryText = Tokens.Any(token =>
+            token.Kind != ChatTokenKind.Text || !string.IsNullOrWhiteSpace(token.Text));
+    }
+
+    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? name = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+        {
+            return false;
+        }
+
+        field = value;
+        OnPropertyChanged(name);
+        return true;
+    }
+
+    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+}
+
+internal sealed class ChatForwardMessageViewModel : INotifyPropertyChanged
+{
+    private readonly ChatForwardPresentation _presentation;
+    private string _label = string.Empty;
+    private string _stickerFallbackText = string.Empty;
+    private string _mediaFallbackText = string.Empty;
+    private string _detailsText = string.Empty;
+    private ImageSource? _thumbnail;
+    private ImageSource? _stickerImage;
+    private bool _showImages;
+    private double _thumbnailWidth = 132;
+    private double _thumbnailMaxHeight = 96;
+    private double _stickerExtent = 96;
+
+    public ChatForwardMessageViewModel(
+        ChatForwardPresentation presentation,
+        ILocalizationService localization)
+    {
+        _presentation = presentation;
+        Text = presentation.Text;
+        var tokens = presentation.Tokens.Count > 0
+            ? presentation.Tokens
+            : string.IsNullOrEmpty(presentation.Text)
+                ? Array.Empty<ChatToken>()
+                : new[] { new ChatToken(ChatTokenKind.Text, presentation.Text) };
+        foreach (var token in tokens)
+        {
+            Tokens.Add(new ChatTokenViewModel(token));
+        }
+
+        PrimaryMedia = presentation.Media.FirstOrDefault();
+        PrimarySticker = presentation.Stickers.FirstOrDefault();
+        AdditionalMediaCount = presentation.AdditionalMediaCount;
+        RefreshLocalization(localization);
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public string Label { get => _label; private set => SetField(ref _label, value); }
+
+    public string Text { get; }
+
+    public ObservableCollection<ChatTokenViewModel> Tokens { get; } = new();
+
+    public bool HasText => Tokens.Count > 0 || !string.IsNullOrWhiteSpace(Text);
+
+    public ChatMediaCandidate? PrimaryMedia { get; }
+
+    public ChatStickerPresentation? PrimarySticker { get; }
+
+    public int AdditionalMediaCount { get; }
+
+    public string AdditionalMediaText => $"+{AdditionalMediaCount}";
+
+    public bool HasAdditionalMedia => AdditionalMediaCount > 0;
+
+    public ImageSource? Thumbnail
+    {
+        get => _thumbnail;
+        set
+        {
+            if (SetField(ref _thumbnail, value))
+            {
+                NotifyMediaStateChanged();
+            }
+        }
+    }
+
+    public ImageSource? StickerImage
+    {
+        get => _stickerImage;
+        set
+        {
+            if (SetField(ref _stickerImage, value))
+            {
+                NotifyMediaStateChanged();
+            }
+        }
+    }
+
+    public string StickerFallbackText
+    {
+        get => _stickerFallbackText;
+        private set => SetField(ref _stickerFallbackText, value);
+    }
+
+    public string MediaFallbackText
+    {
+        get => _mediaFallbackText;
+        private set => SetField(ref _mediaFallbackText, value);
+    }
+
+    public string DetailsText
+    {
+        get => _detailsText;
+        private set
+        {
+            if (SetField(ref _detailsText, value))
+            {
+                OnPropertyChanged(nameof(HasDetails));
+            }
+        }
+    }
+
+    public bool HasDetails => !string.IsNullOrWhiteSpace(DetailsText);
+
+    public bool ShowThumbnail => _showImages && Thumbnail is not null;
+
+    public bool ShowMediaFallback => PrimaryMedia is not null && !ShowThumbnail;
+
+    public bool ShowStickerImage =>
+        _showImages && StickerExtent > 0 && StickerImage is not null;
+
+    public bool ShowStickerFallback => PrimarySticker is not null && !ShowStickerImage;
+
+    public bool HasVisibleMedia =>
+        ShowThumbnail || ShowMediaFallback || ShowStickerImage || ShowStickerFallback;
+
+    public double ThumbnailWidth
+    {
+        get => _thumbnailWidth;
+        private set => SetField(ref _thumbnailWidth, value);
+    }
+
+    public double ThumbnailMaxHeight
+    {
+        get => _thumbnailMaxHeight;
+        private set => SetField(ref _thumbnailMaxHeight, value);
+    }
+
+    public double StickerExtent
+    {
+        get => _stickerExtent;
+        private set
+        {
+            if (SetField(ref _stickerExtent, value))
+            {
+                NotifyMediaStateChanged();
+            }
+        }
+    }
+
+    public void ApplySettings(
+        bool showImages,
+        double thumbnailWidth,
+        double thumbnailMaxHeight,
+        double stickerExtent)
+    {
+        _showImages = showImages;
+        ThumbnailWidth = thumbnailWidth;
+        ThumbnailMaxHeight = thumbnailMaxHeight;
+        StickerExtent = stickerExtent;
+        NotifyMediaStateChanged();
+    }
+
+    public void RefreshLocalization(ILocalizationService localization)
+    {
+        Label = localization["ChatRemoteForwardedLabel"];
+        StickerFallbackText = PrimarySticker is null
+            ? string.Empty
+            : string.Format(
+                System.Globalization.CultureInfo.CurrentUICulture,
+                localization["ChatRemoteStickerNamed"],
+                string.IsNullOrWhiteSpace(PrimarySticker.Name)
+                    ? localization["ChatStickerFallbackUnnamed"]
+                    : PrimarySticker.Name);
+        MediaFallbackText = PrimaryMedia is null
+            ? string.Empty
+            : string.Format(
+                System.Globalization.CultureInfo.CurrentUICulture,
+                localization["ChatRemoteAttachment"],
+                ResolveMediaName(PrimaryMedia, localization));
+        DetailsText = CreateDetailsText(_presentation, localization);
+    }
+
+    private static string CreateDetailsText(
+        ChatForwardPresentation presentation,
+        ILocalizationService localization)
+    {
+        var lines = new List<string>();
+        foreach (var attachment in presentation.Attachments.Where(item => item.IsVoiceMessage))
+        {
+            var seconds = Math.Max(0, attachment.DurationSeconds ?? 0);
+            lines.Add(string.Format(
+                System.Globalization.CultureInfo.CurrentUICulture,
+                localization["ChatRemoteVoice"],
+                TimeSpan.FromSeconds(seconds).ToString(seconds >= 3600 ? "h\\:mm\\:ss" : "m\\:ss")));
+        }
+
+        foreach (var attachment in presentation.Attachments.Where(item =>
+                     !item.IsVoiceMessage &&
+                     item.ContentType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) != true))
+        {
+            lines.Add(string.Format(
+                System.Globalization.CultureInfo.CurrentUICulture,
+                localization["ChatRemoteAttachment"],
+                attachment.FileName ?? localization["ChatRemoteUnnamedAttachment"]));
+        }
+
+        foreach (var embed in presentation.Embeds)
+        {
+            var value = new[] { embed.Title, embed.Description }
+                .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                lines.Add(string.Format(
+                    System.Globalization.CultureInfo.CurrentUICulture,
+                    localization["ChatRemoteEmbed"],
+                    value));
+            }
+        }
+
+        var componentLabels = FlattenComponents(presentation.Components)
+            .Select(component => component.Label ?? component.Content ?? component.Description)
+            .Where(text => !string.IsNullOrWhiteSpace(text))
+            .Take(4)
+            .ToArray();
+        if (componentLabels.Length > 0)
+        {
+            lines.Add(string.Format(
+                System.Globalization.CultureInfo.CurrentUICulture,
+                localization["ChatRemoteComponents"],
+                string.Join(" · ", componentLabels)));
+        }
+
+        return string.Join(Environment.NewLine, lines.Distinct(StringComparer.Ordinal));
+    }
+
+    private static IEnumerable<DiscordComponentMetadata> FlattenComponents(
+        IEnumerable<DiscordComponentMetadata> components)
+    {
+        foreach (var component in components)
+        {
+            yield return component;
+            foreach (var child in FlattenComponents(component.Children))
+            {
+                yield return child;
+            }
+        }
+    }
+
+    private static string ResolveMediaName(
+        ChatMediaCandidate media,
+        ILocalizationService localization)
+    {
+        if (!string.IsNullOrWhiteSpace(media.DisplayName))
+        {
+            return media.DisplayName;
+        }
+
+        if (Uri.TryCreate(media.SourceUrl ?? media.Url, UriKind.Absolute, out var uri))
+        {
+            var name = Uri.UnescapeDataString(System.IO.Path.GetFileName(uri.AbsolutePath));
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                return name;
+            }
+        }
+
+        return localization["ChatRemoteUnnamedAttachment"];
+    }
+
+    private void NotifyMediaStateChanged()
+    {
+        OnPropertyChanged(nameof(ShowThumbnail));
+        OnPropertyChanged(nameof(ShowMediaFallback));
+        OnPropertyChanged(nameof(ShowStickerImage));
+        OnPropertyChanged(nameof(ShowStickerFallback));
+        OnPropertyChanged(nameof(HasVisibleMedia));
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? name = null)

@@ -15,48 +15,33 @@ from pypdf import PdfReader
 
 EXPECTED_ICON_SHA256 = "944090cf580c9fd770193804f6675c1f60d45af19e94f6234438bd0912c6186f"
 FULL_REQUIRED_TEXT = [
-    "https://127.0.0.1",
-    "rpc",
-    "identify",
-    "messages.read",
-    "AUTHORIZE",
-    "https://discord.com/api/v10/oauth2/token",
-    "Basic authentication",
+    "Remote Backend",
+    "페어링 시작",
+    "/lsoverlay pair code:",
+    "Discord Desktop",
+    "RemotePrimary / Complete",
+    "최신 30개",
+    "Access revoked",
     "DPAPI",
-    "Named Pipe",
     "English",
     "한국어",
     "日本語",
-    "App Tester",
     "F9",
     "F10",
-    "Paused",
     "Diagnostic ZIP",
     "[스티커]",
     "[메시지]",
 ]
 QUICK_REQUIRED_TEXT = [
-    "https://127.0.0.1",
-    "rpc",
-    "identify",
-    "messages.read",
-    "Client ID",
-    "Client Secret",
-    "Discord 인증",
-    "Main Channel",
-    "Sales Compatibility",
+    "Remote Backend",
+    "페어링 시작",
+    "/lsoverlay pair code:",
+    "Discord Desktop",
+    "RemotePrimary / Complete",
     "F9",
     "F10",
-    "Current",
-    "Waiting",
-    "Queue Detail",
-    "SOLD",
-    ":closed:",
-    "Paused",
     "Diagnostic ZIP",
-    "Gacha Overlay 사용자 설명서.pdf",
     "DPAPI",
-    "Local RPC",
 ]
 COMMON_FORBIDDEN_TEXT = [
     "Custom HEX Theme",
@@ -64,6 +49,8 @@ COMMON_FORBIDDEN_TEXT = [
     "Guild Selector",
     "KoPub",
     "Sold History UI",
+    "SettingsRemoteSourceLegacy",
+    "DiscordStatusDiscordNotRunning",
 ]
 QUICK_FORBIDDEN_TEXT = [
     "App Tester",
@@ -169,9 +156,9 @@ def validate(repo: Path, pdf: Path, source: Path, document_kind: str) -> dict:
     is_quick_start = document_kind == "quick-start"
     required_text = QUICK_REQUIRED_TEXT if is_quick_start else FULL_REQUIRED_TEXT
     forbidden_text = COMMON_FORBIDDEN_TEXT + (QUICK_FORBIDDEN_TEXT if is_quick_start else [])
-    expected_pages = 10 if is_quick_start else 40
-    expected_screenshot_refs = 11 if is_quick_start else 25
-    minimum_outline_items = 9 if is_quick_start else 10
+    expected_pages = 9 if is_quick_start else 22
+    expected_screenshot_refs = 2 if is_quick_start else 7
+    minimum_outline_items = 7 if is_quick_start else 15
 
     required_missing = [term for term in required_text if re.sub(r"\s+", "", term) not in compact]
     forbidden_found = [term for term in forbidden_text if term.casefold() in combined.casefold()]
@@ -183,9 +170,10 @@ def validate(repo: Path, pdf: Path, source: Path, document_kind: str) -> dict:
     developer_path_hit_count = len(re.findall(r"(?:[A-Z]:\\Users\\|E:\\Codex\\)[^\s<>'\"]*", combined, re.IGNORECASE))
     tester_terms = re.compile(r"App Tester|Controlled Test|\bTester\b|테스터|테스트 사용자", re.IGNORECASE)
     app_tester_basic_flow_mentions = len(tester_terms.findall(combined)) if is_quick_start else None
-    full_manual_conditional_tester_policy = (
-        "모든 사용자가 거치는 일반 설치 단계가 아닙니다" in source_text
-        and "권한 오류가 계속" in source_text
+    full_manual_remote_only_policy = (
+        "일반 사용자는 Bot Token" in source_text
+        and "Discord Desktop" in source_text
+        and "/lsoverlay pair code:" in source_text
     ) if not is_quick_start else None
 
     metadata = {str(key): str(value) for key, value in (reader.metadata or {}).items()}
@@ -217,7 +205,7 @@ def validate(repo: Path, pdf: Path, source: Path, document_kind: str) -> dict:
         "secret_or_personal_hits": secret_hits,
         "developer_path_hit_count": developer_path_hit_count,
         "app_tester_basic_flow_mentions": app_tester_basic_flow_mentions,
-        "full_manual_conditional_tester_policy": full_manual_conditional_tester_policy,
+        "full_manual_remote_only_policy": full_manual_remote_only_policy,
         "non_breaking_hyphen_count": combined.count("\u2011"),
         "source_screenshot_refs": len(image_refs),
         "unique_source_screenshot_refs": len(set(image_refs)),
@@ -256,7 +244,7 @@ def validate(repo: Path, pdf: Path, source: Path, document_kind: str) -> dict:
         not result["raw_capture_files"],
         result["icon_exact_match"],
         not result["custom_font_failures"],
-        result["app_tester_basic_flow_mentions"] == 0 if is_quick_start else result["full_manual_conditional_tester_policy"],
+        result["app_tester_basic_flow_mentions"] == 0 if is_quick_start else result["full_manual_remote_only_policy"],
     ])
     return result
 

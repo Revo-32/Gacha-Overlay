@@ -8,9 +8,9 @@ namespace GachaOverlay.Tests.Chat;
 public sealed class M752StickerTests
 {
     [Theory]
-    [InlineData(1, "https://cdn.discordapp.com/stickers/900.png")]
-    [InlineData(2, "https://cdn.discordapp.com/stickers/900.png")]
-    [InlineData(4, "https://cdn.discordapp.com/stickers/900.gif")]
+    [InlineData(1, "https://media.discordapp.net/stickers/900.png?size=256&quality=lossless")]
+    [InlineData(2, "https://media.discordapp.net/stickers/900.png?size=256&quality=lossless")]
+    [InlineData(4, "https://media.discordapp.net/stickers/900.gif?size=256&quality=lossless")]
     [InlineData(null, null)]
     public void RenderableStickerFormats_UseGlobalDiscordAssetEndpoints(
         int? format,

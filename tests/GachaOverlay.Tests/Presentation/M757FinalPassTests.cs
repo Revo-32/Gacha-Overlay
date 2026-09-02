@@ -120,7 +120,7 @@ public sealed class M757FinalPassTests
         Assert.DoesNotContain("MessageOutlineBlurRadius", view);
         Assert.DoesNotContain("NicknameOutlineBlurRadius", view);
         Assert.DoesNotContain("DropShadowEffect", view);
-        Assert.Equal(6, view.Split("<local:CrispOutlinedText", StringSplitOptions.None).Length - 1);
+        Assert.Equal(7, view.Split("<local:CrispOutlinedText", StringSplitOptions.None).Length - 1);
     }
 
     [Theory]

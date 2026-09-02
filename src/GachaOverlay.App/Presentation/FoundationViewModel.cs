@@ -9,8 +9,6 @@ using GachaOverlay.Core.Sales;
 using GachaOverlay.Core.Hud;
 using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Chat;
-using GachaOverlay.Core.Discord.Connection;
-using GachaOverlay.Infrastructure.Discord.Authentication;
 using GachaOverlay.Core.Themes;
 
 namespace GachaOverlay.App.Presentation;
@@ -22,9 +20,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private readonly ChatTypographyResolver _typographyResolver;
     private readonly Action<AppSettings> _applyHudSettings;
     private readonly Func<HotkeySetting, HotkeySetting, bool> _applyHotkeys;
-    private readonly Func<DiscordConnectionSetupRequest, DiscordConnectionSetupResult> _configureDiscord;
-    private readonly Action _requestDiscordReconnect;
-    private readonly Func<DiscordConnectionSetupSnapshot> _getDiscordSetupSnapshot;
     private readonly Func<SalesFeatureHealthSnapshot> _getSalesHealthSnapshot;
     private readonly Func<ManualSalesResyncResult> _manualSalesResync;
     private readonly Action _clearMediaCache;
@@ -42,20 +37,14 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private double _salesSurfaceOpacity;
     private double _queueDetailSurfaceOpacity;
     private bool _minimalHudMode;
+    private bool _showGtaSession;
+    private SessionHostSelection _selectedSessionHost;
+    private IReadOnlyList<SessionHostOption> _sessionHostOptions;
     private bool _hudModifierDragEnabled;
     private HudVisibilityMode _selectedVisibilityMode;
     private string _lockHotkeyText;
     private string _visibilityHotkeyText;
     private string _hotkeyValidationMessage = string.Empty;
-    private string _discordClientIdText;
-    private string _discordClientSecret = string.Empty;
-    private string _discordRedirectUriText;
-    private string _discordGuildIdText;
-    private string _discordMainChannelIdText;
-    private string _discordSalesChannelIdText;
-    private string _discordSetupMessage = string.Empty;
-    private DiscordConnectionStatus _discordConnectionStatus = DiscordConnectionStatus.Initial;
-    private DiscordConnectionSetupSnapshot _discordSetupSnapshot;
     private IReadOnlyList<HudVisibilityModeOption> _visibilityModes;
     private ChatLayoutMode _selectedChatLayoutMode;
     private ChatStylePreset _selectedChatStylePreset;
@@ -82,6 +71,10 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private bool _salesShowProduct;
     private bool _salesShowNextWaitingUser;
     private double _salesQueueDetailMaxHeight;
+    private bool _salesTurnSoundEnabled;
+    private double _salesTurnSoundVolume;
+    private bool _notifySalesNext;
+    private bool _notifySalesCurrent;
     private SalesFeatureHealthSnapshot _salesHealthSnapshot = SalesFeatureHealthSnapshot.Disabled;
     private string _manualSalesResyncStatusMessage = string.Empty;
     private string _mediaCacheStatusMessage = string.Empty;
@@ -95,9 +88,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private bool _disposed;
     private readonly Func<bool, bool> _applyWindowsAutoStart;
     private bool _windowsAutoStart;
-    private bool _discordAutoLaunch;
     private readonly Func<Task<string>> _createDiagnosticBundle;
     private string _diagnosticExportStatusMessage = string.Empty;
+    private readonly Action _testSalesTurnSound;
 
     public FoundationViewModel(
         ISettingsStore settingsStore,
@@ -108,15 +101,11 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         Action<AppSettings> applyHudSettings,
         Action resetHudPlacement,
         Func<HotkeySetting, HotkeySetting, bool>? applyHotkeys = null,
-        Func<DiscordConnectionSetupRequest, DiscordConnectionSetupResult>? configureDiscord = null,
-        Action? requestDiscordReconnect = null,
-        Func<DiscordConnectionSetupSnapshot>? getDiscordSetupSnapshot = null,
         Action? openProductMappingManager = null,
         Action? exportProductMappings = null,
         Action? openSalesPreview = null,
         Func<ManualSalesResyncResult>? manualSalesResync = null,
         Action? clearMediaCache = null,
-        Action? deleteDiscordAuthentication = null,
         Action? resetAllSettings = null,
         Func<SalesFeatureHealthSnapshot>? getSalesHealthSnapshot = null,
         Action? openLogFolder = null,
@@ -129,13 +118,11 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         Func<bool>? resetProductOverrides = null,
         Action? showCredits = null,
         Action? openLicenseNotices = null,
-        Func<bool, CancellationToken, Task<DiscordServerDiscoverySnapshot>>? discoverServer = null,
-        Func<DiscordMainChannelOption, CancellationToken, Task<MainChannelSwitchResult>>? switchMain = null,
         Func<bool, bool>? applyWindowsAutoStart = null,
         Action? rerunOnboarding = null,
-        Action? reauthenticateDiscord = null,
-        Action? launchDiscordAccessibility = null,
-        Func<Task<string>>? createDiagnosticBundle = null)
+        Func<Task<string>>? createDiagnosticBundle = null,
+        RemoteChatSettingsViewModel? remoteChatSettings = null,
+        Action? testSalesTurnSound = null)
     {
         _settingsStore = settingsStore;
         Localization = localization;
@@ -143,17 +130,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _typographyResolver = typographyResolver;
         _applyHudSettings = applyHudSettings;
         _applyHotkeys = applyHotkeys ?? ((_, _) => true);
-        _configureDiscord = configureDiscord ??
-            (_ => new DiscordConnectionSetupResult(false, "SettingsDiscordSaveFailed"));
-        _requestDiscordReconnect = requestDiscordReconnect ?? (() => { });
-        _getDiscordSetupSnapshot = getDiscordSetupSnapshot ??
-            (() => new DiscordConnectionSetupSnapshot(
-                false,
-                ProtectedCredentialStatus.Missing,
-                ProtectedCredentialStatus.Missing,
-                false,
-                false,
-                false));
         _getSalesHealthSnapshot = getSalesHealthSnapshot ?? (() => SalesFeatureHealthSnapshot.Disabled);
         _manualSalesResync = manualSalesResync ?? (() => ManualSalesResyncResult.TrackingDisabled);
         _clearMediaCache = clearMediaCache ?? (() => { });
@@ -164,6 +140,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _applyWindowsAutoStart = applyWindowsAutoStart ?? (_ => true);
         _createDiagnosticBundle = createDiagnosticBundle ??
             (() => Task.FromResult(string.Empty));
+        RemoteChatSettings = remoteChatSettings;
+        _testSalesTurnSound = testSalesTurnSound ?? (() => { });
         _selectedLanguage = localization.CurrentLocale;
         var settings = settingsStore.Current;
         _selectedColorTheme = settings.ColorTheme;
@@ -175,29 +153,17 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _salesSurfaceOpacity = settings.SalesSurfaceOpacity;
         _queueDetailSurfaceOpacity = settings.QueueDetailSurfaceOpacity;
         _minimalHudMode = settings.MinimalHudMode;
+        _showGtaSession = settings.ShowGtaSession;
+        _selectedSessionHost = settings.SelectedSessionHost;
         _hudModifierDragEnabled = settings.HudModifierDragEnabled;
         _selectedVisibilityMode = settings.HudVisibilityMode;
         _lockHotkeyText = FormatHotkey(settings.HudLockHotkey, HotkeySetting.DefaultLockToggle);
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
-        _discordClientIdText = settings.DiscordClientId ?? string.Empty;
-        _discordRedirectUriText = settings.DiscordRedirectUri;
-        _discordGuildIdText = settings.DiscordGuildId ?? string.Empty;
-        _discordMainChannelIdText = settings.DiscordMainChannelId ?? string.Empty;
-        _discordSalesChannelIdText = settings.DiscordSalesChannelId ?? string.Empty;
-        _discordSetupSnapshot = _getDiscordSetupSnapshot();
         _windowsAutoStart = settings.WindowsAutoStart;
-        _discordAutoLaunch = settings.DiscordAutoLaunch;
-        ServerSettings = new ServerSettingsViewModel(
-            settingsStore,
-            localization,
-            discoverServer ?? ((_, _) => Task.FromResult(
-                DiscordServerDiscoverySnapshot.Unavailable(
-                    DiscordServerDiscoveryState.CredentialsMissing))),
-            switchMain ?? ((_, _) => Task.FromResult(
-                new MainChannelSwitchResult(MainChannelSwitchStatus.NotConnected))));
         _visibilityModes = CreateVisibilityModes();
+        _sessionHostOptions = CreateSessionHostOptions();
         _selectedChatLayoutMode = settings.ChatLayoutMode;
         _chatShowTime = settings.ChatShowTime;
         _selectedChatFontPreset = settings.ChatFontPreset;
@@ -221,6 +187,10 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _salesShowProduct = settings.SalesShowProduct;
         _salesShowNextWaitingUser = settings.SalesShowNextWaitingUser;
         _salesQueueDetailMaxHeight = settings.SalesQueueDetailMaxHeight;
+        _salesTurnSoundEnabled = settings.SalesTurnSoundEnabled;
+        _salesTurnSoundVolume = settings.SalesTurnSoundVolume;
+        _notifySalesNext = settings.NotifySalesNext;
+        _notifySalesCurrent = settings.NotifySalesCurrent;
         _chatLayoutModes = CreateChatLayoutModes();
         _chatFontPresets = CreateChatFontPresets();
         _chatImageModes = CreateChatImageModes();
@@ -231,10 +201,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         HideToTrayCommand = new RelayCommand(hideWindow);
         ApplyHotkeysCommand = new RelayCommand(ApplyHotkeys);
         ResetHotkeysCommand = new RelayCommand(ResetHotkeys);
-        SaveAndConnectDiscordCommand = new RelayCommand(SaveAndConnectDiscord);
-        ReconnectDiscordCommand = new RelayCommand(
-            RequestDiscordReconnect,
-            () => DiscordCanReconnect);
         ResetHudPlacementCommand = new RelayCommand(resetHudPlacement);
         ResetHudPositionCommand = new RelayCommand(resetHudPosition ?? resetHudPlacement);
         ResetHudSizeCommand = new RelayCommand(resetHudSize ?? resetHudPlacement);
@@ -247,9 +213,10 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         ManualSalesResyncCommand = new RelayCommand(
             RequestManualSalesResync,
             () => SalesTrackingEnabled);
+        TestSalesTurnSoundCommand = new RelayCommand(
+            _testSalesTurnSound,
+            () => SalesTurnSoundEnabled && SalesTurnSoundVolume > 0);
         ClearMediaCacheCommand = new RelayCommand(ClearMediaCache);
-        DeleteDiscordAuthenticationCommand = new RelayCommand(
-            deleteDiscordAuthentication ?? (() => { }));
         ResetAllSettingsCommand = new RelayCommand(resetAllSettings ?? (() => { }));
         OpenLogFolderCommand = new RelayCommand(openLogFolder ?? (() => { }));
         OpenLatestLogCommand = new RelayCommand(openLatestLog ?? (() => { }));
@@ -257,9 +224,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         ShowCreditsCommand = new RelayCommand(showCredits ?? (() => { }));
         OpenLicenseNoticesCommand = new RelayCommand(openLicenseNotices ?? (() => { }));
         RerunOnboardingCommand = new RelayCommand(rerunOnboarding ?? (() => { }));
-        ReauthenticateDiscordCommand = new RelayCommand(reauthenticateDiscord ?? (() => { }));
-        LaunchDiscordAccessibilityCommand = new RelayCommand(
-            launchDiscordAccessibility ?? (() => { }));
         CreateDiagnosticBundleCommand = new AsyncRelayCommand(CreateDiagnosticBundleAsync);
         Localization.LanguageChanged += OnLanguageChanged;
         RefreshDiagnostics();
@@ -285,10 +249,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
 
     public ICommand ResetHotkeysCommand { get; }
 
-    public ICommand SaveAndConnectDiscordCommand { get; }
-
-    public RelayCommand ReconnectDiscordCommand { get; }
-
     public ICommand ResetHudPlacementCommand { get; }
 
     public ICommand ResetHudPositionCommand { get; }
@@ -307,9 +267,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
 
     public RelayCommand ManualSalesResyncCommand { get; }
 
-    public ICommand ClearMediaCacheCommand { get; }
+    public RelayCommand TestSalesTurnSoundCommand { get; }
 
-    public ICommand DeleteDiscordAuthenticationCommand { get; }
+    public ICommand ClearMediaCacheCommand { get; }
 
     public ICommand ResetAllSettingsCommand { get; }
 
@@ -325,13 +285,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
 
     public ICommand RerunOnboardingCommand { get; }
 
-    public ICommand ReauthenticateDiscordCommand { get; }
-
-    public ICommand LaunchDiscordAccessibilityCommand { get; }
-
     public ICommand CreateDiagnosticBundleCommand { get; }
 
-    public ServerSettingsViewModel ServerSettings { get; }
+    public RemoteChatSettingsViewModel? RemoteChatSettings { get; }
 
     public string AppVersionText => ResolveAppVersionText();
 
@@ -379,34 +335,33 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _salesSurfaceOpacity = settings.SalesSurfaceOpacity;
         _queueDetailSurfaceOpacity = settings.QueueDetailSurfaceOpacity;
         _minimalHudMode = settings.MinimalHudMode;
+        _showGtaSession = settings.ShowGtaSession;
+        _selectedSessionHost = settings.SelectedSessionHost;
         _hudModifierDragEnabled = settings.HudModifierDragEnabled;
         _selectedVisibilityMode = settings.HudVisibilityMode;
         _lockHotkeyText = FormatHotkey(settings.HudLockHotkey, HotkeySetting.DefaultLockToggle);
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
-        _discordClientIdText = settings.DiscordClientId ?? string.Empty;
-        _discordRedirectUriText = settings.DiscordRedirectUri;
-        _discordGuildIdText = settings.DiscordGuildId ?? string.Empty;
-        _discordMainChannelIdText = settings.DiscordMainChannelId ?? string.Empty;
-        _discordSalesChannelIdText = settings.DiscordSalesChannelId ?? string.Empty;
         _windowsAutoStart = settings.WindowsAutoStart;
-        _discordAutoLaunch = settings.DiscordAutoLaunch;
         _salesTrackingEnabled = settings.SalesTrackingEnabled;
         _salesShowCurrentSeller = settings.SalesShowCurrentSeller;
         _salesShowWaitingCount = settings.SalesShowWaitingCount;
         _salesShowProduct = settings.SalesShowProduct;
         _salesShowNextWaitingUser = settings.SalesShowNextWaitingUser;
         _salesQueueDetailMaxHeight = settings.SalesQueueDetailMaxHeight;
+        _salesTurnSoundEnabled = settings.SalesTurnSoundEnabled;
+        _salesTurnSoundVolume = settings.SalesTurnSoundVolume;
+        _notifySalesNext = settings.NotifySalesNext;
+        _notifySalesCurrent = settings.NotifySalesCurrent;
         LoadChatSettings(settings);
         ColorThemes = CreateColorThemes();
         RefreshThemeSelection();
         Localization.SetLanguage(settings.Language);
-        RefreshDiscordSetupState();
         RefreshDiagnostics();
         OnPropertyChanged(nameof(WindowsAutoStart));
-        OnPropertyChanged(nameof(DiscordAutoLaunch));
         ManualSalesResyncCommand.RaiseCanExecuteChanged();
+        TestSalesTurnSoundCommand.RaiseCanExecuteChanged();
         OnPropertyChanged(string.Empty);
     }
 
@@ -430,10 +385,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             _selectedSettingsCategory = normalized;
             _settingsStore.Update(settings => settings with { LastSettingsCategory = normalized });
             OnPropertyChanged();
-            if (normalized == SettingsCategory.Server)
-            {
-                ServerSettings.EnsureLoaded();
-            }
         }
     }
 
@@ -667,6 +618,40 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         });
     }
 
+    public bool ShowGtaSession
+    {
+        get => _showGtaSession;
+        set => SetAndSave(ref _showGtaSession, value, settings => settings with
+        {
+            ShowGtaSession = value,
+        });
+    }
+
+    public IReadOnlyList<SessionHostOption> SessionHostOptions
+    {
+        get => _sessionHostOptions;
+        private set
+        {
+            _sessionHostOptions = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public SessionHostSelection SelectedSessionHost
+    {
+        get => _selectedSessionHost;
+        set
+        {
+            var normalized = Enum.IsDefined(value)
+                ? value
+                : SessionHostSelection.Host1;
+            SetAndSave(ref _selectedSessionHost, normalized, settings => settings with
+            {
+                SelectedSessionHost = normalized,
+            });
+        }
+    }
+
     public bool HudModifierDragEnabled
     {
         get => _hudModifierDragEnabled;
@@ -730,71 +715,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    public string DiscordClientIdText
-    {
-        get => _discordClientIdText;
-        set
-        {
-            _discordClientIdText = value;
-            DiscordSetupMessage = string.Empty;
-            OnPropertyChanged();
-        }
-    }
-
-    public string DiscordRedirectUriText
-    {
-        get => _discordRedirectUriText;
-        set
-        {
-            _discordRedirectUriText = value;
-            DiscordSetupMessage = string.Empty;
-            OnPropertyChanged();
-        }
-    }
-
-    public string DiscordGuildIdText
-    {
-        get => _discordGuildIdText;
-        set
-        {
-            _discordGuildIdText = value;
-            DiscordSetupMessage = string.Empty;
-            OnPropertyChanged();
-        }
-    }
-
-    public string DiscordMainChannelIdText
-    {
-        get => _discordMainChannelIdText;
-        set
-        {
-            _discordMainChannelIdText = value;
-            DiscordSetupMessage = string.Empty;
-            OnPropertyChanged();
-        }
-    }
-
-    public string DiscordSalesChannelIdText
-    {
-        get => _discordSalesChannelIdText;
-        set
-        {
-            _discordSalesChannelIdText = value;
-            DiscordSetupMessage = string.Empty;
-            OnPropertyChanged();
-        }
-    }
-
-    public string DiscordSetupMessage
-    {
-        get => _discordSetupMessage;
-        private set
-        {
-            _discordSetupMessage = value;
-            OnPropertyChanged();
-        }
-    }
-
     public bool WindowsAutoStart
     {
         get => _windowsAutoStart;
@@ -807,7 +727,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
 
             if (!_applyWindowsAutoStart(value))
             {
-                DiscordSetupMessage = Localization["SettingsAutoStartFailed"];
+                _logger.Warning("STARTUP", "Windows auto-start setting could not be applied.");
                 OnPropertyChanged();
                 return;
             }
@@ -816,88 +736,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             _settingsStore.Update(settings => settings with { WindowsAutoStart = value });
             OnPropertyChanged();
         }
-    }
-
-    public bool DiscordAutoLaunch
-    {
-        get => _discordAutoLaunch;
-        set
-        {
-            if (_discordAutoLaunch == value)
-            {
-                return;
-            }
-
-            _discordAutoLaunch = value;
-            _settingsStore.Update(settings => settings with { DiscordAutoLaunch = value });
-            OnPropertyChanged();
-        }
-    }
-
-    public string DiscordConnectionStatusText => _discordConnectionStatus.State switch
-    {
-        DiscordConnectionState.Connected => Localization["DiscordStatusConnected"],
-        DiscordConnectionState.Connecting => Localization["DiscordStatusConnecting"],
-        DiscordConnectionState.Authenticating => Localization["DiscordStatusAuthenticating"],
-        DiscordConnectionState.Reconnecting => Localization["DiscordStatusReconnecting"],
-        DiscordConnectionState.ConfigurationRequired when
-            _discordConnectionStatus.Detail == "AuthenticationRequired" =>
-                Localization["DiscordStatusAuthenticationRequired"],
-        DiscordConnectionState.ConfigurationRequired when
-            _discordConnectionStatus.Detail == "TargetConfigurationInvalid" =>
-                Localization["DiscordStatusTargetConfigurationRequired"],
-        DiscordConnectionState.ConfigurationRequired =>
-            Localization["DiscordStatusConfigurationRequired"],
-        DiscordConnectionState.Faulted => Localization["DiscordStatusFailed"],
-        _ when _discordConnectionStatus.Detail == "DiscordAutoLaunchFailed" =>
-            Localization["DiscordStatusAutoLaunchFailed"],
-        _ when _discordConnectionStatus.Detail == "DiscordNotRunning" =>
-            Localization["DiscordStatusDiscordNotRunning"],
-        _ => Localization["DiscordStatusDisconnected"],
-    };
-
-    public string DiscordClientIdStatusText => Localization[
-        _discordSetupSnapshot.ClientIdConfigured
-            ? "DiscordConfigurationConfigured"
-            : "DiscordConfigurationMissing"];
-
-    public string DiscordOAuthStatusText => Localization[
-        _discordConnectionStatus.State == DiscordConnectionState.Connected
-            ? "DiscordAuthenticationComplete"
-            : _discordSetupSnapshot.ClientSecretStatus == ProtectedCredentialStatus.Unreadable ||
-              _discordSetupSnapshot.OAuthTokenStatus == ProtectedCredentialStatus.Unreadable
-                ? "DiscordAuthenticationUnreadable"
-                : _discordSetupSnapshot.OAuthTokenStatus == ProtectedCredentialStatus.Available
-                    ? "DiscordAuthenticationSaved"
-                    : "DiscordAuthenticationRequired"];
-
-    public string DiscordGuildStatusText => Localization[
-        _discordSetupSnapshot.GuildConfigured
-            ? "DiscordConfigurationConfigured"
-            : "DiscordConfigurationAutoResolve"];
-
-    public string DiscordMainChannelStatusText => Localization[
-        _discordSetupSnapshot.MainChannelConfigured
-            ? "DiscordConfigurationConfigured"
-            : "DiscordConfigurationAutoResolve"];
-
-    public string DiscordSalesChannelStatusText => Localization[
-        _discordSetupSnapshot.SalesChannelConfigured
-            ? "DiscordConfigurationConfigured"
-            : "DiscordConfigurationAutoResolve"];
-
-    public bool DiscordCanReconnect => _discordSetupSnapshot.CanConnect;
-
-    public void SetDiscordClientSecret(string value)
-    {
-        _discordClientSecret = value;
-        DiscordSetupMessage = string.Empty;
-    }
-
-    public void UpdateDiscordStatus(DiscordConnectionStatus status)
-    {
-        _discordConnectionStatus = status;
-        RefreshDiscordSetupState();
     }
 
     public ChatLayoutMode SelectedChatLayoutMode
@@ -1164,6 +1002,62 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    public bool SalesTurnSoundEnabled
+    {
+        get => _salesTurnSoundEnabled;
+        set
+        {
+            var previous = _salesTurnSoundEnabled;
+            SetAndSave(ref _salesTurnSoundEnabled, value, settings => settings with
+            {
+                SalesTurnSoundEnabled = value,
+            });
+            if (previous != _salesTurnSoundEnabled)
+            {
+                TestSalesTurnSoundCommand.RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(SalesTurnSoundOptionsEnabled));
+            }
+        }
+    }
+
+    public bool SalesTurnSoundOptionsEnabled => SalesTurnSoundEnabled;
+
+    public double SalesTurnSoundVolume
+    {
+        get => _salesTurnSoundVolume;
+        set
+        {
+            var normalized = double.IsFinite(value) ? Math.Clamp(value, 0, 100) : 50;
+            var previous = _salesTurnSoundVolume;
+            SetAndSave(ref _salesTurnSoundVolume, normalized, settings => settings with
+            {
+                SalesTurnSoundVolume = normalized,
+            });
+            if (Math.Abs(previous - _salesTurnSoundVolume) >= 0.001)
+            {
+                TestSalesTurnSoundCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool NotifySalesNext
+    {
+        get => _notifySalesNext;
+        set => SetAndSave(ref _notifySalesNext, value, settings => settings with
+        {
+            NotifySalesNext = value,
+        });
+    }
+
+    public bool NotifySalesCurrent
+    {
+        get => _notifySalesCurrent;
+        set => SetAndSave(ref _notifySalesCurrent, value, settings => settings with
+        {
+            NotifySalesCurrent = value,
+        });
+    }
+
     public string SalesHealthText => _salesHealthSnapshot.State switch
     {
         SalesFeatureHealthState.Disabled => Localization["SalesHealthDisabled"],
@@ -1173,7 +1067,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         SalesFeatureHealthState.Paused => Localization["SettingsSalesHealthPaused"],
         SalesFeatureHealthState.Degraded => Localization["SalesHealthDegraded"],
         SalesFeatureHealthState.Disconnected => Localization["SalesHealthDisconnected"],
-        _ => Localization["SalesHealthSensorError"],
+        _ => Localization[_salesHealthSnapshot.Reason == SalesFeatureHealthReason.RemoteSalesAccessRevoked
+            ? "SalesHealthRemoteAccessRevoked"
+            : "SalesHealthRemoteError"],
     };
 
     public string SalesCoverageText => string.Format(
@@ -1195,10 +1091,20 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             _salesHealthSnapshot.LastCompleteResyncAt.Value.ToLocalTime().ToString("g"))
         : Localization["SettingsSalesLastSyncNever"];
 
-    public string SalesUiaStatusText => Localization[
-        _salesHealthSnapshot.SensorStatus == SalesObservationStatus.AccessibilityUnavailable
-            ? "SettingsUiaUnavailable"
-            : "SettingsUiaReady"];
+    public string SalesEffectiveSourceText => string.Format(
+        System.Globalization.CultureInfo.CurrentUICulture,
+        Localization["SettingsSalesEffectiveSourceFormat"],
+        _salesHealthSnapshot.EffectiveSource);
+
+    public string SalesRemoteStatusText => string.Format(
+        System.Globalization.CultureInfo.CurrentUICulture,
+        Localization["SettingsSalesRemoteStateFormat"],
+        _salesHealthSnapshot.RemotePhase);
+
+    public string SalesMergedStatusText => string.Format(
+        System.Globalization.CultureInfo.CurrentUICulture,
+        Localization["SettingsSalesMergedStateFormat"],
+        _salesHealthSnapshot.State);
 
     public string ManualSalesResyncStatusMessage
     {
@@ -1237,7 +1143,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(SalesHealthText));
         OnPropertyChanged(nameof(SalesCoverageText));
         OnPropertyChanged(nameof(SalesLastFullSyncText));
-        OnPropertyChanged(nameof(SalesUiaStatusText));
+        OnPropertyChanged(nameof(SalesEffectiveSourceText));
+        OnPropertyChanged(nameof(SalesRemoteStatusText));
+        OnPropertyChanged(nameof(SalesMergedStatusText));
         OnPropertyChanged(nameof(ProductCatalogSummaryText));
         OnPropertyChanged(nameof(ProductOverrideCountText));
         OnPropertyChanged(nameof(ProductCatalogLoadStatusText));
@@ -1266,7 +1174,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         }
 
         _disposed = true;
-        ServerSettings.Dispose();
+        RemoteChatSettings?.Dispose();
         Localization.LanguageChanged -= OnLanguageChanged;
     }
 
@@ -1339,49 +1247,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             customized ? "SettingsHotkeyApplied" : "SettingsHotkeyDefaultsRestored"];
     }
 
-    private void SaveAndConnectDiscord()
-    {
-        var result = _configureDiscord(new DiscordConnectionSetupRequest(
-            DiscordClientIdText,
-            _discordClientSecret,
-            DiscordRedirectUriText,
-            DiscordGuildIdText,
-            DiscordMainChannelIdText,
-            DiscordSalesChannelIdText));
-        DiscordSetupMessage = Localization[result.MessageKey];
-        if (!result.Success)
-        {
-            return;
-        }
-
-        _discordClientSecret = string.Empty;
-        var current = _settingsStore.Current;
-        _discordClientIdText = current.DiscordClientId ?? string.Empty;
-        _discordRedirectUriText = current.DiscordRedirectUri;
-        _discordGuildIdText = current.DiscordGuildId ?? string.Empty;
-        _discordMainChannelIdText = current.DiscordMainChannelId ?? string.Empty;
-        _discordSalesChannelIdText = current.DiscordSalesChannelId ?? string.Empty;
-        foreach (var propertyName in new[]
-        {
-            nameof(DiscordClientIdText),
-            nameof(DiscordRedirectUriText),
-            nameof(DiscordGuildIdText),
-            nameof(DiscordMainChannelIdText),
-            nameof(DiscordSalesChannelIdText),
-        })
-        {
-            OnPropertyChanged(propertyName);
-        }
-
-        RefreshDiscordSetupState();
-    }
-
-    private void RequestDiscordReconnect()
-    {
-        _requestDiscordReconnect();
-        DiscordSetupMessage = Localization["SettingsDiscordReconnectRequested"];
-    }
-
     private void RequestManualSalesResync()
     {
         var result = _manualSalesResync();
@@ -1389,8 +1254,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         {
             ManualSalesResyncResult.Requested => "SettingsManualResyncRequested",
             ManualSalesResyncResult.Coalesced => "SettingsManualResyncCoalesced",
-            ManualSalesResyncResult.DiscordDisconnected => "SettingsManualResyncDisconnected",
-            ManualSalesResyncResult.TargetChannelUnavailable => "SettingsManualResyncOpenChannel",
+            ManualSalesResyncResult.RemoteUnavailable => "SettingsManualResyncDisconnected",
             _ => "SettingsManualResyncTrackingDisabled",
         }];
         RefreshDiagnostics();
@@ -1400,26 +1264,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     {
         _clearMediaCache();
         MediaCacheStatusMessage = Localization["SettingsMediaCacheCleared"];
-    }
-
-    private void RefreshDiscordSetupState()
-    {
-        _discordSetupSnapshot = _getDiscordSetupSnapshot();
-        foreach (var propertyName in new[]
-        {
-            nameof(DiscordConnectionStatusText),
-            nameof(DiscordClientIdStatusText),
-            nameof(DiscordOAuthStatusText),
-            nameof(DiscordGuildStatusText),
-            nameof(DiscordMainChannelStatusText),
-            nameof(DiscordSalesChannelStatusText),
-            nameof(DiscordCanReconnect),
-        })
-        {
-            OnPropertyChanged(propertyName);
-        }
-
-        ReconnectDiscordCommand.RaiseCanExecuteChanged();
     }
 
     private void ApplyChatPreset() => ApplyChatPreset(SelectedChatStylePreset);
@@ -1465,11 +1309,20 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
                 Localization["SettingsVisibilityGameOnly"]),
         };
 
+    private IReadOnlyList<SessionHostOption> CreateSessionHostOptions() => new[]
+    {
+        new SessionHostOption(
+            SessionHostSelection.Host1,
+            Localization["SettingsSessionHost1"]),
+        new SessionHostOption(
+            SessionHostSelection.Host2,
+            Localization["SettingsSessionHost2"]),
+    };
+
     private IReadOnlyList<SettingsCategoryOption> CreateSettingsCategories() => new[]
     {
         CreateCategory(SettingsCategory.General, "SettingsCategoryGeneral", "M12,2A10,10 0 1 0 12,22A10,10 0 1 0 12,2M12,7A5,5 0 1 1 12,17A5,5 0 1 1 12,7"),
         CreateCategory(SettingsCategory.Discord, "SettingsCategoryDiscord", "M8.6,12.8L5.8,15.6A3,3 0 0 0 10,19.8L13.1,16.7M15.4,11.2L18.2,8.4A3,3 0 0 0 14,4.2L10.9,7.3M8.5,15.5L15.5,8.5"),
-        CreateCategory(SettingsCategory.Server, "SettingsCategoryServer", "M4,5H20V19H4ZM7,9H17M7,13H17M7,17H13"),
         CreateCategory(SettingsCategory.Hud, "SettingsCategoryHud", "M3,4H21V17H3ZM8,21H16M12,17V21"),
         CreateCategory(SettingsCategory.Chat, "SettingsCategoryChat", "M4,4H20V16H9L4,20ZM8,8H16M8,12H14"),
         CreateCategory(SettingsCategory.Media, "SettingsCategoryMedia", "M3,5H21V19H3ZM6,16L10,12L13,15L16,10L20,16M8,9A1.5,1.5 0 1 1 8,6A1.5,1.5 0 1 1 8,9"),
@@ -1611,6 +1464,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     {
         SettingsCategories = CreateSettingsCategories();
         VisibilityModes = CreateVisibilityModes();
+        SessionHostOptions = CreateSessionHostOptions();
         ChatLayoutModes = CreateChatLayoutModes();
         ChatFontPresets = CreateChatFontPresets();
         ChatImageModes = CreateChatImageModes();
@@ -1620,10 +1474,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         ColorThemes = CreateColorThemes();
         RefreshThemeSelection();
         HotkeyValidationMessage = string.Empty;
-        DiscordSetupMessage = string.Empty;
         ManualSalesResyncStatusMessage = string.Empty;
         MediaCacheStatusMessage = string.Empty;
-        RefreshDiscordSetupState();
         RefreshDiagnostics();
         RefreshChatPresetState();
         OnPropertyChanged(nameof(SelectedChatFontPreviewFamily));
@@ -1763,3 +1615,7 @@ internal sealed record ProductCatalogUiSnapshot(
 {
     public static ProductCatalogUiSnapshot Empty { get; } = new(false, 0, 0, 0);
 }
+
+internal sealed record SessionHostOption(
+    SessionHostSelection Value,
+    string DisplayText);

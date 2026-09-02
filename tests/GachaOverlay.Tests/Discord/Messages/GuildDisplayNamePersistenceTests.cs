@@ -55,7 +55,7 @@ public sealed class GuildDisplayNamePersistenceTests
                     "guild",
                     "author",
                     "-The First Star-",
-                    DiscordDisplayNameSource.RpcGuildNickname,
+                    DiscordDisplayNameSource.GuildNickname,
                     1d,
                     Now,
                     7),
@@ -80,7 +80,7 @@ public sealed class GuildDisplayNamePersistenceTests
             authorId,
             null,
             nickname,
-            DiscordDisplayNameSource.RpcGuildNickname,
+            DiscordDisplayNameSource.GuildNickname,
             1d,
             observedAt)));
 

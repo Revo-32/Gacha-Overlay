@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>LSOverlay.RemoteClient</RootNamespace>
+    <AssemblyName>LSOverlay.RemoteClient</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GachaOverlay.Core\GachaOverlay.Core.csproj" />
+    <ProjectReference Include="..\LSOverlay.Protocol\LSOverlay.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>

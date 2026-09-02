@@ -1,10 +1,8 @@
 using System.Windows;
 using GachaOverlay.App.Presentation;
-using GachaOverlay.Core.Discord.Connection;
 using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Logging;
-using GachaOverlay.Infrastructure.Discord.Authentication;
 using GachaOverlay.Infrastructure.Localization;
 using GachaOverlay.Infrastructure.Settings;
 using GachaOverlay.Tests.TestSupport;
@@ -81,84 +79,6 @@ public sealed class ConnectionAndHotkeyUxTests
         Assert.True(fixture.Store.Current.HotkeysCustomized);
     }
 
-    [Fact]
-    public void MissingCredentials_StatusIsActionableAndSetupCommandIsAvailable()
-    {
-        using var fixture = new ViewModelFixture();
-        DiscordConnectionSetupRequest? observed = null;
-        fixture.RecreateViewModel(
-            (_, _) => true,
-            request =>
-            {
-                observed = request;
-                return DiscordConnectionSetupResult.Succeeded;
-            });
-        fixture.ViewModel.DiscordClientIdText = "123456789";
-        fixture.ViewModel.DiscordRedirectUriText = "https://127.0.0.1";
-        fixture.ViewModel.SetDiscordClientSecret("protected-secret");
-        fixture.ViewModel.UpdateDiscordStatus(new DiscordConnectionStatus(
-            DiscordConnectionState.ConfigurationRequired,
-            0,
-            "CredentialsMissing",
-            DateTimeOffset.UtcNow));
-
-        Assert.Equal("Discord configuration required", fixture.ViewModel.DiscordConnectionStatusText);
-        Assert.True(fixture.ViewModel.SaveAndConnectDiscordCommand.CanExecute(null));
-        fixture.ViewModel.SaveAndConnectDiscordCommand.Execute(null);
-        Assert.Equal("123456789", observed?.ClientId);
-        Assert.Equal("protected-secret", observed?.ClientSecret);
-    }
-
-    [Theory]
-    [InlineData(SupportedLocales.English, "Discord configuration required")]
-    [InlineData(SupportedLocales.Korean, "Discord 설정 필요")]
-    [InlineData(SupportedLocales.Japanese, "Discord 設定が必要")]
-    public void CredentialsMissingText_IsLocalizedWithoutVerificationLauncherInstruction(
-        string locale,
-        string expected)
-    {
-        using var fixture = new ViewModelFixture(locale);
-        fixture.ViewModel.UpdateDiscordStatus(new DiscordConnectionStatus(
-            DiscordConnectionState.ConfigurationRequired,
-            0,
-            "CredentialsMissing",
-            DateTimeOffset.UtcNow));
-
-        Assert.Equal(expected, fixture.ViewModel.DiscordConnectionStatusText);
-        Assert.DoesNotContain(
-            "M2",
-            fixture.ViewModel.DiscordConnectionStatusText,
-            StringComparison.OrdinalIgnoreCase);
-        Assert.NotEqual("TrayDiscordConnectionSetup", fixture.Localization["TrayDiscordConnectionSetup"]);
-        Assert.NotEqual("TrayDiscordReconnect", fixture.Localization["TrayDiscordReconnect"]);
-    }
-
-    [Fact]
-    public void UserFacingConnectionResources_DoNotReferenceDevelopmentLauncher()
-    {
-        foreach (var locale in new[]
-                 {
-                     SupportedLocales.English,
-                     SupportedLocales.Korean,
-                     SupportedLocales.Japanese,
-                 })
-        {
-            var localization = new ResourceLocalizationService(locale);
-            foreach (var key in new[]
-                     {
-                         "DiscordStatusConfigurationRequired",
-                         "DiscordStatusAuthenticationRequired",
-                         "SettingsDiscordSecretRequired",
-                         "SettingsDiscordSavedAndConnecting",
-                         "TrayDiscordConnectionSetup",
-                     })
-            {
-                Assert.DoesNotContain("M2", localization[key], StringComparison.OrdinalIgnoreCase);
-                Assert.DoesNotContain("launcher", localization[key], StringComparison.OrdinalIgnoreCase);
-            }
-        }
-    }
-
     private static HotkeyGesture Parse(string text)
     {
         Assert.True(HotkeyGesture.TryParseDisplayText(text, out var gesture));
@@ -190,8 +110,7 @@ public sealed class ConnectionAndHotkeyUxTests
         public FoundationViewModel ViewModel { get; private set; } = null!;
 
         public void RecreateViewModel(
-            Func<HotkeySetting, HotkeySetting, bool> applyHotkeys,
-            Func<DiscordConnectionSetupRequest, DiscordConnectionSetupResult>? configure = null)
+            Func<HotkeySetting, HotkeySetting, bool> applyHotkeys)
         {
             ViewModel?.Dispose();
             ViewModel = new FoundationViewModel(
@@ -202,16 +121,7 @@ public sealed class ConnectionAndHotkeyUxTests
                 () => { },
                 _ => { },
                 () => { },
-                applyHotkeys,
-                configure,
-                () => { },
-                () => new DiscordConnectionSetupSnapshot(
-                    !string.IsNullOrWhiteSpace(Store.Current.DiscordClientId),
-                    ProtectedCredentialStatus.Missing,
-                    ProtectedCredentialStatus.Missing,
-                    !string.IsNullOrWhiteSpace(Store.Current.DiscordGuildId),
-                    !string.IsNullOrWhiteSpace(Store.Current.DiscordMainChannelId),
-                    !string.IsNullOrWhiteSpace(Store.Current.DiscordSalesChannelId)));
+                applyHotkeys);
         }
 
         public void Dispose()

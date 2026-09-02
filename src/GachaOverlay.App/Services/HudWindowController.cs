@@ -29,7 +29,8 @@ internal sealed class HudWindowController : IDisposable
     private readonly IAppLogger _logger;
     private readonly Action _openHudSettings;
     private AppSettings _settings;
-    private DiscordConnectionStatus _connectionStatus = DiscordConnectionStatus.Initial;
+    private RemoteChatHealthState _connectionState = RemoteChatHealthState.Disconnected;
+    private string _connectionDetail = "NotStarted";
     private string? _foregroundProcess;
     private HudSessionState? _lastAppliedState;
     private DiscordMessageState? _pendingChatState;
@@ -152,15 +153,16 @@ internal sealed class HudWindowController : IDisposable
             : _window.Dispatcher.Invoke(Apply);
     }
 
-    public void OnDiscordStatusChanged(DiscordConnectionStatus status) =>
+    public void OnRemoteConnectionStatus(RemoteChatSnapshot snapshot) =>
         RunOnUi(() =>
         {
-            _connectionStatus = status;
-            var wasReady = _stateService.Current.HasInitialConnectionReady;
-            _stateService.SetRpcConnected(status.State == DiscordConnectionState.Connected);
-            if (!wasReady && _stateService.Current.HasInitialConnectionReady)
+            _connectionState = snapshot.Health;
+            _connectionDetail = snapshot.Detail;
+            if (snapshot.Health == RemoteChatHealthState.Live &&
+                !_stateService.Current.HasInitialConnectionReady)
             {
-                _logger.Information("HUD", "Initial connection gate opened.");
+                _stateService.MarkInitialConnectionReady();
+                _logger.Information("HUD", "Initial connection gate opened by Remote Chat.");
             }
 
             _updateCoalescer.Request();
@@ -350,7 +352,11 @@ internal sealed class HudWindowController : IDisposable
             return;
         }
 
-        _viewModel.Update(_stateService.Current, _connectionStatus, _foregroundProcess);
+        _viewModel.Update(
+            _stateService.Current,
+            _connectionState.ToString(),
+            _connectionDetail,
+            _foregroundProcess);
         if (_pendingChatState is not null)
         {
             _chat.ApplyState(_pendingChatState, _authenticatedUserId);
@@ -368,6 +374,8 @@ internal sealed class HudWindowController : IDisposable
             _chat.CurrentResponsiveLevel == ChatResponsiveLevel.UltraCompact,
             SystemParameters.ClientAreaAnimation,
             !_stateService.Current.IsLocked);
+        _viewModel.Session.UpdateLayout(
+            _chat.CurrentResponsiveLevel == ChatResponsiveLevel.UltraCompact);
         if (requestCount > 1)
         {
             System.Diagnostics.Debug.WriteLine(

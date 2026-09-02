@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>LSOverlay.TransportProbe</RootNamespace>
+    <AssemblyName>LSOverlay.TransportProbe</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LSOverlay.Protocol\LSOverlay.Protocol.csproj" />
+    <ProjectReference Include="..\LSOverlay.RemoteClient\LSOverlay.RemoteClient.csproj" />
+  </ItemGroup>
+
+</Project>

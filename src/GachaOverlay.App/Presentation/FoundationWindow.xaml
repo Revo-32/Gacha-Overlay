@@ -12,6 +12,7 @@
         <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
         <local:SliderValueTextConverter x:Key="SliderValueText" />
         <DataTemplate x:Key="OptionTemplate"><TextBlock Text="{Binding DisplayText}" /></DataTemplate>
+        <DataTemplate x:Key="RemoteDisplayNameTemplate"><TextBlock Text="{Binding DisplayName}" /></DataTemplate>
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="22"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/><Setter Property="Margin" Value="0,0,0,18"/>
         </Style>
@@ -84,43 +85,30 @@
         <DataTemplate x:Key="DiscordTemplate">
             <StackPanel>
                 <TextBlock Style="{StaticResource SectionTitle}" Text="{Binding Localization[SettingsDiscordTitle]}"/>
-                <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource StatusInfoBrush}" Text="{Binding DiscordConnectionStatusText}"/>
-                <UniformGrid Columns="2" Margin="0,12,0,12">
-                    <TextBlock Margin="0,0,12,7" Text="{Binding DiscordClientIdStatusText}"/><TextBlock Margin="0,0,0,7" Text="{Binding DiscordOAuthStatusText}"/>
-                    <TextBlock Margin="0,0,12,7" Text="{Binding DiscordGuildStatusText}"/><TextBlock Margin="0,0,0,7" Text="{Binding SalesUiaStatusText}"/>
-                </UniformGrid>
-                <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsDiscordClientId]}"/><TextBox Text="{Binding DiscordClientIdText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsDiscordClientSecret]}"/>
-                <Grid>
-                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <PasswordBox PasswordChanged="OnDiscordClientSecretChanged" />
-                    <TextBox Visibility="Collapsed" TextChanged="OnDiscordSecretRevealTextChanged" />
-                    <Button Grid.Column="1" Width="42" Margin="8,0,0,0" Padding="0" Click="OnToggleDiscordSecretReveal" Content="◉" AutomationProperties.Name="{Binding Localization[SettingsRevealSecret], Mode=OneWay}" />
-                </Grid>
-                <TextBlock Margin="0,6,0,0" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsDiscordClientSecretHint]}" TextWrapping="Wrap"/>
-                <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsDiscordRedirectUri]}"/><TextBox Text="{Binding DiscordRedirectUriText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                <CheckBox Margin="0,18,0,0" IsChecked="{Binding DiscordAutoLaunch, Mode=TwoWay}" Content="{Binding Localization[SettingsDiscordAutoLaunch]}" AutomationProperties.Name="{Binding Localization[SettingsDiscordAutoLaunch]}"/>
-                <WrapPanel Margin="0,18,0,0"><Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Primary}" Command="{Binding SaveAndConnectDiscordCommand}" Content="{Binding Localization[SettingsDiscordSaveAndConnect]}"/><Button Margin="0,0,8,8" Command="{Binding ReconnectDiscordCommand}" Content="{Binding Localization[SettingsDiscordReconnect]}"/><Button Margin="0,0,8,8" Command="{Binding ReauthenticateDiscordCommand}" Content="{Binding Localization[SettingsDiscordReauthenticate]}"/><Button Margin="0,0,8,8" Command="{Binding LaunchDiscordAccessibilityCommand}" Content="{Binding Localization[SettingsDiscordAccessibilityLaunch]}"/><Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Destructive}" Command="{Binding DeleteDiscordAuthenticationCommand}" Content="{Binding Localization[SettingsDeleteDiscordAuthentication]}"/></WrapPanel>
-                <TextBlock Margin="0,10,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding SalesUiaStatusText}"/>
-                <TextBlock Margin="0,6,0,0" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsM8DiscordRestartPlaceholder]}" TextWrapping="Wrap"/>
-                <TextBlock Margin="0,10,0,0" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding DiscordSetupMessage}" TextWrapping="Wrap"/>
-            </StackPanel>
-        </DataTemplate>
-
-        <DataTemplate x:Key="ServerTemplate">
-            <StackPanel>
-                <TextBlock Style="{StaticResource SectionTitle}" Text="{Binding Localization[SettingsServerTitle]}"/>
-                <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsServerCurrent]}"/>
-                <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ServerSettings.GuildName}"/>
-                <TextBlock Margin="0,5,0,14" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsServerFixedHint]}" TextWrapping="Wrap"/>
-                <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsServerMainChannel]}"/>
-                <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsServerMainHint]}" TextWrapping="Wrap"/>
-                <ComboBox Width="380" HorizontalAlignment="Left" ItemsSource="{Binding ServerSettings.MainChannels}" ItemTemplate="{StaticResource OptionTemplate}" SelectedItem="{Binding ServerSettings.SelectedMainChannel, Mode=TwoWay}" AutomationProperties.Name="{Binding Localization[SettingsServerMainChannel]}"/>
-                <Button Margin="0,12,0,0" HorizontalAlignment="Left" Command="{Binding ServerSettings.RefreshCommand}" Content="{Binding Localization[SettingsServerRefresh]}"/>
-                <TextBlock Margin="0,9,0,18" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding ServerSettings.StatusText}" TextWrapping="Wrap"/>
-                <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsServerSalesChannel]}"/>
-                <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding ServerSettings.SalesChannelName}"/>
-                <TextBlock Margin="0,5,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsServerSalesFixedHint]}" TextWrapping="Wrap"/>
+                <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding Localization[SettingsRemoteTitle]}"/>
+                <TextBlock Margin="0,5,0,10" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsRemoteDescription]}" TextWrapping="Wrap"/>
+                <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsRemoteEndpoint]}"/>
+                <TextBox Width="480" HorizontalAlignment="Left" Text="{Binding RemoteChatSettings.BackendBaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <WrapPanel Margin="0,12,0,0">
+                    <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Primary}" Command="{Binding RemoteChatSettings.ApplyConfigurationCommand}" Content="{Binding Localization[SettingsRemoteApply]}"/>
+                    <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.RefreshCommand}" Content="{Binding Localization[SettingsRemoteRefresh]}"/>
+                    <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.BeginPairingCommand}" Content="{Binding Localization[SettingsRemotePair]}"/>
+                    <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.CancelPairingCommand}" Content="{Binding Localization[SettingsRemotePairCancel]}"/>
+                    <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Destructive}" Command="{Binding RemoteChatSettings.ForgetPairingCommand}" Content="{Binding Localization[SettingsRemoteForget]}"/>
+                </WrapPanel>
+                <TextBlock Margin="0,4,0,0" FontWeight="SemiBold" Foreground="{DynamicResource StatusInfoBrush}" Text="{Binding RemoteChatSettings.HealthText}"/>
+                <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding RemoteChatSettings.HealthDetailText}" TextWrapping="Wrap"/>
+                <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding RemoteChatSettings.CredentialStatusText}"/>
+                <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding RemoteChatSettings.RemoteSalesHealthText}"/>
+                <Border Margin="0,10,0,0" Padding="12" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="6" Visibility="{Binding RemoteChatSettings.HasPairingCode, Converter={StaticResource BoolVisibility}}">
+                    <StackPanel><TextBlock FontSize="18" FontWeight="Bold" Text="{Binding RemoteChatSettings.PairingCode}"/><TextBlock Margin="0,5,0,0" Text="{Binding RemoteChatSettings.PairingInstruction}" TextWrapping="Wrap"/></StackPanel>
+                </Border>
+                <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsRemoteChannel]}"/>
+                <WrapPanel>
+                    <ComboBox x:Name="RemoteChannelComboBox" Width="380" Margin="0,0,8,8" ItemsSource="{Binding RemoteChatSettings.Channels}" ItemTemplate="{StaticResource RemoteDisplayNameTemplate}" SelectedItem="{Binding RemoteChatSettings.SelectedChannel, Mode=TwoWay}"/>
+                    <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.SwitchChannelCommand}" Content="{Binding Localization[SettingsRemoteUseChannel]}"/>
+                </WrapPanel>
+                <TextBlock Margin="0,5,0,20" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding RemoteChatSettings.StatusMessage}" TextWrapping="Wrap"/>
             </StackPanel>
         </DataTemplate>
 
@@ -129,6 +117,10 @@
                 <TextBlock Style="{StaticResource SectionTitle}" Text="{Binding Localization[SettingsHudTitle]}"/>
                 <CheckBox IsChecked="{Binding MinimalHudMode, Mode=TwoWay}" Content="{Binding Localization[SettingsMinimalHud]}"/>
                 <TextBlock Margin="28,4,0,10" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsMinimalHudHint]}" TextWrapping="Wrap"/>
+                <CheckBox IsChecked="{Binding ShowGtaSession, Mode=TwoWay}" Content="{Binding Localization[SettingsShowGtaSession]}"/>
+                <TextBlock Margin="28,4,0,8" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsShowGtaSessionHint]}" TextWrapping="Wrap"/>
+                <TextBlock Margin="28,4,0,5" Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsSessionHost]}"/>
+                <ComboBox Width="220" Margin="28,0,0,10" HorizontalAlignment="Left" IsEnabled="{Binding ShowGtaSession}" ItemsSource="{Binding SessionHostOptions}" ItemTemplate="{StaticResource OptionTemplate}" SelectedValuePath="Value" SelectedValue="{Binding SelectedSessionHost, Mode=TwoWay}" AutomationProperties.Name="{Binding Localization[SettingsSessionHost]}"/>
                 <CheckBox IsChecked="{Binding HudModifierDragEnabled, Mode=TwoWay}" Content="{Binding Localization[SettingsModifierDrag]}"/>
                 <TextBlock Margin="0,9,0,8" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsTransparentHudHint]}" TextWrapping="Wrap"/>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsSurfaceOpacity]}"/><Slider Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Tag="{Binding HudSurfaceOpacity, Converter={StaticResource SliderValueText}, ConverterParameter=Percent}" Value="{Binding HudSurfaceOpacity, Mode=TwoWay}"/>
@@ -179,6 +171,19 @@
                 <TextBlock Style="{StaticResource SectionTitle}" Text="{Binding Localization[SettingsSalesTitle]}"/><TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsSalesDescription]}" TextWrapping="Wrap"/>
                 <CheckBox Margin="0,16,0,0" IsChecked="{Binding SalesTrackingEnabled, Mode=TwoWay}" Content="{Binding Localization[SettingsSalesTracking]}"/>
                 <UniformGrid Columns="2" Margin="0,16,0,0" IsEnabled="{Binding SalesDisplayOptionsEnabled}"><CheckBox Margin="0,0,0,9" IsChecked="{Binding SalesShowCurrentSeller, Mode=TwoWay}" Content="{Binding Localization[SettingsSalesShowCurrentSeller]}"/><CheckBox Margin="0,0,0,9" IsChecked="{Binding SalesShowWaitingCount, Mode=TwoWay}" Content="{Binding Localization[SettingsSalesShowWaitingCount]}"/><CheckBox IsChecked="{Binding SalesShowProduct, Mode=TwoWay}" Content="{Binding Localization[SettingsSalesShowProduct]}"/><CheckBox IsChecked="{Binding SalesShowNextWaitingUser, Mode=TwoWay}" Content="{Binding Localization[SettingsSalesShowNextWaitingUser]}"/></UniformGrid>
+                <Border Margin="0,22,0,0" Padding="14" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding SalesTurnSoundEnabled, Mode=TwoWay}" Content="{Binding Localization[SettingsSalesTurnSound]}"/>
+                        <TextBlock Margin="28,4,0,8" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsSalesTurnSoundHint]}" TextWrapping="Wrap"/>
+                        <UniformGrid Columns="2" IsEnabled="{Binding SalesTurnSoundOptionsEnabled}">
+                            <CheckBox IsChecked="{Binding NotifySalesNext, Mode=TwoWay}" Content="{Binding Localization[SettingsNotifySalesNext]}"/>
+                            <CheckBox IsChecked="{Binding NotifySalesCurrent, Mode=TwoWay}" Content="{Binding Localization[SettingsNotifySalesCurrent]}"/>
+                        </UniformGrid>
+                        <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsSalesTurnSoundVolume]}"/>
+                        <Slider Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" IsEnabled="{Binding SalesTurnSoundOptionsEnabled}" Tag="{Binding SalesTurnSoundVolume, Converter={StaticResource SliderValueText}, ConverterParameter=Percent100}" Value="{Binding SalesTurnSoundVolume, Mode=TwoWay}"/>
+                        <Button Margin="0,12,0,0" HorizontalAlignment="Left" Command="{Binding TestSalesTurnSoundCommand}" Content="{Binding Localization[SettingsTestSalesTurnSound]}"/>
+                    </StackPanel>
+                </Border>
                 <Border Margin="0,22,0,0" Padding="14" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"><StackPanel><TextBlock FontWeight="SemiBold" Text="{Binding SalesHealthText}"/><TextBlock Margin="0,5,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding SalesCoverageText}"/><TextBlock Margin="0,5,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding SalesLastFullSyncText}"/></StackPanel></Border>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsQueueDetailMaxHeight]}"/><Slider Minimum="120" Maximum="640" TickFrequency="20" IsSnapToTickEnabled="True" Tag="{Binding SalesQueueDetailMaxHeight, Converter={StaticResource SliderValueText}, ConverterParameter=Dip}" Value="{Binding SalesQueueDetailMaxHeight, Mode=TwoWay}"/>
                 <Button Margin="0,24,0,0" HorizontalAlignment="Left" Style="{StaticResource Style.Button.Primary}" Command="{Binding ManualSalesResyncCommand}" Content="{Binding Localization[SettingsManualSalesResync]}"/>
@@ -199,15 +204,17 @@
                 <TextBlock Style="{StaticResource SectionTitle}" Text="{Binding Localization[SettingsDiagnosticsTitle]}"/>
                 <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsDiagnosticsDescription]}"/>
                 <TextBlock Margin="0,18,0,0" FontWeight="SemiBold"><Run Text="{Binding Localization[SettingsAppVersion], Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding AppVersionText, Mode=OneWay}"/></TextBlock>
-                <TextBlock Margin="0,8,0,0" Text="{Binding DiscordConnectionStatusText}"/>
-                <TextBlock Margin="0,6,0,0" Text="{Binding DiscordOAuthStatusText}"/>
-                <TextBlock Margin="0,6,0,0" Text="{Binding SalesUiaStatusText}"/>
+                <TextBlock Margin="0,8,0,0" Text="{Binding RemoteChatSettings.HealthText}"/>
+                <TextBlock Margin="0,6,0,0" Text="{Binding RemoteChatSettings.CredentialStatusText}"/>
+                <TextBlock Margin="0,12,0,0" FontWeight="SemiBold" Text="{Binding SalesEffectiveSourceText}"/>
+                <TextBlock Margin="0,6,0,0" Text="{Binding SalesRemoteStatusText}"/>
+                <TextBlock Margin="0,6,0,0" Text="{Binding SalesMergedStatusText}"/>
                 <TextBlock Margin="0,6,0,0" Text="{Binding SalesHealthText}"/>
                 <TextBlock Margin="0,6,0,0" Text="{Binding SalesCoverageText}"/>
                 <TextBlock Margin="0,6,0,0" Text="{Binding SalesLastFullSyncText}"/>
                 <WrapPanel Margin="0,20,0,0"><Button Margin="0,0,8,8" Command="{Binding OpenLogFolderCommand}" Content="{Binding Localization[SettingsOpenLogFolder]}"/><Button Margin="0,0,8,8" Command="{Binding OpenLatestLogCommand}" Content="{Binding Localization[SettingsOpenLatestLog]}"/></WrapPanel>
                 <Button Margin="0,10,0,0" HorizontalAlignment="Left" Style="{StaticResource Style.Button.Primary}" Command="{Binding ManualSalesResyncCommand}" Content="{Binding Localization[SettingsManualSalesResync]}"/>
-                <Button Margin="0,10,0,0" HorizontalAlignment="Left" Command="{Binding ReconnectDiscordCommand}" Content="{Binding Localization[SettingsDiscordReconnect]}"/>
+                <Button Margin="0,10,0,0" HorizontalAlignment="Left" Command="{Binding RemoteChatSettings.RefreshCommand}" Content="{Binding Localization[SettingsRemoteRefresh]}"/>
                 <Button Margin="0,10,0,0" HorizontalAlignment="Left" Command="{Binding ClearMediaCacheCommand}" Content="{Binding Localization[SettingsClearMediaCache]}"/>
                 <Button Margin="0,10,0,0" HorizontalAlignment="Left" Command="{Binding ResetHudPlacementCommand}" Content="{Binding Localization[SettingsResetPlacement]}"/>
                 <Button Margin="0,28,0,0" HorizontalAlignment="Left" Style="{StaticResource Style.Button.Destructive}" Command="{Binding ResetAllSettingsCommand}" Content="{Binding Localization[SettingsResetAll]}"/>
@@ -276,7 +283,7 @@
             </ListBox>
             <Border Grid.Column="1" Background="{DynamicResource BorderSubtleBrush}"/>
             <ScrollViewer x:Name="CategoryScrollViewer" Grid.Column="2" Margin="24,0,4,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ContentControl Content="{Binding}"><ContentControl.Style><Style TargetType="ContentControl"><Setter Property="ContentTemplate" Value="{StaticResource GeneralTemplate}"/><Style.Triggers>
-                <DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Discord}"><Setter Property="ContentTemplate" Value="{StaticResource DiscordTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Server}"><Setter Property="ContentTemplate" Value="{StaticResource ServerTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Hud}"><Setter Property="ContentTemplate" Value="{StaticResource HudTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Chat}"><Setter Property="ContentTemplate" Value="{StaticResource ChatTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Media}"><Setter Property="ContentTemplate" Value="{StaticResource MediaTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Sales}"><Setter Property="ContentTemplate" Value="{StaticResource SalesTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Hotkeys}"><Setter Property="ContentTemplate" Value="{StaticResource HotkeysTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Diagnostics}"><Setter Property="ContentTemplate" Value="{StaticResource DiagnosticsTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Developer}"><Setter Property="ContentTemplate" Value="{StaticResource DeveloperTemplate}"/></DataTrigger>
+                <DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Discord}"><Setter Property="ContentTemplate" Value="{StaticResource DiscordTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Hud}"><Setter Property="ContentTemplate" Value="{StaticResource HudTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Chat}"><Setter Property="ContentTemplate" Value="{StaticResource ChatTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Media}"><Setter Property="ContentTemplate" Value="{StaticResource MediaTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Sales}"><Setter Property="ContentTemplate" Value="{StaticResource SalesTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Hotkeys}"><Setter Property="ContentTemplate" Value="{StaticResource HotkeysTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Diagnostics}"><Setter Property="ContentTemplate" Value="{StaticResource DiagnosticsTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Developer}"><Setter Property="ContentTemplate" Value="{StaticResource DeveloperTemplate}"/></DataTrigger>
             </Style.Triggers></Style></ContentControl.Style></ContentControl></ScrollViewer>
         </Grid>
         <Grid Grid.Row="2" Margin="22,16,22,18"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsChatLivePreviewHint]}"/><Button Grid.Column="1" Command="{Binding HideToTrayCommand}" Content="{Binding Localization[HideToTray]}"/></Grid>

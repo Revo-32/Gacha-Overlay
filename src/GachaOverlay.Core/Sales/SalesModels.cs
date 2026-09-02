@@ -20,7 +20,6 @@ public enum SalesObservationStatus
 {
     Disabled,
     Unavailable,
-    AccessibilityUnavailable,
     Paused,
     Resyncing,
     Live,

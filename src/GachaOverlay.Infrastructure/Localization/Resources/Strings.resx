@@ -143,45 +143,14 @@
   <data name="SettingsHotkeySaveFailed" xml:space="preserve"><value>The hotkeys could not be saved. The previous working hotkeys were restored.</value></data>
   <data name="SettingsHotkeyDefaultsRestored" xml:space="preserve"><value>Default hotkeys restored: F9 show/hide, F10 lock/unlock.</value></data>
   <data name="SettingsDiscordTitle" xml:space="preserve"><value>Discord connection</value></data>
-  <data name="SettingsDiscordClientIdStatus" xml:space="preserve"><value>Application ID</value></data>
-  <data name="SettingsDiscordOAuthStatus" xml:space="preserve"><value>OAuth authentication</value></data>
-  <data name="SettingsDiscordGuildStatus" xml:space="preserve"><value>Guild</value></data>
-  <data name="SettingsDiscordChannelStatus" xml:space="preserve"><value>Main / Sales channels</value></data>
-  <data name="SettingsDiscordClientId" xml:space="preserve"><value>Discord Application / Client ID</value></data>
-  <data name="SettingsDiscordClientSecret" xml:space="preserve"><value>Discord Client Secret</value></data>
-  <data name="SettingsDiscordClientSecretHint" xml:space="preserve"><value>Stored for the current Windows user with DPAPI. Leave blank to keep the existing protected secret.</value></data>
-  <data name="SettingsDiscordRedirectUri" xml:space="preserve"><value>OAuth Redirect URI</value></data>
-  <data name="SettingsDiscordGuildId" xml:space="preserve"><value>Guild ID (optional)</value></data>
-  <data name="SettingsDiscordMainChannelId" xml:space="preserve"><value>Main Channel ID (optional)</value></data>
-  <data name="SettingsDiscordSalesChannelId" xml:space="preserve"><value>Sales Channel ID (optional)</value></data>
-  <data name="SettingsDiscordIdHint" xml:space="preserve"><value>Blank IDs use exact-name discovery. Successfully resolved IDs are saved automatically.</value></data>
-  <data name="SettingsDiscordSaveAndConnect" xml:space="preserve"><value>Save and connect</value></data>
-  <data name="SettingsDiscordReconnect" xml:space="preserve"><value>Reconnect</value></data>
-  <data name="SettingsDiscordSavedAndConnecting" xml:space="preserve"><value>Configuration saved securely. Discord connection requested.</value></data>
-  <data name="SettingsDiscordSaveFailed" xml:space="preserve"><value>Discord configuration could not be saved.</value></data>
-  <data name="SettingsDiscordInvalidClientId" xml:space="preserve"><value>Enter a numeric Discord Application ID.</value></data>
-  <data name="SettingsDiscordInvalidRedirectUri" xml:space="preserve"><value>Enter a valid HTTP or HTTPS redirect URI.</value></data>
-  <data name="SettingsDiscordInvalidTargetId" xml:space="preserve"><value>Guild and Channel IDs must contain digits only, or be left blank.</value></data>
-  <data name="SettingsDiscordSecretRequired" xml:space="preserve"><value>Enter the Client Secret to complete protected setup.</value></data>
-  <data name="SettingsDiscordProtectedSaveFailed" xml:space="preserve"><value>The Client Secret could not be saved in Windows protected storage.</value></data>
-  <data name="SettingsDiscordReconnectRequested" xml:space="preserve"><value>Discord reconnection requested.</value></data>
   <data name="DiscordStatusConnected" xml:space="preserve"><value>Connected</value></data>
   <data name="DiscordStatusConnecting" xml:space="preserve"><value>Connecting</value></data>
   <data name="DiscordStatusAuthenticating" xml:space="preserve"><value>Authenticating</value></data>
   <data name="DiscordStatusReconnecting" xml:space="preserve"><value>Reconnecting</value></data>
-  <data name="DiscordStatusConfigurationRequired" xml:space="preserve"><value>Discord configuration required</value></data>
   <data name="DiscordStatusAuthenticationRequired" xml:space="preserve"><value>Discord authentication required</value></data>
   <data name="DiscordStatusTargetConfigurationRequired" xml:space="preserve"><value>Guild or Channel configuration required</value></data>
   <data name="DiscordStatusFailed" xml:space="preserve"><value>Connection failed</value></data>
-  <data name="DiscordStatusDiscordNotRunning" xml:space="preserve"><value>Waiting for Discord</value></data>
   <data name="DiscordStatusDisconnected" xml:space="preserve"><value>Disconnected</value></data>
-  <data name="DiscordConfigurationConfigured" xml:space="preserve"><value>Configured</value></data>
-  <data name="DiscordConfigurationMissing" xml:space="preserve"><value>Setup required</value></data>
-  <data name="DiscordConfigurationAutoResolve" xml:space="preserve"><value>Exact-name discovery</value></data>
-  <data name="DiscordAuthenticationComplete" xml:space="preserve"><value>Authenticated</value></data>
-  <data name="DiscordAuthenticationSaved" xml:space="preserve"><value>Protected sign-in saved</value></data>
-  <data name="DiscordAuthenticationRequired" xml:space="preserve"><value>Authentication required</value></data>
-  <data name="DiscordAuthenticationUnreadable" xml:space="preserve"><value>Protected sign-in must be reset</value></data>
   <data name="TrayDiscordStatusFormat" xml:space="preserve"><value>Status: {0}</value></data>
   <data name="TrayDiscordConnectionSetup" xml:space="preserve"><value>Discord connection setup</value></data>
   <data name="TrayDiscordReconnect" xml:space="preserve"><value>Reconnect Discord</value></data>
@@ -193,13 +162,6 @@
   <data name="SettingsSalesShowWaitingCount" xml:space="preserve"><value>Show waiting count</value></data>
   <data name="SettingsSalesShowProduct" xml:space="preserve"><value>Show product</value></data>
   <data name="SettingsSalesShowNextWaitingUser" xml:space="preserve"><value>Show next waiting user</value></data>
-  <data name="SalesStatusPreparing" xml:space="preserve"><value>Sales status sensor preparing</value></data>
-  <data name="SalesStatusUnavailable" xml:space="preserve"><value>Discord sales sensor unavailable</value></data>
-  <data name="SalesStatusAccessibilityUnavailable" xml:space="preserve"><value>Discord accessibility tree unavailable</value></data>
-  <data name="SalesStatusPaused" xml:space="preserve"><value>Sales sensor paused</value></data>
-  <data name="SalesStatusResyncing" xml:space="preserve"><value>Resyncing sales status</value></data>
-  <data name="SalesStatusPartial" xml:space="preserve"><value>Sales status partially observed</value></data>
-  <data name="SalesStatusError" xml:space="preserve"><value>Sales sensor error</value></data>
   <data name="SalesQueueEmpty" xml:space="preserve"><value>No one is waiting</value></data>
   <data name="SalesNoDisplayFields" xml:space="preserve"><value>No sales queue details selected</value></data>
   <data name="SalesCurrentSellerFormat" xml:space="preserve"><value>Current {0}</value></data>
@@ -209,10 +171,16 @@
   <data name="SalesHealthLiveAccessible" xml:space="preserve"><value>Sales queue live and fully synchronized</value></data>
   <data name="SalesHealthConnecting" xml:space="preserve"><value>Connecting to Discord</value></data>
   <data name="SalesHealthResyncing" xml:space="preserve"><value>Resyncing sales status</value></data>
-  <data name="SalesHealthOpenChannelFormat" xml:space="preserve"><value>Keep {0} open</value></data>
+  <data name="SalesHealthRemoteConnecting" xml:space="preserve"><value>Remote Sales connecting</value></data>
+  <data name="SalesHealthRemoteSynchronizing" xml:space="preserve"><value>Remote Sales synchronizing</value></data>
+  <data name="SalesHealthRemoteResyncing" xml:space="preserve"><value>Remote Sales resynchronizing</value></data>
+  <data name="SalesHealthRemoteReconnecting" xml:space="preserve"><value>Remote Sales reconnecting</value></data>
+  <data name="SalesHealthPaused" xml:space="preserve"><value>Remote Sales paused</value></data>
+  <data name="SalesHealthRemoteUnavailable" xml:space="preserve"><value>Remote Sales unavailable</value></data>
+  <data name="SalesHealthRemoteAccessRevoked" xml:space="preserve"><value>Remote Sales access revoked</value></data>
   <data name="SalesHealthDegraded" xml:space="preserve"><value>Only part of the sales status is available</value></data>
   <data name="SalesHealthDisconnected" xml:space="preserve"><value>Discord disconnected</value></data>
-  <data name="SalesHealthSensorError" xml:space="preserve"><value>Sales status sensor is unavailable</value></data>
+  <data name="SalesHealthRemoteError" xml:space="preserve"><value>Remote Sales unavailable</value></data>
   <data name="SalesHealthDisabled" xml:space="preserve"><value>Sales tracking disabled</value></data>
   <data name="SalesNextTurnSelf" xml:space="preserve"><value>I'm next</value></data>
   <data name="SalesCurrentTurnSelf" xml:space="preserve"><value>It's your turn to sell! Start selling</value></data>
@@ -267,11 +235,9 @@
   <data name="SettingsSalesPreview" xml:space="preserve"><value>Open sales preview / test center</value></data>
   <data name="HudOpenSettings" xml:space="preserve"><value>Open HUD settings</value></data>
   <data name="SalesQueueDetails" xml:space="preserve"><value>Queue details</value></data>
-  <data name="SettingsDeleteDiscordAuthentication" xml:space="preserve"><value>Delete saved Discord sign-in</value></data>
-  <data name="SettingsDeleteDiscordAuthenticationConfirm" xml:space="preserve"><value>Delete the protected Discord OAuth sign-in for this Windows user?</value></data>
   <data name="SettingsClearMediaCache" xml:space="preserve"><value>Clear media cache</value></data>
   <data name="SettingsResetAll" xml:space="preserve"><value>Reset all settings</value></data>
-  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>Reset every application setting to its safe default? Protected Discord sign-in is not deleted.</value></data>
+  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>Reset every application setting to its safe default? The protected Remote pairing credential is not deleted.</value></data>
   <data name="SettingsProductSelectEmoji" xml:space="preserve"><value>Select an observed emoji first.</value></data>
   <data name="SettingsProductDuplicate" xml:space="preserve"><value>This emoji is already mapped in the same guild scope.</value></data>
   <data name="SettingsProductSaveFailed" xml:space="preserve"><value>The mapping file could not be saved; the previous file is intact.</value></data>
@@ -299,10 +265,8 @@
   <data name="SalesPreviewLongNames" xml:space="preserve"><value>Long names</value></data>
   <data name="SettingsAppVersion" xml:space="preserve"><value>App version</value></data>
   <data name="SettingsAutoSaveHint" xml:space="preserve"><value>Changes are applied and saved automatically.</value></data>
-  <data name="SettingsResetAllHint" xml:space="preserve"><value>Resets display, HUD, chat, media, sales, and hotkey settings. Protected Discord sign-in remains separate.</value></data>
+  <data name="SettingsResetAllHint" xml:space="preserve"><value>Resets display, HUD, chat, media, sales, and hotkey settings. The protected Remote pairing credential remains separate.</value></data>
   <data name="SettingsM8AutoStartPlaceholder" xml:space="preserve"><value>Windows auto-start will be added here during M8 onboarding.</value></data>
-  <data name="SettingsRevealSecret" xml:space="preserve"><value>Show or hide client secret</value></data>
-  <data name="SettingsM8DiscordRestartPlaceholder" xml:space="preserve"><value>Discord auto-start and accessibility restart guidance are reserved for M8.</value></data>
   <data name="SettingsTransparentHudHint" xml:space="preserve"><value>At 0%, ordinary HUD surfaces become transparent while text, media, and semantic status indicators remain readable.</value></data>
   <data name="SettingsChatMaxLines" xml:space="preserve"><value>Maximum lines</value></data>
   <data name="SettingsMediaFirstPlusNHint" xml:space="preserve"><value>Messages show the first media preview and a +N count for additional media.</value></data>
@@ -314,12 +278,12 @@
   <data name="SettingsSalesCoverageNone" xml:space="preserve"><value>no coverage</value></data>
   <data name="SettingsSalesLastSyncFormat" xml:space="preserve"><value>Last full sync: {0}</value></data>
   <data name="SettingsSalesLastSyncNever" xml:space="preserve"><value>Last full sync: not completed yet</value></data>
-  <data name="SettingsUiaUnavailable" xml:space="preserve"><value>Accessibility sensor: unavailable</value></data>
-  <data name="SettingsUiaReady" xml:space="preserve"><value>Accessibility sensor: ready or waiting for Discord</value></data>
+  <data name="SettingsSalesEffectiveSourceFormat" xml:space="preserve"><value>Effective Sales Source: {0}</value></data>
+  <data name="SettingsSalesRemoteStateFormat" xml:space="preserve"><value>Remote Sales: {0}</value></data>
+  <data name="SettingsSalesMergedStateFormat" xml:space="preserve"><value>Merged Sales: {0}</value></data>
   <data name="SettingsManualResyncRequested" xml:space="preserve"><value>A fresh sales resync was requested. The trusted queue remains visible.</value></data>
   <data name="SettingsManualResyncCoalesced" xml:space="preserve"><value>A resync is already running; the request was safely coalesced.</value></data>
   <data name="SettingsManualResyncDisconnected" xml:space="preserve"><value>Connect Discord before checking sales status again.</value></data>
-  <data name="SettingsManualResyncOpenChannel" xml:space="preserve"><value>Open the configured sales channel in Discord, then try again.</value></data>
   <data name="SettingsManualResyncTrackingDisabled" xml:space="preserve"><value>Turn on sales tracking before checking sales status.</value></data>
   <data name="SettingsQueueDetailMaxHeight" xml:space="preserve"><value>Queue detail maximum height</value></data>
   <data name="SettingsOpenLogFolder" xml:space="preserve"><value>Open log folder</value></data>
@@ -399,36 +363,104 @@
   <data name="SettingsAutoStartFailed" xml:space="preserve"><value>Windows startup registration failed. The app can still be used normally.</value></data>
   <data name="SettingsRerunOnboarding" xml:space="preserve"><value>Run initial setup again</value></data>
   <data name="SettingsRerunOnboardingHint" xml:space="preserve"><value>Reopens the guided setup without deleting credentials or current settings.</value></data>
-  <data name="SettingsDiscordAutoLaunch" xml:space="preserve"><value>Launch Discord when Gacha Overlay starts</value></data>
-  <data name="SettingsDiscordReauthenticate" xml:space="preserve"><value>Authenticate again</value></data>
-  <data name="SettingsDiscordAccessibilityLaunch" xml:space="preserve"><value>Start Discord for Sales accessibility</value></data>
-  <data name="SettingsDiscordAccessibilityRunningGuidance" xml:space="preserve"><value>Discord is already running. For safety, close Discord yourself and use this action again. Gacha Overlay will never terminate Discord silently.</value></data>
-  <data name="SettingsDiscordAccessibilityLaunchSucceeded" xml:space="preserve"><value>Discord was started with the Sales accessibility option.</value></data>
-  <data name="SettingsDiscordAccessibilityLaunchFailed" xml:space="preserve"><value>Discord could not be started in accessibility mode. Close Discord completely, start it with --force-renderer-accessibility, then reconnect.</value></data>
   <data name="OnboardingTitle" xml:space="preserve"><value>Gacha Overlay Initial Setup</value></data>
   <data name="OnboardingProgress" xml:space="preserve"><value>Step {0} of {1}</value></data>
   <data name="OnboardingLanguageTitle" xml:space="preserve"><value>Choose a language</value></data>
   <data name="OnboardingLanguageHint" xml:space="preserve"><value>The default is English. You can change this later in General settings.</value></data>
   <data name="OnboardingDiscordTitle" xml:space="preserve"><value>Connect Discord</value></data>
-  <data name="OnboardingDiscordHint" xml:space="preserve"><value>Enter the controlled-release application credentials. Secrets are masked, DPAPI-protected, and never written to logs.</value></data>
-  <data name="OnboardingServerTitle" xml:space="preserve"><value>Confirm the target server</value></data>
-  <data name="OnboardingServerHint" xml:space="preserve"><value>Gacha Overlay v1.0 uses one fixed Discord server. The signed-in account must be a member.</value></data>
-  <data name="OnboardingMainTitle" xml:space="preserve"><value>Select the main channel</value></data>
-  <data name="OnboardingMainHint" xml:space="preserve"><value>Select exactly one supported text channel for the HUD. The fixed Sales channel is excluded.</value></data>
-  <data name="OnboardingAccessibilityTitle" xml:space="preserve"><value>Check Sales accessibility</value></data>
-  <data name="OnboardingAccessibilityHint" xml:space="preserve"><value>Sales tracking needs Discord's accessibility interface. Main Chat can still be used when Sales tracking is turned off.</value></data>
-  <data name="OnboardingNoSilentKill" xml:space="preserve"><value>Discord is never closed or restarted without your explicit action.</value></data>
+  <data name="OnboardingDiscordHint" xml:space="preserve"><value>Connect to the Remote backend, pair this installation in Discord, then select an authorized main channel. Discord Desktop is not required.</value></data>
   <data name="OnboardingHudTitle" xml:space="preserve"><value>HUD is ready</value></data>
-  <data name="OnboardingHudHint" xml:space="preserve"><value>After Discord bootstrap completes, the HUD will appear with your selected main channel.</value></data>
+  <data name="OnboardingHudHint" xml:space="preserve"><value>After Remote bootstrap completes, the HUD will appear with your selected main channel.</value></data>
   <data name="OnboardingHudDragHint" xml:space="preserve"><value>Unlock the HUD before dragging or resizing it.</value></data>
   <data name="OnboardingHudClickThroughHint" xml:space="preserve"><value>When locked, mouse input passes through the HUD to the game.</value></data>
   <data name="OnboardingBack" xml:space="preserve"><value>Back</value></data>
   <data name="OnboardingNext" xml:space="preserve"><value>Next</value></data>
   <data name="OnboardingFinish" xml:space="preserve"><value>Finish</value></data>
-  <data name="OnboardingDiscordRequired" xml:space="preserve"><value>Save valid Discord credentials before continuing.</value></data>
-  <data name="OnboardingServerRequired" xml:space="preserve"><value>The fixed target server must be available before continuing.</value></data>
-  <data name="OnboardingMainRequired" xml:space="preserve"><value>Select and successfully prepare one main channel.</value></data>
-  <data name="OnboardingAccessibilityRequired" xml:space="preserve"><value>Prepare Discord accessibility, or turn Sales tracking off to continue.</value></data>
+  <data name="OnboardingDiscordRequired" xml:space="preserve"><value>Complete Remote pairing and select a ready main channel before continuing.</value></data>
   <data name="OnboardingSaveFailed" xml:space="preserve"><value>Initial setup completion could not be saved. Try again.</value></data>
-  <data name="DiscordStatusAutoLaunchFailed" xml:space="preserve"><value>Discord could not be launched automatically. Start Discord, then reconnect.</value></data>
+  <data name="SettingsRemoteTitle" xml:space="preserve"><value>Remote Discord connection</value></data>
+  <data name="SettingsRemoteDescription" xml:space="preserve"><value>The authenticated Remote backend is the sole production source for Chat, Sales, Presence, and write-back. Discord Desktop is not required.</value></data>
+  <data name="SettingsRemoteEndpoint" xml:space="preserve"><value>Remote backend address (HTTPS; HTTP only for this PC)</value></data>
+  <data name="SettingsRemoteApply" xml:space="preserve"><value>Apply address</value></data>
+  <data name="SettingsRemoteRefresh" xml:space="preserve"><value>Reconnect / refresh</value></data>
+  <data name="SettingsRemotePair" xml:space="preserve"><value>Start pairing</value></data>
+  <data name="SettingsRemotePairCancel" xml:space="preserve"><value>Cancel pairing</value></data>
+  <data name="SettingsRemoteForget" xml:space="preserve"><value>Unpair / forget</value></data>
+  <data name="SettingsRemotePairingInstruction" xml:space="preserve"><value>In Discord, run: /lsoverlay pair code:{0}</value></data>
+  <data name="SettingsRemoteCredentialSaved" xml:space="preserve"><value>Access token: protected for the current Windows user</value></data>
+  <data name="SettingsRemoteCredentialMissing" xml:space="preserve"><value>Access token: pairing required</value></data>
+  <data name="SettingsRemoteChannel" xml:space="preserve"><value>Authorized main chat channel</value></data>
+  <data name="SettingsRemoteUseChannel" xml:space="preserve"><value>Use selected channel</value></data>
+  <data name="SettingsRemoteConfigurationApplied" xml:space="preserve"><value>Remote backend address was applied.</value></data>
+  <data name="SettingsRemoteConfigurationFailed" xml:space="preserve"><value>The Remote backend address could not be applied. Check the address and log.</value></data>
+  <data name="SettingsRemotePairingForgotten" xml:space="preserve"><value>The protected remote credential and channel selection were removed.</value></data>
+  <data name="SettingsRemotePairingForgetFailed" xml:space="preserve"><value>The protected credential could not be removed.</value></data>
+  <data name="SettingsRemoteChannelSwitchRequested" xml:space="preserve"><value>The channel switch will complete after the new channel is ready.</value></data>
+  <data name="SettingsRemoteChannelSwitchFailed" xml:space="preserve"><value>The channel could not be switched.</value></data>
+  <data name="RemoteHealthPairingRequired" xml:space="preserve"><value>Remote: pairing required</value></data>
+  <data name="RemoteHealthPairingInProgress" xml:space="preserve"><value>Remote: pairing in progress</value></data>
+  <data name="RemoteHealthAuthenticating" xml:space="preserve"><value>Remote: authenticating</value></data>
+  <data name="RemoteHealthConnecting" xml:space="preserve"><value>Remote: connecting</value></data>
+  <data name="RemoteHealthBootstrapping" xml:space="preserve"><value>Remote: loading recent chat</value></data>
+  <data name="RemoteHealthChannelSelectionRequired" xml:space="preserve"><value>Remote: channel selection required</value></data>
+  <data name="RemoteHealthLive" xml:space="preserve"><value>Remote: live</value></data>
+  <data name="RemoteHealthReconnecting" xml:space="preserve"><value>Remote: reconnecting</value></data>
+  <data name="RemoteHealthAuthorizationUnavailable" xml:space="preserve"><value>Remote: Discord authorization unavailable</value></data>
+  <data name="RemoteHealthAccessRevoked" xml:space="preserve"><value>Remote: access revoked</value></data>
+  <data name="RemoteHealthDisconnected" xml:space="preserve"><value>Remote: disconnected</value></data>
+  <data name="RemoteHealthError" xml:space="preserve"><value>Remote: error</value></data>
+  <data name="RemoteDetailPairingRequired" xml:space="preserve"><value>Start pairing to authorize this installation.</value></data>
+  <data name="RemoteDetailPairing" xml:space="preserve"><value>Complete the displayed command in Discord. You can cancel safely.</value></data>
+  <data name="RemoteDetailConnecting" xml:space="preserve"><value>Authenticating and preparing the authorized channel catalog.</value></data>
+  <data name="RemoteDetailChannel" xml:space="preserve"><value>Select one channel from the server-authorized catalog.</value></data>
+  <data name="RemoteDetailLive" xml:space="preserve"><value>Recent messages and live create/update/delete events are active.</value></data>
+  <data name="RemoteDetailNetwork" xml:space="preserve"><value>The credential was preserved. Reconnection uses bounded backoff.</value></data>
+  <data name="RemoteDetailAuthentication" xml:space="preserve"><value>Authorization is no longer usable. Re-pair or repair server authorization.</value></data>
+  <data name="RemoteDetailStorage" xml:space="preserve"><value>Windows protected storage needs attention; no plaintext token was used.</value></data>
+  <data name="RemoteDetailError" xml:space="preserve"><value>Remote chat stopped safely. Review the application log, then reconnect.</value></data>
+  <data name="RemoteDetailDisconnected" xml:space="preserve"><value>Remote chat is stopped.</value></data>
+  <data name="ChatRemoteReply" xml:space="preserve"><value>↳ Reply</value></data>
+  <data name="ChatRemoteReplyResolved" xml:space="preserve"><value>↳ {0}: {1}</value></data>
+  <data name="ChatRemoteReplyUnknownAuthor" xml:space="preserve"><value>Unknown</value></data>
+  <data name="ChatRemoteForwarded" xml:space="preserve"><value>Forwarded message ({0})</value></data>
+  <data name="ChatRemoteForwardedLabel" xml:space="preserve"><value>Forwarded message</value></data>
+  <data name="ChatRemoteStickerNamed" xml:space="preserve"><value>Sticker: {0}</value></data>
+  <data name="ChatRemoteVoice" xml:space="preserve"><value>Voice message · {0}</value></data>
+  <data name="ChatRemoteAttachment" xml:space="preserve"><value>Attachment · {0}</value></data>
+  <data name="ChatRemoteUnnamedAttachment" xml:space="preserve"><value>unnamed file</value></data>
+  <data name="ChatRemoteEmbed" xml:space="preserve"><value>Embed · {0}</value></data>
+  <data name="ChatRemotePoll" xml:space="preserve"><value>Poll · {0} — {1}</value></data>
+  <data name="ChatRemotePollUntitled" xml:space="preserve"><value>Untitled poll</value></data>
+  <data name="ChatRemoteComponents" xml:space="preserve"><value>Read-only controls · {0}</value></data>
+  <data name="SalesStatusSelling" xml:space="preserve"><value>Selling</value></data>
+  <data name="SalesStatusNegotiating" xml:space="preserve"><value>Negotiating</value></data>
+  <data name="SalesStatusCompleted" xml:space="preserve"><value>Sold</value></data>
+  <data name="SalesStatusClear" xml:space="preserve"><value>Clear Bot status</value></data>
+  <data name="SalesStatusActionPending" xml:space="preserve"><value>Confirming with Discord…</value></data>
+  <data name="SalesStatusActionFailed" xml:space="preserve"><value>Status update failed</value></data>
+  <data name="SalesStatusBotNone" xml:space="preserve"><value>No Bot status</value></data>
+  <data name="SalesStatusNotAvailable" xml:space="preserve"><value>Status action unavailable</value></data>
+  <data name="SalesStatusPermissionDenied" xml:space="preserve"><value>Permission denied</value></data>
+  <data name="SessionLabel" xml:space="preserve"><value>Session</value></data>
+  <data name="SessionNumberFormat" xml:space="preserve"><value>Session {0}</value></data>
+  <data name="SessionGtaOnline" xml:space="preserve"><value>GTA Online</value></data>
+  <data name="SessionAwaiting" xml:space="preserve"><value>Awaiting session</value></data>
+  <data name="SessionOffline" xml:space="preserve"><value>Offline</value></data>
+  <data name="SessionReconnecting" xml:space="preserve"><value>Reconnecting</value></data>
+  <data name="SessionUnavailable" xml:space="preserve"><value>Session unavailable</value></data>
+  <data name="SessionHostNotConfigured" xml:space="preserve"><value>Host not configured</value></data>
+  <data name="SessionHost1" xml:space="preserve"><value>Host 1</value></data>
+  <data name="SessionHost2" xml:space="preserve"><value>Host 2</value></data>
+  <data name="SessionOccupancyFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="SettingsShowGtaSession" xml:space="preserve"><value>Show GTA session occupancy</value></data>
+  <data name="SettingsShowGtaSessionHint" xml:space="preserve"><value>Shows normalized GTA Online player counts supplied by the configured Remote service.</value></data>
+  <data name="SettingsSessionHost" xml:space="preserve"><value>Session Host</value></data>
+  <data name="SettingsSessionHost1" xml:space="preserve"><value>Host 1</value></data>
+  <data name="SettingsSessionHost2" xml:space="preserve"><value>Host 2</value></data>
+  <data name="SettingsSalesTurnSound" xml:space="preserve"><value>Sales turn sound</value></data>
+  <data name="SettingsSalesTurnSoundHint" xml:space="preserve"><value>Plays one local notification for a new trusted queue-position transition. Startup and provider recovery remain silent.</value></data>
+  <data name="SettingsNotifySalesNext" xml:space="preserve"><value>Notify when I am next</value></data>
+  <data name="SettingsNotifySalesCurrent" xml:space="preserve"><value>Notify when my turn starts</value></data>
+  <data name="SettingsSalesTurnSoundVolume" xml:space="preserve"><value>Notification volume</value></data>
+  <data name="SettingsTestSalesTurnSound" xml:space="preserve"><value>Test sound</value></data>
 </root>

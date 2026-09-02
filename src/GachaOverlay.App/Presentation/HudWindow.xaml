@@ -80,6 +80,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Border x:Name="ChatSurface" Grid.Row="0"
                         Padding="{DynamicResource Thickness.Hud.ContentPadding}"
@@ -90,7 +91,41 @@
                         ClipToBounds="True">
                     <local:ChatView x:Name="ChatContent" DataContext="{Binding Chat}" />
                 </Border>
-                <local:SalesQueueView x:Name="SalesContent" Grid.Row="1" DataContext="{Binding Sales}" />
+                <Border x:Name="SessionSurface"
+                        Grid.Row="1"
+                        Margin="0,4,0,0"
+                        Padding="6,3"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="6"
+                        IsHitTestVisible="False"
+                        Visibility="{Binding Session.IsVisible, Converter={StaticResource BoolVisibility}}">
+                    <ItemsControl ItemsSource="{Binding Session.Items}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid MinHeight="22" AutomationProperties.Name="{Binding AccessibleText}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock VerticalAlignment="Center"
+                                               FontSize="{DynamicResource Typography.Caption}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               Text="{Binding Label}"
+                                               TextTrimming="CharacterEllipsis"
+                                               Visibility="{Binding IsLabelVisible, Converter={StaticResource BoolVisibility}}" />
+                                    <TextBlock Grid.Column="1"
+                                               Margin="12,0,0,0"
+                                               VerticalAlignment="Center"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               Text="{Binding Value}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+                <local:SalesQueueView x:Name="SalesContent" Grid.Row="2" DataContext="{Binding Sales}" />
             </Grid>
         </Grid>
     </Border>

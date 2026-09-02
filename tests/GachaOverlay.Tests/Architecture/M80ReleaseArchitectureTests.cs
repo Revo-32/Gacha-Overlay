@@ -92,9 +92,9 @@ public sealed class M80ReleaseArchitectureTests
     }
 
     [Fact]
-    public void ReleaseSchemas_RemainFrozenAtAuditedVersions()
+    public void ReleaseSchemas_MatchCurrentAuditedVersions()
     {
-        Assert.Equal(11, AppSettings.CurrentSchemaVersion);
+        Assert.Equal(17, AppSettings.CurrentSchemaVersion);
         Assert.Equal(2, GachaOverlay.Core.Sales.SalesProductCatalogDocument.CurrentVersion);
     }
 

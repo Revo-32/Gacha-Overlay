@@ -460,7 +460,7 @@ public sealed class M751WindowLifetimeTests
         var source = File.ReadAllText(Source("Lifecycle", "ApplicationHost.cs"));
 
         Assert.Equal(3, source.Split("_requestShutdown", StringSplitOptions.None).Length - 1);
-        Assert.Contains("RequestDiscordReconnect,\n            _requestShutdown", source.Replace("\r\n", "\n"));
+        Assert.Contains("_remoteChatCoordinator?.RefreshAsync(),\n            _requestShutdown", source.Replace("\r\n", "\n"));
         Assert.DoesNotContain("_requestShutdown();", source, StringComparison.Ordinal);
     }
 

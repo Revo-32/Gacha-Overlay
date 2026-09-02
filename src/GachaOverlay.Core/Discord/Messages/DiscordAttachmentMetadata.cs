@@ -8,4 +8,10 @@ public sealed record DiscordAttachmentMetadata(
     long? Size,
     int? Width,
     int? Height,
-    string? ContentType = null);
+    string? ContentType = null,
+    string? Description = null,
+    string? Title = null,
+    bool IsEphemeral = false,
+    double? DurationSeconds = null,
+    string? WaveformBase64 = null,
+    bool IsVoiceMessage = false);

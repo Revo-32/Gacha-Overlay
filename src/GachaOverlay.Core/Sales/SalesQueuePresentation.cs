@@ -93,10 +93,14 @@ public sealed record SalesQueuePresentationStrings(
     string LiveAccessibleName,
     string Connecting,
     string Resyncing,
-    string OpenSalesChannelFormat,
+    string RemoteConnecting,
+    string RemoteSynchronizing,
+    string RemoteResyncing,
+    string RemoteReconnecting,
+    string Paused,
     string Degraded,
     string Disconnected,
-    string SensorError,
+    string RemoteError,
     string CurrentSellerFormat,
     string WaitingCountFormat,
     string ProductFormat,
@@ -104,7 +108,9 @@ public sealed record SalesQueuePresentationStrings(
     string QueueEmpty,
     string NoDisplayFields,
     string NextTurnSelf,
-    string CurrentTurnSelf);
+    string CurrentTurnSelf,
+    string RemoteUnavailable = "",
+    string RemoteAccessRevoked = "");
 
 public sealed record SalesQueueFieldMeasurements(
     double CurrentSellerWidth,
@@ -471,13 +477,6 @@ public static class SalesQueuePresentationFactory
         SalesQueuePresentationStrings strings,
         string salesChannelName)
     {
-        var channel = string.IsNullOrWhiteSpace(salesChannelName)
-            ? "#sales"
-            : salesChannelName.Trim();
-        if (!channel.StartsWith('#'))
-        {
-            channel = $"#{channel}";
-        }
         return health.State switch
         {
             SalesFeatureHealthState.Disabled => new(
@@ -493,17 +492,45 @@ public static class SalesQueuePresentationFactory
             SalesFeatureHealthState.Connecting => new(
                 SalesHealthVisualMode.Connecting,
                 SalesStatusIconKind.Spinner,
-                strings.Connecting,
-                strings.Connecting),
+                health.Reason switch
+                {
+                    SalesFeatureHealthReason.RemoteSalesConnecting =>
+                        strings.RemoteConnecting,
+                    SalesFeatureHealthReason.RemoteSalesSynchronizing =>
+                        strings.RemoteSynchronizing,
+                    _ => strings.Connecting,
+                },
+                health.Reason switch
+                {
+                    SalesFeatureHealthReason.RemoteSalesConnecting =>
+                        strings.RemoteConnecting,
+                    SalesFeatureHealthReason.RemoteSalesSynchronizing =>
+                        strings.RemoteSynchronizing,
+                    _ => strings.Connecting,
+                }),
             SalesFeatureHealthState.Resyncing => new(
                 SalesHealthVisualMode.Resyncing,
                 SalesStatusIconKind.Spinner,
-                strings.Resyncing,
-                strings.Resyncing),
+                health.Reason switch
+                {
+                    SalesFeatureHealthReason.RemoteSalesResyncing =>
+                        strings.RemoteResyncing,
+                    SalesFeatureHealthReason.RemoteSalesReconnecting =>
+                        strings.RemoteReconnecting,
+                    _ => strings.Resyncing,
+                },
+                health.Reason switch
+                {
+                    SalesFeatureHealthReason.RemoteSalesResyncing =>
+                        strings.RemoteResyncing,
+                    SalesFeatureHealthReason.RemoteSalesReconnecting =>
+                        strings.RemoteReconnecting,
+                    _ => strings.Resyncing,
+                }),
             SalesFeatureHealthState.Paused => CreateStatus(
                 SalesHealthVisualMode.Paused,
                 SalesStatusIconKind.Warning,
-                Format(strings.OpenSalesChannelFormat, channel)),
+                strings.Paused),
             SalesFeatureHealthState.Degraded => CreateStatus(
                 SalesHealthVisualMode.Degraded,
                 SalesStatusIconKind.Warning,
@@ -515,7 +542,12 @@ public static class SalesQueuePresentationFactory
             _ => CreateStatus(
                 SalesHealthVisualMode.Error,
                 SalesStatusIconKind.Error,
-                strings.SensorError),
+                health.Reason == SalesFeatureHealthReason.RemoteSalesAccessRevoked
+                    ? strings.RemoteAccessRevoked
+                    : health.Reason == SalesFeatureHealthReason.RemoteSalesUnavailable ||
+                      health.Reason == SalesFeatureHealthReason.RemoteSalesAuthorizationUnavailable
+                        ? strings.RemoteUnavailable
+                        : strings.RemoteError),
         };
 
         static HealthVisual CreateStatus(

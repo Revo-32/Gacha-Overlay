@@ -123,7 +123,7 @@ public sealed class SalesQueueAndIdentityTests
     }
 
     [Fact]
-    public void Test48_RpcGuildNickname_IsPreferred()
+    public void Test48_GuildNickname_IsPreferred()
     {
         var engine = SalesTestFactory.Engine();
         engine.ApplySourceCreate(SalesTestFactory.Message(
@@ -154,7 +154,7 @@ public sealed class SalesQueueAndIdentityTests
             "1", nickname: null, globalName: "Fallback"));
         resolver.Observe(new GuildNicknameObservation(
             "guild", "author", "1", "Exact Later",
-            DiscordDisplayNameSource.UiAutomationGuildNickname,
+            DiscordDisplayNameSource.GuildNickname,
             1d,
             SalesTestFactory.Epoch));
         Assert.True(engine.RefreshDisplayNames());
@@ -175,7 +175,7 @@ public sealed class SalesQueueAndIdentityTests
         var before = engine.Current.ActiveItems.Select(x => x.MessageId).ToArray();
         resolver.Observe(new GuildNicknameObservation(
             "guild", "author", null, "Exact",
-            DiscordDisplayNameSource.UiAutomationGuildNickname,
+            DiscordDisplayNameSource.GuildNickname,
             1d,
             SalesTestFactory.Epoch));
         engine.RefreshDisplayNames();
@@ -189,10 +189,10 @@ public sealed class SalesQueueAndIdentityTests
         resolver.SetAccountScope("account");
         resolver.Observe(new GuildNicknameObservation(
             "guild-a", "author", null, "Alpha",
-            DiscordDisplayNameSource.UiAutomationGuildNickname, 1d, SalesTestFactory.Epoch));
+            DiscordDisplayNameSource.GuildNickname, 1d, SalesTestFactory.Epoch));
         resolver.Observe(new GuildNicknameObservation(
             "guild-b", "author", null, "Beta",
-            DiscordDisplayNameSource.UiAutomationGuildNickname, 1d, SalesTestFactory.Epoch));
+            DiscordDisplayNameSource.GuildNickname, 1d, SalesTestFactory.Epoch));
         var engine = SalesTestFactory.Engine(resolver: resolver);
         engine.ApplySourceSnapshot(new[]
         {

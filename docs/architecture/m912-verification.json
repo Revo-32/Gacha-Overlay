@@ -1,0 +1,30 @@
+{
+  "schema": "LSOverlay.M912.Verification.v1",
+  "baselineTests": 1184,
+  "debug": { "passed": 1200, "failed": 0, "skipped": 0, "buildWarnings": 0, "buildErrors": 0 },
+  "release": { "passed": 1200, "failed": 0, "skipped": 0, "buildWarnings": 0, "buildErrors": 0 },
+  "restore": "PASS",
+  "formatVerify": "PASS",
+  "diffCheck": "PASS",
+  "offlineRecoveryAssertions": 65,
+  "userQuick": "NOT RUN",
+  "userFiveCycleReconnect": "NOT RUN",
+  "longRunRcValidation": "REQUIRED",
+  "linux": {
+    "publish": "PASS",
+    "runtime": "NOT RUN",
+    "selfContained": false,
+    "fileCount": 12,
+    "totalBytes": 5600708,
+    "backendDllSha256": "DB2C68CACC3B34AFB123CA263D6C6511A8B9E09FBE894D01B6477BC8BC32B523"
+  },
+  "windows": {
+    "publish": "PASS",
+    "selfContainedSingleFile": true,
+    "fileCount": 1,
+    "executableBytes": 179068491,
+    "executableSha256": "5D462BB8BE05650E75A8D0BCCCF3D322E0A4C1435A7B964E012681E601B6BBC8"
+  },
+  "verdict": "STATIC LIFETIME DEFECTS FOUND AND FIXED",
+  "acceptance": "PENDING USER QUICK AND RECONNECT VALIDATION"
+}

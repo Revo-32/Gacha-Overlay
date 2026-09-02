@@ -1,0 +1,41 @@
+{
+  "schema": "LSOverlay.M9121.Verification.v1",
+  "baselineTests": 1200,
+  "addedTests": 27,
+  "debug": { "passed": 1227, "failed": 0, "skipped": 0, "buildWarnings": 0, "buildErrors": 0 },
+  "release": { "passed": 1227, "failed": 0, "skipped": 0, "buildWarnings": 0, "buildErrors": 0 },
+  "restore": "PASS",
+  "formatVerify": "PASS",
+  "diffCheck": "PASS",
+  "helperSyntax": "PASS",
+  "commandScope": "CONFIGURED TARGET GUILD ONLY",
+  "commandDefaultMemberPermissionsWireValue": null,
+  "commandDefaultPolicy": "PAIR COMMAND OPEN TO ORDINARY TARGET-GUILD MEMBERS",
+  "registration": "NAME AND TYPE GUILD UPSERT; NO DELETE OR PERMISSION-OVERRIDE ENDPOINT",
+  "liveRegisteredMetadataBeforeChange": "NOT READ; NO ELEVATED SOURCE PRECONDITION FOUND",
+  "responseCorrection": "USER APPROVED; EXISTING FOUR DENY BRANCHES RETURN 403 INSTEAD OF FORBID-HANDLER 500",
+  "botPermissionExpansion": false,
+  "gatewayIntentExpansion": false,
+  "productionDiscordCallsByAgentOrTests": 0,
+  "ordinaryMemberLivePairing": "NOT RUN",
+  "rolePreview": "USER PLANNED; NOT EQUIVALENT TO ORDINARY-MEMBER LIVE PAIRING",
+  "acceptance": "USER ACTUAL CHECK REQUIRED",
+  "linux": {
+    "publish": "PASS",
+    "runtime": "NOT RUN",
+    "selfContained": false,
+    "fileCount": 12,
+    "totalBytes": 5599684,
+    "backendDllBytes": 325120,
+    "backendDllSha256": "658065E59711F72A2780ED5461C03EA75C387716A27777E6F12A454EEFC40F60"
+  },
+  "windows": {
+    "publish": "PASS",
+    "selfContainedSingleFile": true,
+    "fileCount": 1,
+    "executableBytes": 179068491,
+    "executableSha256": "5D462BB8BE05650E75A8D0BCCCF3D322E0A4C1435A7B964E012681E601B6BBC8"
+  },
+  "deployment": "NOT PERFORMED",
+  "nextMilestone": "NOT STARTED"
+}

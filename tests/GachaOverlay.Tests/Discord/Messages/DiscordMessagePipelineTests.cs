@@ -137,6 +137,50 @@ public sealed class DiscordMessagePipelineTests
         Assert.False(accepted);
     }
 
+    [Fact]
+    public void AccessRevoked_ClearsCommittedChatSalesTargetsAndBufferedEvents()
+    {
+        var pipeline = StartPipeline();
+        pipeline.ReceiveLive(
+            1,
+            DiscordMessageMutation.Create(TestMessageFactory.FullPatch(3, "main")));
+        Assert.True(pipeline.CompleteBootstrap(
+            1,
+            new[] { TestMessageFactory.FullPatch(1, "main") },
+            new[] { TestMessageFactory.FullPatch(2, "sales") }));
+
+        pipeline.ClearForAccessRevocation();
+
+        Assert.Empty(pipeline.Current.MainChat);
+        Assert.Empty(pipeline.Current.SalesSource);
+        Assert.Null(pipeline.Targets);
+        Assert.False(pipeline.Current.IsBootstrapping);
+        Assert.False(pipeline.ReceiveLive(
+            1,
+            DiscordMessageMutation.Create(TestMessageFactory.FullPatch(4, "main"))));
+    }
+
+    [Fact]
+    public void TransientBootstrapAbort_PreservesLastTrustedCommittedState()
+    {
+        var pipeline = StartPipeline();
+        Assert.True(pipeline.CompleteBootstrap(
+            1,
+            new[] { TestMessageFactory.FullPatch(1, "main") },
+            new[] { TestMessageFactory.FullPatch(2, "sales") }));
+        Assert.True(pipeline.StartBootstrap(2, Targets));
+        pipeline.ReceiveLive(
+            2,
+            DiscordMessageMutation.Create(TestMessageFactory.FullPatch(3, "main")));
+
+        Assert.True(pipeline.AbortBootstrap(2));
+
+        Assert.Equal("1", Assert.Single(pipeline.Current.MainChat).MessageId);
+        Assert.Equal("2", Assert.Single(pipeline.Current.SalesSource).MessageId);
+        Assert.Equal(Targets, pipeline.Targets);
+        Assert.False(pipeline.Current.IsBootstrapping);
+    }
+
     private static DiscordMessagePipeline StartPipeline()
     {
         var pipeline = new DiscordMessagePipeline();

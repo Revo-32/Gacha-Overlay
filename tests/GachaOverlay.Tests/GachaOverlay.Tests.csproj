@@ -20,6 +20,10 @@
     <ProjectReference Include="..\..\src\GachaOverlay.Core\GachaOverlay.Core.csproj" />
     <ProjectReference Include="..\..\src\GachaOverlay.Infrastructure\GachaOverlay.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\GachaOverlay.App\GachaOverlay.App.csproj" />
+    <ProjectReference Include="..\..\src\LSOverlay.Backend\LSOverlay.Backend.csproj" />
+    <ProjectReference Include="..\..\src\LSOverlay.Protocol\LSOverlay.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\LSOverlay.RemoteClient\LSOverlay.RemoteClient.csproj" />
+    <ProjectReference Include="..\..\src\LSOverlay.TransportProbe\LSOverlay.TransportProbe.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -7,6 +7,80 @@
              UseLayoutRounding="True">
     <UserControl.Resources>
         <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
+        <DataTemplate x:Key="ForwardMessageTemplate">
+            <Border Margin="0,3,0,4"
+                    Padding="8,6"
+                    Background="{DynamicResource SurfaceRaisedBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="5">
+                <StackPanel>
+                    <TextBlock FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               IsHitTestVisible="False"
+                               Text="{Binding Label}" />
+                    <local:CrispOutlinedText Margin="0,3,0,0"
+                                             Tokens="{Binding Tokens}"
+                                             EmojiExtent="{Binding DataContext.EmojiExtent, RelativeSource={RelativeSource AncestorType={x:Type local:ChatMessageView}}}"
+                                             FontFamily="{Binding DataContext.MessageFontFamily, RelativeSource={RelativeSource AncestorType={x:Type local:ChatMessageView}}}"
+                                             FontSize="{Binding DataContext.FontSizeDip, RelativeSource={RelativeSource AncestorType={x:Type local:ChatMessageView}}}"
+                                             FontWeight="{Binding DataContext.MessageFontWeight, RelativeSource={RelativeSource AncestorType={x:Type local:ChatMessageView}}}"
+                                             Foreground="{DynamicResource ChatMessageBrush}"
+                                             IsHitTestVisible="False"
+                                             LineHeight="{Binding DataContext.LineHeight, RelativeSource={RelativeSource AncestorType={x:Type local:ChatMessageView}}}"
+                                             OutlineBrush="{DynamicResource ChatOutlineBrush}"
+                                             OutlineEnabled="{Binding DataContext.ShowMessageOutline, RelativeSource={RelativeSource AncestorType={x:Type local:ChatMessageView}}}"
+                                             OutlineThickness="{Binding DataContext.MessageOutlineThickness, RelativeSource={RelativeSource AncestorType={x:Type local:ChatMessageView}}}"
+                                             SelfMentionBackground="{DynamicResource ChatSelfMentionBackgroundBrush}"
+                                             SelfMentionForeground="{DynamicResource ChatSelfMentionBrush}"
+                                             TextWrapping="Wrap"
+                                             Visibility="{Binding HasText, Converter={StaticResource BoolVisibility}}" />
+                    <Image Width="{Binding StickerExtent}"
+                           Height="{Binding StickerExtent}"
+                           Margin="0,5,0,0"
+                           HorizontalAlignment="Left"
+                           Source="{Binding StickerImage}"
+                           Stretch="Uniform"
+                           Visibility="{Binding ShowStickerImage, Converter={StaticResource BoolVisibility}}" />
+                    <TextBlock Margin="0,4,0,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               IsHitTestVisible="False"
+                               Text="{Binding StickerFallbackText}"
+                               Visibility="{Binding ShowStickerFallback, Converter={StaticResource BoolVisibility}}" />
+                    <Grid Margin="0,5,0,0"
+                          HorizontalAlignment="Left"
+                          Visibility="{Binding ShowThumbnail, Converter={StaticResource BoolVisibility}}">
+                        <Image Width="{Binding ThumbnailWidth}"
+                               MaxHeight="{Binding ThumbnailMaxHeight}"
+                               HorizontalAlignment="Left"
+                               Source="{Binding Thumbnail}"
+                               Stretch="Uniform" />
+                        <Border Margin="0,0,4,4"
+                                Padding="5,2"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Background="{DynamicResource MediaOverlayBrush}"
+                                CornerRadius="4"
+                                Visibility="{Binding HasAdditionalMedia, Converter={StaticResource BoolVisibility}}">
+                            <TextBlock FontSize="11"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="{Binding AdditionalMediaText}" />
+                        </Border>
+                    </Grid>
+                    <TextBlock Margin="0,4,0,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               IsHitTestVisible="False"
+                               Text="{Binding MediaFallbackText}"
+                               Visibility="{Binding ShowMediaFallback, Converter={StaticResource BoolVisibility}}" />
+                    <TextBlock Margin="0,4,0,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               IsHitTestVisible="False"
+                               Text="{Binding DetailsText}"
+                               TextWrapping="Wrap"
+                               Visibility="{Binding HasDetails, Converter={StaticResource BoolVisibility}}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Grid Margin="{Binding MessageMargin}" ClipToBounds="False">
@@ -44,6 +118,14 @@
                                    Visibility="{Binding ShowTime, Converter={StaticResource BoolVisibility}}" />
                     </Grid>
 
+                    <TextBlock Margin="0,1,0,2"
+                               FontFamily="{Binding MessageFontFamily}"
+                               FontSize="{Binding FontSizeDip}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               IsHitTestVisible="False"
+                               Text="{Binding ReplyText}"
+                               TextWrapping="Wrap"
+                               Visibility="{Binding HasReply, Converter={StaticResource BoolVisibility}}" />
                     <local:CrispOutlinedText x:Name="BalancedBody"
                                              Tokens="{Binding Tokens}"
                                              EmojiExtent="{Binding EmojiExtent}"
@@ -62,8 +144,19 @@
                                              SelfMentionBackground="{DynamicResource ChatSelfMentionBackgroundBrush}"
                                              SelfMentionForeground="{DynamicResource ChatSelfMentionBrush}"
                                              TextTrimming="CharacterEllipsis"
-                                             TextWrapping="Wrap" />
+                                             TextWrapping="Wrap"
+                                             Visibility="{Binding HasPrimaryText, Converter={StaticResource BoolVisibility}}" />
+                    <ItemsControl ItemsSource="{Binding ForwardedMessages}"
+                                  ItemTemplate="{StaticResource ForwardMessageTemplate}" />
                     <local:ChatMediaView Visibility="{Binding HasVisibleMedia, Converter={StaticResource BoolVisibility}}" />
+                    <TextBlock Margin="0,2,0,2"
+                               FontFamily="{Binding MessageFontFamily}"
+                               FontSize="{Binding FontSizeDip}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               IsHitTestVisible="False"
+                               Text="{Binding RemoteDetailsText}"
+                               TextWrapping="Wrap"
+                               Visibility="{Binding HasRemoteDetails, Converter={StaticResource BoolVisibility}}" />
                 </StackPanel>
 
                 <Grid Visibility="{Binding IsCompact, Converter={StaticResource BoolVisibility}}"
@@ -86,6 +179,14 @@
                                              OutlineThickness="{Binding NicknameOutlineThickness}"
                                              Text="{Binding AuthorName, StringFormat={}{0}:}" />
                     <StackPanel Grid.Column="1">
+                        <TextBlock Margin="0,1,0,2"
+                                   FontFamily="{Binding MessageFontFamily}"
+                                   FontSize="{Binding FontSizeDip}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   IsHitTestVisible="False"
+                                   Text="{Binding ReplyText}"
+                                   TextWrapping="Wrap"
+                                   Visibility="{Binding HasReply, Converter={StaticResource BoolVisibility}}" />
                         <local:CrispOutlinedText x:Name="CompactBody"
                                                  Tokens="{Binding Tokens}"
                                                  EmojiExtent="{Binding EmojiExtent}"
@@ -104,8 +205,19 @@
                                                  SelfMentionBackground="{DynamicResource ChatSelfMentionBackgroundBrush}"
                                                  SelfMentionForeground="{DynamicResource ChatSelfMentionBrush}"
                                                  TextTrimming="CharacterEllipsis"
-                                                 TextWrapping="Wrap" />
+                                                 TextWrapping="Wrap"
+                                                 Visibility="{Binding HasPrimaryText, Converter={StaticResource BoolVisibility}}" />
+                        <ItemsControl ItemsSource="{Binding ForwardedMessages}"
+                                      ItemTemplate="{StaticResource ForwardMessageTemplate}" />
                         <local:ChatMediaView Visibility="{Binding HasVisibleMedia, Converter={StaticResource BoolVisibility}}" />
+                        <TextBlock Margin="0,2,0,2"
+                                   FontFamily="{Binding MessageFontFamily}"
+                                   FontSize="{Binding FontSizeDip}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   IsHitTestVisible="False"
+                                   Text="{Binding RemoteDetailsText}"
+                                   TextWrapping="Wrap"
+                                   Visibility="{Binding HasRemoteDetails, Converter={StaticResource BoolVisibility}}" />
                     </StackPanel>
                 </Grid>
 
@@ -148,7 +260,17 @@
                                              SelfMentionBackground="{DynamicResource ChatSelfMentionBackgroundBrush}"
                                              SelfMentionForeground="{DynamicResource ChatSelfMentionBrush}"
                                              TextTrimming="CharacterEllipsis"
-                                             TextWrapping="NoWrap" />
+                                             TextWrapping="NoWrap"
+                                             Visibility="{Binding HasPrimaryText, Converter={StaticResource BoolVisibility}}" />
+                    <TextBlock Grid.Column="1"
+                               FontFamily="{Binding MessageFontFamily}"
+                               FontSize="{Binding FontSizeDip}"
+                               Foreground="{DynamicResource ChatMessageBrush}"
+                               IsHitTestVisible="False"
+                               Text="{Binding UltraCompactSummaryText}"
+                               TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap"
+                               Visibility="{Binding ShowUltraCompactSummary, Converter={StaticResource BoolVisibility}}" />
                 </Grid>
             </Grid>
         </Border>

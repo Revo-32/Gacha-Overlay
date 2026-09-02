@@ -6,6 +6,8 @@ public sealed record DiscordMessageState(
     IReadOnlyList<NormalizedDiscordMessage> MainChat,
     IReadOnlyList<NormalizedDiscordMessage> SalesSource)
 {
+    public DiscordMessageMutation? LastMutation { get; init; }
+
     public static DiscordMessageState Empty { get; } = new(
         0,
         false,

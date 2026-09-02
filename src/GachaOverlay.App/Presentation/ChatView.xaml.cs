@@ -9,16 +9,35 @@ public partial class ChatView : System.Windows.Controls.UserControl
 {
     private ChatViewModel? _viewModel;
     private bool _scrollPending;
+    private bool _unloaded;
+    private DispatcherOperation? _scrollOperation;
 
     public ChatView()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        Loaded += (_, _) =>
+        {
+            _unloaded = false;
+            BindViewModel(DataContext as ChatViewModel);
+        };
+        Unloaded += (_, _) =>
+        {
+            _unloaded = true;
+            BindViewModel(null);
+            _scrollOperation?.Abort();
+            _scrollOperation = null;
+            _scrollPending = false;
+            MentionNotificationBorder.BeginAnimation(OpacityProperty, null);
+        };
     }
 
     public event Action<System.Windows.Size>? AvailableSizeChanged;
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs args)
+        => BindViewModel(_unloaded ? null : args.NewValue as ChatViewModel);
+
+    private void BindViewModel(ChatViewModel? viewModel)
     {
         if (_viewModel is not null)
         {
@@ -26,7 +45,7 @@ public partial class ChatView : System.Windows.Controls.UserControl
             _viewModel.MentionPulseRequested -= RequestMentionPulse;
         }
 
-        _viewModel = args.NewValue as ChatViewModel;
+        _viewModel = viewModel;
         if (_viewModel is not null)
         {
             _viewModel.ScrollToLatestRequested += RequestScrollToEnd;
@@ -51,14 +70,15 @@ public partial class ChatView : System.Windows.Controls.UserControl
 
     private void RequestScrollToEnd()
     {
-        if (_scrollPending)
+        if (_scrollPending || _unloaded)
         {
             return;
         }
 
         _scrollPending = true;
-        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        _scrollOperation = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
+            _scrollOperation = null;
             _scrollPending = false;
             MessageScroller.ScrollToEnd();
         });

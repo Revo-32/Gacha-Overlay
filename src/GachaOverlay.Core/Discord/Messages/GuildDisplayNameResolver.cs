@@ -69,7 +69,7 @@ public interface IGuildNicknameObservationSink
     bool ObserveGuildNickname(GuildNicknameObservation observation);
 }
 
-// M6 production UIA sensors will publish observations through this contract. M4.5 does not
+// Production providers publish observations through this contract. The resolver does not
 // implement a sensor and never changes the Discord channel visible to the user.
 public interface IGuildNicknameObservationSource
 {
@@ -148,7 +148,7 @@ public sealed class GuildDisplayNameResolver : IGuildDisplayNameResolver
                 request.AuthorId,
                 null,
                 request.CurrentExactGuildNickname,
-                DiscordDisplayNameSource.RpcGuildNickname,
+                DiscordDisplayNameSource.GuildNickname,
                 1d,
                 observedAt));
             if (observed is not null)
@@ -265,8 +265,7 @@ public sealed class GuildDisplayNameResolver : IGuildDisplayNameResolver
     }
 
     public static bool IsExactSource(DiscordDisplayNameSource source) => source is
-        DiscordDisplayNameSource.RpcGuildNickname or
-        DiscordDisplayNameSource.UiAutomationGuildNickname or
+        DiscordDisplayNameSource.GuildNickname or
         DiscordDisplayNameSource.ManualOverride;
 
     private static bool IsValidEntry(GuildDisplayNameCacheEntry entry) =>

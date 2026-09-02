@@ -16,10 +16,13 @@ internal static partial class SensitiveDataRedactor
         var sanitized = JsonSensitiveFieldPattern().Replace(
             value,
             match => match.Groups["prefix"].Value + Replacement);
-        sanitized = AuthorizationBearerPattern().Replace(
+        sanitized = AuthorizationCredentialPattern().Replace(
             sanitized,
             match => match.Groups["prefix"].Value + Replacement);
         sanitized = StandaloneBearerPattern().Replace(
+            sanitized,
+            match => match.Groups["prefix"].Value + Replacement);
+        sanitized = StandalonePairingPattern().Replace(
             sanitized,
             match => match.Groups["prefix"].Value + Replacement);
         return SensitiveFieldPattern().Replace(
@@ -28,14 +31,14 @@ internal static partial class SensitiveDataRedactor
     }
 
     [GeneratedRegex(
-        "(?<prefix>\"(?:access[_-]?token|refresh[_-]?token|client[_-]?secret|authorization|[A-Za-z0-9_-]*credential[A-Za-z0-9_-]*|secret|content)\"\\s*:\\s*\")(?<secret>(?:\\\\.|[^\"\\\\])*)",
+        "(?<prefix>\"(?:access[_-]?token|refresh[_-]?token|client[_-]?secret|pairing[_-]?(?:claim[_-]?)?secret|authorization|[A-Za-z0-9_-]*credential[A-Za-z0-9_-]*|secret|content)\"\\s*:\\s*\")(?<secret>(?:\\\\.|[^\"\\\\])*)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex JsonSensitiveFieldPattern();
 
     [GeneratedRegex(
-        "(?<prefix>(?<![A-Za-z0-9_])(?:authorization)[\\\"']?\\s*[:=]\\s*[\\\"']?\\s*bearer\\s+)(?<secret>[^\\\"'\\s,;&}\\]]+)",
+        "(?<prefix>(?<![A-Za-z0-9_])(?:authorization)[\\\"']?\\s*[:=]\\s*[\\\"']?\\s*(?:bearer|lsopairing)\\s+)(?<secret>[^\\\"'\\s,;&}\\]]+)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex AuthorizationBearerPattern();
+    private static partial Regex AuthorizationCredentialPattern();
 
     [GeneratedRegex(
         "(?<prefix>(?<![A-Za-z0-9_])bearer\\s+)(?<secret>[A-Za-z0-9._~+/\\-]+=*)",
@@ -43,7 +46,12 @@ internal static partial class SensitiveDataRedactor
     private static partial Regex StandaloneBearerPattern();
 
     [GeneratedRegex(
-        "(?<prefix>(?<![A-Za-z0-9_])[\\\"']?(?:access[_-]?token|refresh[_-]?token|client[_-]?secret|authorization|[A-Za-z0-9_-]*credential[A-Za-z0-9_-]*|secret|content)[\\\"']?\\s*[:=]\\s*[\\\"']?)(?!\\[REDACTED\\])(?<secret>[^\\\"'\\s,;&}\\]]+)",
+        "(?<prefix>(?<![A-Za-z0-9_])lsopairing\\s+)(?<secret>[A-Za-z0-9._~+/\\-]+=*)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex StandalonePairingPattern();
+
+    [GeneratedRegex(
+        "(?<prefix>(?<![A-Za-z0-9_])[\\\"']?(?:access[_-]?token|refresh[_-]?token|client[_-]?secret|pairing[_-]?(?:claim[_-]?)?secret|authorization|[A-Za-z0-9_-]*credential[A-Za-z0-9_-]*|secret|content)[\\\"']?\\s*[:=]\\s*[\\\"']?)(?!\\[REDACTED\\])(?<secret>[^\\\"'\\s,;&}\\]]+)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SensitiveFieldPattern();
 }

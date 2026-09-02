@@ -1,8 +1,6 @@
-using System.Text.Json;
 using GachaOverlay.Core.Discord.Connection;
 using GachaOverlay.Core.Discord.Messages;
 using GachaOverlay.Core.Logging;
-using GachaOverlay.Infrastructure.Discord.Normalization;
 
 namespace GachaOverlay.Tests.Discord.Messages;
 
@@ -12,22 +10,6 @@ public sealed class M45GuildDisplayNameTests
         DateTimeOffset.Parse("2026-08-31T01:00:00Z");
     private static readonly DiscordTargetChannels Targets = new(
         "guild", "Guild", "main", "Main", "sales", "Sales");
-
-    [Fact]
-    public void Test01_GuildNicknameFieldPresent_IsRpcGuildNickname()
-    {
-        var patch = Normalize("""
-            { "data": { "messages": [{
-              "id": "1", "nick": "Spicai",
-              "author": { "id": "author", "username": "account", "global_name": "R&J" }
-            }] } }
-            """);
-
-        Assert.Equal("Spicai", patch.AuthorGuildNickname.Value);
-        Assert.Equal(
-            DiscordDisplayNameSource.RpcGuildNickname,
-            patch.AuthorDisplayNameSource.Value);
-    }
 
     [Fact]
     public void Test02_GuildNicknameAbsent_GlobalNamePresent_IsGlobalFallback()
@@ -108,7 +90,7 @@ public sealed class M45GuildDisplayNameTests
             "guild", "author", "Exact", "Global", "account"));
 
         Assert.Equal("Exact", resolution.DisplayName);
-        Assert.Equal(DiscordDisplayNameSource.RpcGuildNickname, resolution.Source);
+        Assert.Equal(DiscordDisplayNameSource.GuildNickname, resolution.Source);
     }
 
     [Fact]
@@ -152,8 +134,8 @@ public sealed class M45GuildDisplayNameTests
         var resolution = Resolver().Resolve(new GuildDisplayNameRequest(
             "guild", "author", "Exact", "Global", "account"));
 
-        Assert.Equal(DiscordDisplayNameSource.RpcGuildNickname, resolution.Source);
-        Assert.Equal(DiscordDisplayNameSource.RpcGuildNickname, resolution.ObservationSource);
+        Assert.Equal(DiscordDisplayNameSource.GuildNickname, resolution.Source);
+        Assert.Equal(DiscordDisplayNameSource.GuildNickname, resolution.ObservationSource);
         Assert.Equal(1d, resolution.Confidence);
         Assert.True(resolution.IsExactGuildNickname);
         Assert.NotNull(resolution.ObservedAt);
@@ -211,15 +193,15 @@ public sealed class M45GuildDisplayNameTests
             "guild",
             "author",
             "1",
-            "UIA Exact",
-            DiscordDisplayNameSource.UiAutomationGuildNickname,
+            "Remote Exact",
+            DiscordDisplayNameSource.GuildNickname,
             0.9d,
             Now)));
 
         var message = Assert.Single(pipeline.Current.MainChat);
-        Assert.Equal("UIA Exact", message.AuthorGuildNickname);
+        Assert.Equal("Remote Exact", message.AuthorGuildNickname);
         Assert.Equal(
-            DiscordDisplayNameSource.UiAutomationGuildNickname,
+            DiscordDisplayNameSource.GuildNickname,
             message.AuthorGuildNicknameObservationSource);
     }
 
@@ -238,7 +220,7 @@ public sealed class M45GuildDisplayNameTests
         var before = pipeline.Current.MainChat.Select(message => message.MessageId).ToArray();
 
         pipeline.ObserveGuildNickname(new GuildNicknameObservation(
-            "guild", "author", "2", "Exact", DiscordDisplayNameSource.UiAutomationGuildNickname,
+            "guild", "author", "2", "Exact", DiscordDisplayNameSource.GuildNickname,
             1d, Now));
 
         Assert.Equal(before, pipeline.Current.MainChat.Select(message => message.MessageId));
@@ -288,7 +270,7 @@ public sealed class M45GuildDisplayNameTests
         string guildId,
         string authorId,
         string nickname,
-        DiscordDisplayNameSource source = DiscordDisplayNameSource.RpcGuildNickname)
+        DiscordDisplayNameSource source = DiscordDisplayNameSource.GuildNickname)
     {
         Assert.NotNull(resolver.Observe(new GuildNicknameObservation(
             guildId,
@@ -334,23 +316,14 @@ public sealed class M45GuildDisplayNameTests
             AuthorDisplayNameSource = OptionalValue<DiscordDisplayNameSource>.From(
             nickname is null
                 ? DiscordDisplayNameSource.GlobalDisplayName
-                : DiscordDisplayNameSource.RpcGuildNickname),
+                : DiscordDisplayNameSource.GuildNickname),
             AuthorGuildNicknameObservationSource = nickname is null
             ? default
             : OptionalValue<DiscordDisplayNameSource>.From(
-                DiscordDisplayNameSource.RpcGuildNickname),
+                DiscordDisplayNameSource.GuildNickname),
             Content = OptionalValue<string>.From("message"),
             CreatedAt = OptionalValue<DateTimeOffset?>.From(
             Now.AddSeconds(long.Parse(messageId))),
         };
 
-    private static DiscordMessagePatch Normalize(string json)
-    {
-        using var document = JsonDocument.Parse(json);
-        var normalizer = new DiscordMessageNormalizer(NullAppLogger.Instance);
-        return Assert.Single(normalizer.NormalizeSnapshot(
-            document.RootElement,
-            "main",
-            "guild"));
-    }
 }

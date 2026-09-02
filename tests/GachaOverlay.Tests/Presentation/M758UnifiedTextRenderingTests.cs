@@ -40,7 +40,7 @@ public sealed class M758UnifiedTextRenderingTests
         var view = File.ReadAllText(Path.Combine(presentation, "ChatMessageView.xaml"));
         var renderer = File.ReadAllText(Path.Combine(presentation, "CrispOutlinedText.cs"));
 
-        Assert.Equal(6, view.Split("<local:CrispOutlinedText", StringSplitOptions.None).Length - 1);
+        Assert.Equal(7, view.Split("<local:CrispOutlinedText", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("CrispTextOutline", view);
         Assert.DoesNotContain("ChatRichTextBlock", view);
         Assert.DoesNotContain("OutlinePaintMargin", view);

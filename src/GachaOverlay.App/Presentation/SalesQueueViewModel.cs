@@ -7,6 +7,7 @@ using GachaOverlay.Core.Chat;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Sales;
 using GachaOverlay.Core.Settings;
+using LSOverlay.Protocol;
 
 namespace GachaOverlay.App.Presentation;
 
@@ -38,6 +39,17 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
     private bool _isQueueDetailExpanded;
     private bool _isQueueDetailInteractive;
     private double _detailMaxHeight = 280;
+    private Func<ulong, SalesStatus, CancellationToken,
+        Task<SalesStatusActionResponse?>>? _statusAction;
+    private IReadOnlyDictionary<string, SalesCompletionObservation> _remoteEvidence =
+        new Dictionary<string, SalesCompletionObservation>(StringComparer.Ordinal);
+    private EffectiveSalesSource _effectiveSalesSource = EffectiveSalesSource.RemoteStarting;
+    private IReadOnlyList<SalesStatusActionTarget> _statusActionTargets =
+        Array.Empty<SalesStatusActionTarget>();
+    private readonly Dictionary<string, PendingStatusAction> _pendingStatusActions =
+        new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _failedStatusActions =
+        new(StringComparer.Ordinal);
 
     public SalesQueueViewModel(ILocalizationService localization)
     {
@@ -190,6 +202,46 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
         private set => SetField(ref _detailMaxHeight, value);
     }
 
+    public void ConfigureStatusAction(
+        Func<ulong, SalesStatus, CancellationToken,
+            Task<SalesStatusActionResponse?>> action) =>
+        _statusAction = action ?? throw new ArgumentNullException(nameof(action));
+
+    public void ApplyRemoteStatusContext(
+        IReadOnlyDictionary<string, SalesCompletionObservation> evidence,
+        EffectiveSalesSource effectiveSource,
+        IReadOnlyList<SalesStatusActionTarget>? statusActionTargets = null)
+    {
+        ArgumentNullException.ThrowIfNull(evidence);
+        _remoteEvidence = evidence;
+        _effectiveSalesSource = effectiveSource;
+        _statusActionTargets = statusActionTargets ??
+            Array.Empty<SalesStatusActionTarget>();
+        var retainedIds = evidence.Keys.Concat(_statusActionTargets.Select(target =>
+            target.MessageId.ToString(CultureInfo.InvariantCulture))).ToHashSet(StringComparer.Ordinal);
+        foreach (var messageId in _failedStatusActions.Keys.Where(id => !retainedIds.Contains(id)).ToArray())
+        {
+            _failedStatusActions.Remove(messageId);
+        }
+        foreach (var pending in _pendingStatusActions.ToArray())
+        {
+            if (!retainedIds.Contains(pending.Key))
+            {
+                pending.Value.Confirmation.TrySetResult(false);
+                _pendingStatusActions.Remove(pending.Key);
+                continue;
+            }
+            if (evidence.TryGetValue(pending.Key, out var observation) &&
+                observation.Coverage == SalesEvidenceCoverage.Complete &&
+                observation.MatchesBotStatus(pending.Value.DesiredStatus))
+            {
+                pending.Value.Confirmation.TrySetResult(true);
+                _pendingStatusActions.Remove(pending.Key);
+                _failedStatusActions.Remove(pending.Key);
+            }
+        }
+    }
+
     public void Apply(SalesQueueSnapshot snapshot, AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
@@ -335,20 +387,81 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
         for (var index = 0; index < _snapshot.ActiveItems.Count; index++)
         {
             var entry = _snapshot.ActiveItems[index];
-            DetailItems.Add(new SalesQueueDetailItem(
-                index + 1,
-                entry.DisplayName,
-                SalesProductSummaryFormatter.Format(entry.AllProducts),
-                index == 0,
-                string.Equals(
+            var isSelf = string.Equals(
                     entry.AuthorId,
                     _snapshot.AuthenticatedUserId,
                     StringComparison.Ordinal) ||
                 (index == 0 && _snapshot.CurrentSellerIsSelf) ||
-                (index == 1 && _snapshot.NextSellerIsSelf),
+                (index == 1 && _snapshot.NextSellerIsSelf);
+            _remoteEvidence.TryGetValue(entry.MessageId, out var evidence);
+            var isPending = _pendingStatusActions.TryGetValue(
+                entry.MessageId,
+                out var pending);
+            var actionEnabled = isSelf &&
+                ulong.TryParse(entry.MessageId, out _) &&
+                _statusAction is not null &&
+                _settings.SalesTrackingEnabled &&
+                _effectiveSalesSource == EffectiveSalesSource.RemotePrimary &&
+                _health.State == SalesFeatureHealthState.Live &&
+                _snapshot.ObservationStatus == SalesObservationStatus.Live &&
+                _isHudUnlocked &&
+                !isPending;
+            DetailItems.Add(new SalesQueueDetailItem(
+                index + 1,
+                entry.MessageId,
+                entry.DisplayName,
+                SalesProductSummaryFormatter.Format(entry.AllProducts),
+                index == 0,
+                isSelf,
                 entry.IsExactGuildNickname,
                 _localization["SalesDetailCurrent"],
-                _localization["SalesDetailSelf"]));
+                _localization["SalesDetailSelf"],
+                actionEnabled,
+                StatusText(evidence, isPending ? pending!.DesiredStatus : null,
+                    _failedStatusActions.GetValueOrDefault(entry.MessageId)),
+                _localization["SalesStatusSelling"],
+                _localization["SalesStatusNegotiating"],
+                _localization["SalesStatusCompleted"],
+                _localization["SalesStatusClear"],
+                status => ExecuteStatusActionAsync(entry.MessageId, status)));
+        }
+
+        var activeIds = _snapshot.ActiveItems
+            .Select(entry => entry.MessageId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var target in _statusActionTargets.Where(target =>
+                     !activeIds.Contains(target.MessageId)))
+        {
+            _remoteEvidence.TryGetValue(target.MessageId, out var evidence);
+            var isPending = _pendingStatusActions.TryGetValue(
+                target.MessageId,
+                out var pending);
+            var actionEnabled = ulong.TryParse(target.MessageId, out _) &&
+                _statusAction is not null &&
+                _settings.SalesTrackingEnabled &&
+                _effectiveSalesSource == EffectiveSalesSource.RemotePrimary &&
+                _health.State == SalesFeatureHealthState.Live &&
+                _snapshot.ObservationStatus == SalesObservationStatus.Live &&
+                _isHudUnlocked &&
+                !isPending;
+            DetailItems.Add(new SalesQueueDetailItem(
+                DetailItems.Count + 1,
+                target.MessageId,
+                target.DisplayName,
+                target.ProductName,
+                false,
+                true,
+                target.IsExactGuildNickname,
+                _localization["SalesDetailCurrent"],
+                _localization["SalesDetailSelf"],
+                actionEnabled,
+                StatusText(evidence, isPending ? pending!.DesiredStatus : null,
+                    _failedStatusActions.GetValueOrDefault(target.MessageId)),
+                _localization["SalesStatusSelling"],
+                _localization["SalesStatusNegotiating"],
+                _localization["SalesStatusCompleted"],
+                _localization["SalesStatusClear"],
+                status => ExecuteStatusActionAsync(target.MessageId, status)));
         }
 
         IsQueueDetailAvailable = IsVisible && _isHudVisible &&
@@ -360,14 +473,143 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
         }
     }
 
+    internal async Task ExecuteStatusActionAsync(string messageId, SalesStatus status)
+    {
+        if (_statusAction is null ||
+            !ulong.TryParse(messageId, out var parsedMessageId) ||
+            _pendingStatusActions.ContainsKey(messageId))
+        {
+            return;
+        }
+
+        var operationId = Guid.NewGuid();
+        var confirmation = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingStatusActions[messageId] = new PendingStatusAction(
+            operationId,
+            status,
+            confirmation);
+        _failedStatusActions.Remove(messageId);
+        RefreshDetailItems();
+
+        SalesStatusActionResponse? response;
+        try
+        {
+            response = await _statusAction(
+                parsedMessageId,
+                status,
+                CancellationToken.None);
+        }
+        catch (Exception)
+        {
+            response = null;
+        }
+
+        if (!IsPending(messageId, operationId))
+        {
+            return;
+        }
+
+        if (response is null || response.Disposition is not (
+                SalesStatusActionDisposition.Accepted or
+                SalesStatusActionDisposition.NoOp))
+        {
+            var key = response?.Disposition switch
+            {
+                SalesStatusActionDisposition.RejectedUnauthorized =>
+                    "SalesStatusPermissionDenied",
+                SalesStatusActionDisposition.RejectedUnavailable or
+                SalesStatusActionDisposition.RejectedRateLimited or null =>
+                    "SalesStatusNotAvailable",
+                _ => "SalesStatusActionFailed",
+            };
+            FailPending(messageId, operationId, _localization[key]);
+            return;
+        }
+
+        if (_remoteEvidence.TryGetValue(messageId, out var current) &&
+            current.Coverage == SalesEvidenceCoverage.Complete &&
+            current.MatchesBotStatus(status))
+        {
+            _pendingStatusActions.Remove(messageId);
+            confirmation.TrySetResult(true);
+            RefreshDetailItems();
+            return;
+        }
+
+        var completed = await Task.WhenAny(
+            confirmation.Task,
+            Task.Delay(TimeSpan.FromSeconds(10)));
+        if (completed != confirmation.Task && IsPending(messageId, operationId))
+        {
+            FailPending(
+                messageId,
+                operationId,
+                _localization["SalesStatusActionFailed"]);
+        }
+    }
+
+    private bool IsPending(string messageId, Guid operationId) =>
+        _pendingStatusActions.TryGetValue(messageId, out var pending) &&
+        pending.OperationId == operationId;
+
+    private void FailPending(string messageId, Guid operationId, string failureText)
+    {
+        if (!IsPending(messageId, operationId))
+        {
+            return;
+        }
+
+        _pendingStatusActions.Remove(messageId);
+        _failedStatusActions[messageId] = failureText;
+        RefreshDetailItems();
+    }
+
+    private string StatusText(
+        SalesCompletionObservation? evidence,
+        SalesStatus? pending,
+        string? failureText)
+    {
+        if (pending.HasValue)
+        {
+            return _localization["SalesStatusActionPending"];
+        }
+
+        if (!string.IsNullOrWhiteSpace(failureText))
+        {
+            return failureText;
+        }
+
+        if (evidence?.BotCompletedMarkerPresent == true)
+        {
+            return _localization["SalesStatusCompleted"];
+        }
+
+        if (evidence?.BotNegotiatingMarkerPresent == true)
+        {
+            return _localization["SalesStatusNegotiating"];
+        }
+
+        if (evidence?.BotSellingMarkerPresent == true)
+        {
+            return _localization["SalesStatusSelling"];
+        }
+
+        return _localization["SalesStatusBotNone"];
+    }
+
     private SalesQueuePresentationStrings CreateStrings() => new(
         _localization["SalesHealthLiveAccessible"],
         _localization["SalesHealthConnecting"],
         _localization["SalesHealthResyncing"],
-        _localization["SalesHealthOpenChannelFormat"],
+        _localization["SalesHealthRemoteConnecting"],
+        _localization["SalesHealthRemoteSynchronizing"],
+        _localization["SalesHealthRemoteResyncing"],
+        _localization["SalesHealthRemoteReconnecting"],
+        _localization["SalesHealthPaused"],
         _localization["SalesHealthDegraded"],
         _localization["SalesHealthDisconnected"],
-        _localization["SalesHealthSensorError"],
+        _localization["SalesHealthRemoteError"],
         _localization["SalesCurrentSellerFormat"],
         _localization["SalesWaitingCountFormat"],
         _localization["SalesProductFormat"],
@@ -375,7 +617,9 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
         _localization["SalesQueueEmpty"],
         _localization["SalesNoDisplayFields"],
         _localization["SalesNextTurnSelf"],
-        _localization["SalesCurrentTurnSelf"]);
+        _localization["SalesCurrentTurnSelf"],
+        _localization["SalesHealthRemoteUnavailable"],
+        _localization["SalesHealthRemoteAccessRevoked"]);
 
     private static SalesFeatureHealthSnapshot CreateLegacyHealth(
         SalesQueueSnapshot snapshot)
@@ -392,7 +636,6 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
             SalesObservationStatus.Resyncing => SalesFeatureHealthState.Resyncing,
             SalesObservationStatus.Live => SalesFeatureHealthState.Live,
             SalesObservationStatus.Partial => SalesFeatureHealthState.Degraded,
-            SalesObservationStatus.AccessibilityUnavailable or
             SalesObservationStatus.Error or
             SalesObservationStatus.Unavailable => SalesFeatureHealthState.Error,
             _ => SalesFeatureHealthState.Resyncing,
@@ -459,12 +702,82 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-internal sealed record SalesQueueDetailItem(
-    int Position,
+internal sealed class SalesQueueDetailItem
+{
+    private readonly Func<SalesStatus, Task> _action;
+
+    public SalesQueueDetailItem(
+        int position,
+        string messageId,
+        string displayName,
+        string productName,
+        bool isCurrent,
+        bool isSelf,
+        bool isExactGuildNickname,
+        string currentLabel,
+        string selfLabel,
+        bool isStatusActionEnabled,
+        string statusText,
+        string sellingLabel,
+        string negotiatingLabel,
+        string completedLabel,
+        string clearLabel,
+        Func<SalesStatus, Task> action)
+    {
+        Position = position;
+        MessageId = messageId;
+        DisplayName = displayName;
+        ProductName = productName;
+        IsCurrent = isCurrent;
+        IsSelf = isSelf;
+        IsExactGuildNickname = isExactGuildNickname;
+        CurrentLabel = currentLabel;
+        SelfLabel = selfLabel;
+        IsStatusActionEnabled = isStatusActionEnabled;
+        StatusText = statusText;
+        SellingLabel = sellingLabel;
+        NegotiatingLabel = negotiatingLabel;
+        CompletedLabel = completedLabel;
+        ClearLabel = clearLabel;
+        _action = action;
+        SetSellingCommand = Command(SalesStatus.Selling);
+        SetNegotiatingCommand = Command(SalesStatus.Negotiating);
+        SetCompletedCommand = Command(SalesStatus.Completed);
+        ClearStatusCommand = Command(SalesStatus.Clear);
+    }
+
+    public int Position { get; }
+    public string MessageId { get; }
+    public string DisplayName { get; }
+    public string ProductName { get; }
+    public bool IsCurrent { get; }
+    public bool IsSelf { get; }
+    public bool IsExactGuildNickname { get; }
+    public string CurrentLabel { get; }
+    public string SelfLabel { get; }
+    public bool IsStatusActionVisible => IsSelf;
+    public bool IsStatusActionEnabled { get; }
+    public string StatusText { get; }
+    public string SellingLabel { get; }
+    public string NegotiatingLabel { get; }
+    public string CompletedLabel { get; }
+    public string ClearLabel { get; }
+    public AsyncRelayCommand SetSellingCommand { get; }
+    public AsyncRelayCommand SetNegotiatingCommand { get; }
+    public AsyncRelayCommand SetCompletedCommand { get; }
+    public AsyncRelayCommand ClearStatusCommand { get; }
+
+    private AsyncRelayCommand Command(SalesStatus status) =>
+        new(() => _action(status), () => IsStatusActionEnabled);
+}
+
+internal sealed record PendingStatusAction(
+    Guid OperationId,
+    SalesStatus DesiredStatus,
+    TaskCompletionSource<bool> Confirmation);
+
+internal sealed record SalesStatusActionTarget(
+    string MessageId,
     string DisplayName,
     string ProductName,
-    bool IsCurrent,
-    bool IsSelf,
-    bool IsExactGuildNickname,
-    string CurrentLabel,
-    string SelfLabel);
+    bool IsExactGuildNickname);

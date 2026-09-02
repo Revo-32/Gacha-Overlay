@@ -16,6 +16,7 @@ public sealed class SliderValueTextConverter : IValueConverter
         return (parameter as string) switch
         {
             "Percent" => number.ToString("P0", culture),
+            "Percent100" => $"{number.ToString("0", culture)}%",
             "Points" => $"{number.ToString("0.0", culture)} pt",
             "Dip" => $"{number.ToString("0", culture)} DIP",
             "DipDecimal" => $"{number.ToString("0.00", culture)} DIP",

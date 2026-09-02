@@ -267,6 +267,61 @@ public sealed class SalesStateEngine
         return snapshot is not null;
     }
 
+    public bool ApplyAuthoritativeWindowSnapshot(
+        IEnumerable<NormalizedDiscordMessage> sourceMessages)
+    {
+        ArgumentNullException.ThrowIfNull(sourceMessages);
+        SalesQueueSnapshot? snapshot = null;
+        lock (_sync)
+        {
+            if (!_trackingEnabled)
+            {
+                return false;
+            }
+
+            var source = sourceMessages
+                .GroupBy(message => message.MessageId, StringComparer.Ordinal)
+                .Select(group => group.Last())
+                .ToArray();
+            if (source.Length > AuthoritativeSalesWindow.Size)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(sourceMessages),
+                    $"The authoritative Sales window cannot exceed {AuthoritativeSalesWindow.Size} messages.");
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var changed = false;
+            foreach (var message in source)
+            {
+                seen.Add(message.MessageId);
+                changed |= UpsertSource(message, allowRevive: true, isCreate: false);
+            }
+
+            foreach (var record in _records.Values
+                         .Where(record =>
+                             record.DomainState != SaleDomainState.Deleted &&
+                             !seen.Contains(record.MessageId))
+                         .ToArray())
+            {
+                _records.Remove(record.MessageId);
+                _sourceRevision++;
+                _logger.Information(
+                    "SALES",
+                    $"Source left authoritative window message={Sanitize(record.MessageId)}.");
+                changed = true;
+            }
+
+            if (changed)
+            {
+                snapshot = BuildSnapshot();
+            }
+        }
+
+        Publish(snapshot);
+        return snapshot is not null;
+    }
+
     public bool ApplySourceCreate(NormalizedDiscordMessage message)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -426,7 +481,7 @@ public sealed class SalesStateEngine
                     record.AuthorGlobalDisplayName,
                     record.AuthorGuildNickname,
                     record.AuthorGuildNicknameObservationSource,
-                    directRpcNickname: false);
+                    currentMessageHasExactGuildNickname: false);
                 if (resolution == record.DisplayName)
                 {
                     continue;
@@ -469,8 +524,8 @@ public sealed class SalesStateEngine
                 return false;
             }
 
-            var directRpcNickname =
-                message.AuthorDisplayNameSource == DiscordDisplayNameSource.RpcGuildNickname;
+            var currentMessageHasExactGuildNickname =
+                message.AuthorDisplayNameSource == DiscordDisplayNameSource.GuildNickname;
             var resolution = ResolveDisplayName(
                 existing.GuildId,
                 existing.AuthorId,
@@ -478,7 +533,7 @@ public sealed class SalesStateEngine
                 message.AuthorDisplayName,
                 message.AuthorGuildNickname,
                 message.AuthorGuildNicknameObservationSource,
-                directRpcNickname);
+                currentMessageHasExactGuildNickname);
             var products = MapProducts(existing.GuildId, message);
             var updated = existing with
             {
@@ -521,7 +576,7 @@ public sealed class SalesStateEngine
             message.AuthorDisplayName,
             message.AuthorGuildNickname,
             message.AuthorGuildNicknameObservationSource,
-            message.AuthorDisplayNameSource == DiscordDisplayNameSource.RpcGuildNickname);
+            message.AuthorDisplayNameSource == DiscordDisplayNameSource.GuildNickname);
         var createdProducts = MapProducts(message.GuildId, message);
         var record = new SaleRecord(
             message.MessageId,
@@ -657,21 +712,21 @@ public sealed class SalesStateEngine
         string? globalName,
         string? guildNickname,
         DiscordDisplayNameSource observationSource,
-        bool directRpcNickname)
+        bool currentMessageHasExactGuildNickname)
     {
         var exactObservationSource = observationSource == DiscordDisplayNameSource.Unknown &&
-            directRpcNickname
-                ? DiscordDisplayNameSource.RpcGuildNickname
+            currentMessageHasExactGuildNickname
+                ? DiscordDisplayNameSource.GuildNickname
                 : observationSource;
         return _displayNameResolver.Resolve(new GuildDisplayNameRequest(
             guildId,
             authorId,
-            directRpcNickname ? guildNickname : null,
+            currentMessageHasExactGuildNickname ? guildNickname : null,
             globalName,
             username,
             guildNickname,
-            directRpcNickname
-                ? DiscordDisplayNameSource.RpcGuildNickname
+            currentMessageHasExactGuildNickname
+                ? DiscordDisplayNameSource.GuildNickname
                 : DiscordDisplayNameSource.CachedGuildNickname,
             exactObservationSource));
     }
@@ -708,7 +763,6 @@ public sealed class SalesStateEngine
             _observationStatus is not
                 (SalesObservationStatus.Disabled or
                 SalesObservationStatus.Unavailable or
-                SalesObservationStatus.AccessibilityUnavailable or
                 SalesObservationStatus.Error),
             _observationStatus,
             _clock(),
