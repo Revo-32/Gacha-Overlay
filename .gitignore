@@ -25,5 +25,6 @@ sales-products.json
 sales-products.override.json
 guild-display-names.json
 crash-summary.json
-diagnostics/
+# Runtime output at the repository root, not project Diagnostics source trees.
+/diagnostics/
 DiagnosticBundles/

@@ -1,0 +1,75 @@
+{
+  "milestone": "M9.13.1",
+  "date": "2026-09-03",
+  "source": "Current local corrective working tree; no index changes, commit or push by this task",
+  "rootCause": {
+    "baselineCommit": "37c7d05",
+    "cause": "Unanchored diagnostics/ Git ignore rule matched project Diagnostics source on the case-insensitive Windows worktree",
+    "coreFilesAbsentFromCommit": 3,
+    "otherExistingSourceAndTestFilesHidden": 7,
+    "dockerProjectCopyScopeWasAlreadyComplete": true,
+    "isolatedCommittedTreeReproduction": "EXPECTED FAILURE REPRODUCED",
+    "reproducedErrors": ["CS0234", "CS0246", "CS0246"]
+  },
+  "previousBaseline": 1284,
+  "addedTests": 8,
+  "restore": "PASS",
+  "debug": { "build": "PASS", "passed": 1292, "failed": 0, "skipped": 0, "warnings": 0, "errors": 0 },
+  "release": { "build": "PASS", "passed": 1292, "failed": 0, "skipped": 0, "warnings": 0, "errors": 0 },
+  "formatVerifyNoChanges": "PASS",
+  "gitDiffCheck": "PASS",
+  "isolatedContext": {
+    "candidatePolicy": "Tracked plus non-ignored pending files; newly exposed source must be included in the user's commit",
+    "evaluatedProjectClosure": [
+      "src/GachaOverlay.Core/GachaOverlay.Core.csproj",
+      "src/LSOverlay.Backend/LSOverlay.Backend.csproj",
+      "src/LSOverlay.Protocol/LSOverlay.Protocol.csproj"
+    ],
+    "fileCount": 127,
+    "sourceClosureAndDockerCopyCheck": "PASS",
+    "stagedProjectAndSourceReevaluation": "PASS",
+    "restore": "PASS",
+    "releaseFrameworkDependentPublish": "PASS",
+    "originalRepositorySourceReferencesAllowed": false,
+    "publishedFileCount": 12,
+    "publishedBytes": 5541386,
+    "notes": "Local host-neutral publish includes the SDK-generated web.config; this is not Docker/Linux execution"
+  },
+  "backendLinuxPublish": {
+    "status": "PASS",
+    "runtimeIdentifier": "linux-x64",
+    "selfContained": false,
+    "path": "artifacts/m9131-5455b6f9ae4447e58c1b85a47f0c63cc/backend-linux-x64",
+    "fileCount": 11,
+    "bytes": 5540940
+  },
+  "wpfPublish": {
+    "status": "PASS",
+    "runtimeIdentifier": "win-x64",
+    "selfContained": false,
+    "path": "artifacts/m9131-5455b6f9ae4447e58c1b85a47f0c63cc/wpf-win-x64",
+    "fileCount": 21,
+    "bytes": 34072710
+  },
+  "existingFilesToIncludeWithoutContentChanges": [
+    "src/GachaOverlay.Core/Diagnostics/DiagnosticSnapshots.cs",
+    "src/GachaOverlay.Core/Diagnostics/ProcessMetricsSampler.cs",
+    "src/GachaOverlay.Core/Diagnostics/RuntimeMetrics.cs",
+    "src/GachaOverlay.Infrastructure/Diagnostics/CrashMetadataWriter.cs",
+    "src/GachaOverlay.Infrastructure/Diagnostics/DiagnosticBundleExporter.cs",
+    "tests/GachaOverlay.Tests/Diagnostics/M82CacheMetricsTests.cs",
+    "tests/GachaOverlay.Tests/Diagnostics/M82CrashMetadataTests.cs",
+    "tests/GachaOverlay.Tests/Diagnostics/M82DiagnosticBundleTests.cs",
+    "tests/GachaOverlay.Tests/Diagnostics/M82RuntimeMetricsTests.cs",
+    "tests/GachaOverlay.Tests/Diagnostics/M82SyntheticReplaySoakTests.cs"
+  ],
+  "dockerImageBuild": "DOCKER IMAGE BUILD NOT RUN — Docker CLI unavailable",
+  "actualLinuxRuntime": "NOT RUN",
+  "railwaySettingsChanged": false,
+  "railwayRedeploy": "NOT RUN",
+  "githubCommitOrPush": "NOT RUN",
+  "cafe24OrDnsChanges": "NOT STARTED",
+  "webOAuth2": "NOT STARTED",
+  "m10UiUx": "NOT STARTED",
+  "finalStatus": "RAILWAY DOCKER BUILD CORRECTIVE READY"
+}

@@ -4,7 +4,8 @@
 !.dockerignore
 !global.json
 !Directory.Build.props
-!src/
+# Do not allow the src parent: directory exceptions also include descendants.
+# Re-include only complete required project trees, including their source assets.
 !src/GachaOverlay.Core/
 !src/GachaOverlay.Core/**
 !src/LSOverlay.Protocol/

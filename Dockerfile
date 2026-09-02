@@ -6,6 +6,9 @@ COPY src/GachaOverlay.Core/GachaOverlay.Core.csproj src/GachaOverlay.Core/
 COPY src/LSOverlay.Protocol/LSOverlay.Protocol.csproj src/LSOverlay.Protocol/
 COPY src/LSOverlay.Backend/LSOverlay.Backend.csproj src/LSOverlay.Backend/
 RUN dotnet restore src/LSOverlay.Backend/LSOverlay.Backend.csproj
+# Keep complete project trees. Before committing, run the isolated Git/context
+# verifier in tools/dev/verify-backend-docker-context.ps1; local ignored files
+# cannot be supplied by a GitHub checkout, even when these COPY scopes are correct.
 COPY src/GachaOverlay.Core/ src/GachaOverlay.Core/
 COPY src/LSOverlay.Protocol/ src/LSOverlay.Protocol/
 COPY src/LSOverlay.Backend/ src/LSOverlay.Backend/
