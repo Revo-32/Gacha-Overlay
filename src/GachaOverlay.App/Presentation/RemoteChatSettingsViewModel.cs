@@ -41,7 +41,7 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
         _switchChannel = switchChannel;
         _selectedChannel = FindSelectedChannel(initialSnapshot);
         ApplyConfigurationCommand = new AsyncRelayCommand(ApplyConfigurationAsync);
-        BeginPairingCommand = new AsyncRelayCommand(beginPairing);
+        BeginPairingCommand = new AsyncRelayCommand(beginPairing, () => !IsPairing && NeedsLogin);
         CancelPairingCommand = new RelayCommand(cancelPairing, () => IsPairing);
         ForgetPairingCommand = new AsyncRelayCommand(ForgetPairingAsync, () => HasCredential);
         RefreshCommand = new AsyncRelayCommand(refresh);
@@ -81,6 +81,9 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
 
     public bool HasCredential => _snapshot.HasProtectedCredential;
 
+    public bool NeedsLogin => !HasCredential || _snapshot.Health is
+        RemoteChatHealthState.PairingRequired or RemoteChatHealthState.AccessRevoked;
+
     public bool IsReady =>
         _snapshot.Health == RemoteChatHealthState.Live &&
         !string.IsNullOrWhiteSpace(_snapshot.SelectedChannelId);
@@ -98,7 +101,7 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
             PairingCode)
         : string.Empty;
 
-    public string HealthText => _localization[$"RemoteHealth{_snapshot.Health}"];
+    public string HealthText => _localization[_snapshot.Detail == "WebAuthWaiting" ? "WebAuthWaiting" : $"RemoteHealth{_snapshot.Health}"];
 
     public string HealthDetailText => _localization[ResolveDetailKey()];
 
@@ -136,6 +139,7 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
 
     public void Dispose()
     {
+        _cancelPairing();
         _localization.LanguageChanged -= OnLanguageChanged;
     }
 
@@ -183,6 +187,8 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
 
     private string ResolveDetailKey()
     {
+        if (_snapshot.Detail.StartsWith("WebAuth", StringComparison.Ordinal))
+            return _snapshot.Detail;
         return _snapshot.Health switch
         {
             RemoteChatHealthState.PairingRequired => "RemoteDetailPairingRequired",

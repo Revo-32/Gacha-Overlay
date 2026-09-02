@@ -333,7 +333,7 @@
   <data name="OnboardingLanguageTitle" xml:space="preserve"><value>言語を選択</value></data>
   <data name="OnboardingLanguageHint" xml:space="preserve"><value>既定は English です。一般設定で後から変更できます。</value></data>
   <data name="OnboardingDiscordTitle" xml:space="preserve"><value>Discord 接続</value></data>
-  <data name="OnboardingDiscordHint" xml:space="preserve"><value>リモートバックエンドへ接続し、Discord でこのインストールをペアリングして、許可されたメインチャンネルを選択します。Discord Desktop は不要です。</value></data>
+  <data name="OnboardingDiscordHint" xml:space="preserve"><value>Discordでログインし、許可されたメインチャンネルを選択してください。Discordデスクトップは不要です。</value></data>
   <data name="OnboardingHudTitle" xml:space="preserve"><value>HUD の準備完了</value></data>
   <data name="OnboardingHudHint" xml:space="preserve"><value>リモート初期同期の完了後、選択したメインチャンネルで HUD が表示されます。</value></data>
   <data name="OnboardingHudDragHint" xml:space="preserve"><value>HUD のロックを解除してから移動・サイズ変更できます。</value></data>
@@ -341,16 +341,16 @@
   <data name="OnboardingBack" xml:space="preserve"><value>戻る</value></data>
   <data name="OnboardingNext" xml:space="preserve"><value>次へ</value></data>
   <data name="OnboardingFinish" xml:space="preserve"><value>完了</value></data>
-  <data name="OnboardingDiscordRequired" xml:space="preserve"><value>続行する前にリモートペアリングを完了し、準備済みのメインチャンネルを選択してください。</value></data>
+  <data name="OnboardingDiscordRequired" xml:space="preserve"><value>ログインを完了し、準備済みのメインチャンネルを選択してください。</value></data>
   <data name="OnboardingSaveFailed" xml:space="preserve"><value>初期設定の完了状態を保存できませんでした。再試行してください。</value></data>
   <data name="SettingsRemoteTitle" xml:space="preserve"><value>リモート Discord 接続</value></data>
   <data name="SettingsRemoteDescription" xml:space="preserve"><value>認証済みリモートバックエンドが、チャット、販売、セッション、状態変更の唯一の運用ソースです。Discord Desktop は不要です。</value></data>
   <data name="SettingsRemoteEndpoint" xml:space="preserve"><value>リモートバックエンドのアドレス（HTTPS、この PC 内のみ HTTP）</value></data>
   <data name="SettingsRemoteApply" xml:space="preserve"><value>アドレスを適用</value></data>
   <data name="SettingsRemoteRefresh" xml:space="preserve"><value>再接続 / 更新</value></data>
-  <data name="SettingsRemotePair" xml:space="preserve"><value>ペアリング開始</value></data>
-  <data name="SettingsRemotePairCancel" xml:space="preserve"><value>ペアリングを取消</value></data>
-  <data name="SettingsRemoteForget" xml:space="preserve"><value>ペアリング解除 / 削除</value></data>
+  <data name="SettingsRemotePair" xml:space="preserve"><value>Discordでログイン</value></data>
+  <data name="SettingsRemotePairCancel" xml:space="preserve"><value>ログインを取消</value></data>
+  <data name="SettingsRemoteForget" xml:space="preserve"><value>接続解除 / 削除</value></data>
   <data name="SettingsRemotePairingInstruction" xml:space="preserve"><value>Discord で実行してください: /lsoverlay pair code:{0}</value></data>
   <data name="SettingsRemoteCredentialSaved" xml:space="preserve"><value>アクセストークン: 現在の Windows ユーザー用に保護済み</value></data>
   <data name="SettingsRemoteCredentialMissing" xml:space="preserve"><value>アクセストークン: ペアリングが必要</value></data>
@@ -362,8 +362,8 @@
   <data name="SettingsRemotePairingForgetFailed" xml:space="preserve"><value>保護された認証情報を削除できませんでした。</value></data>
   <data name="SettingsRemoteChannelSwitchRequested" xml:space="preserve"><value>新しいチャンネルの準備後に切り替えが確定します。</value></data>
   <data name="SettingsRemoteChannelSwitchFailed" xml:space="preserve"><value>チャンネルを切り替えられませんでした。</value></data>
-  <data name="RemoteHealthPairingRequired" xml:space="preserve"><value>リモート: ペアリングが必要</value></data>
-  <data name="RemoteHealthPairingInProgress" xml:space="preserve"><value>リモート: ペアリング中</value></data>
+  <data name="RemoteHealthPairingRequired" xml:space="preserve"><value>リモート: ログインが必要</value></data>
+  <data name="RemoteHealthPairingInProgress" xml:space="preserve"><value>リモート: ログイン中</value></data>
   <data name="RemoteHealthAuthenticating" xml:space="preserve"><value>リモート: 認証中</value></data>
   <data name="RemoteHealthConnecting" xml:space="preserve"><value>リモート: 接続中</value></data>
   <data name="RemoteHealthBootstrapping" xml:space="preserve"><value>リモート: 最近のチャットを読込中</value></data>
@@ -374,8 +374,8 @@
   <data name="RemoteHealthAccessRevoked" xml:space="preserve"><value>リモート: アクセスが取り消されました</value></data>
   <data name="RemoteHealthDisconnected" xml:space="preserve"><value>リモート: 切断</value></data>
   <data name="RemoteHealthError" xml:space="preserve"><value>リモート: エラー</value></data>
-  <data name="RemoteDetailPairingRequired" xml:space="preserve"><value>このインストールを許可するにはペアリングを開始してください。</value></data>
-  <data name="RemoteDetailPairing" xml:space="preserve"><value>表示されたコマンドを Discord で完了してください。安全に取消できます。</value></data>
+  <data name="RemoteDetailPairingRequired" xml:space="preserve"><value>Discordでログインしてこのインストールを許可してください。</value></data>
+  <data name="RemoteDetailPairing" xml:space="preserve"><value>ブラウザーで認証を完了してください。ローカル開発者モードでは必要に応じてコマンドが表示されます。</value></data>
   <data name="RemoteDetailConnecting" xml:space="preserve"><value>認証し、許可されたチャンネル一覧を準備しています。</value></data>
   <data name="RemoteDetailChannel" xml:space="preserve"><value>サーバーが許可した一覧からチャンネルを選択してください。</value></data>
   <data name="RemoteDetailLive" xml:space="preserve"><value>最近のメッセージと作成・更新・削除イベントが有効です。</value></data>
@@ -428,4 +428,13 @@
   <data name="SettingsNotifySalesCurrent" xml:space="preserve"><value>自分の販売順番が始まったとき通知</value></data>
   <data name="SettingsSalesTurnSoundVolume" xml:space="preserve"><value>通知音量</value></data>
   <data name="SettingsTestSalesTurnSound" xml:space="preserve"><value>通知音をテスト</value></data>
+  <data name="WebAuthWaiting" xml:space="preserve"><value>Discord認証を待機中... ブラウザーで認証を完了してください。</value></data>
+  <data name="WebAuthCompleted" xml:space="preserve"><value>Discord接続が完了しました。</value></data>
+  <data name="WebAuthCancelled" xml:space="preserve"><value>認証が取り消されました。再度ログインしてください。</value></data>
+  <data name="WebAuthSessionExpired" xml:space="preserve"><value>認証の有効期限が切れました。再度ログインしてください。</value></data>
+  <data name="WebAuthNotMember" xml:space="preserve"><value>このDiscordアカウントはサーバーメンバーではありません。</value></data>
+  <data name="WebAuthVerificationUnavailable" xml:space="preserve"><value>サーバーメンバーか確認できません。再試行してください。</value></data>
+  <data name="WebAuthTemporaryFailure" xml:space="preserve"><value>Discordアカウントを確認できません。再試行してください。</value></data>
+  <data name="WebAuthInvalidRequest" xml:space="preserve"><value>無効または使用済みの認証リクエストです。再試行してください。</value></data>
+  <data name="WebAuthUnavailable" xml:space="preserve"><value>このサーバーではブラウザーログインがまだ有効ではありません。後でもう一度お試しください。</value></data>
 </root>

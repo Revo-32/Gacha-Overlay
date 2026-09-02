@@ -1,0 +1,53 @@
+{
+  "milestone": "M9.14",
+  "baselineCommit": "250b20d",
+  "baselineTests": 1292,
+  "addedTests": 74,
+  "debug": { "passed": 1366, "failed": 0, "skipped": 0, "warnings": 0, "errors": 0 },
+  "release": { "passed": 1366, "failed": 0, "skipped": 0, "warnings": 0, "errors": 0 },
+  "restore": "PASS",
+  "formatVerifyNoChanges": "PASS",
+  "trackedAndNewFileWhitespace": "PASS",
+  "backendPublish": {
+    "runtime": "linux-x64",
+    "configuration": "Release",
+    "selfContained": false,
+    "status": "PASS",
+    "path": "artifacts/m914-1788391468412/backend-linux-x64",
+    "files": 11,
+    "bytes": 5579340,
+    "linuxRuntimeExecution": "NOT RUN"
+  },
+  "wpfPublish": {
+    "runtime": "win-x64",
+    "configuration": "Release",
+    "selfContained": true,
+    "singleFile": true,
+    "status": "PASS",
+    "path": "artifacts/m914-1788391468412/wpf-win-x64/GachaOverlay.App.exe",
+    "files": 1,
+    "bytes": 179102283,
+    "sha256": "5ADBF823C62D08A190286AC94C04363EFF4ECD34693E4F6CCBDD9ACC7F429A24",
+    "interactiveLaunch": "NOT RUN"
+  },
+  "dockerContext": {
+    "sourceFiles": 135,
+    "sourceClosure": "PASS",
+    "isolatedRestore": "PASS",
+    "isolatedPublish": "PASS",
+    "mode": "Tracked plus non-ignored untracked source candidates; commit all required new files",
+    "stagingDirectoryName": "LSOverlay-DockerContext-14a91603f4b2476ca9a0c1afb981cfb2",
+    "dockerImageBuild": "NOT RUN - Docker unavailable"
+  },
+  "liveValidation": {
+    "discordPortalConfiguration": "NOT RUN",
+    "railwayOAuthVariables": "NOT SET BY AGENT",
+    "railwayDeployment": "NOT RUN",
+    "railwayEdgeQueryLogVerification": "NOT RUN - operator check required before live OAuth",
+    "ordinaryMemberOAuth": "NOT RUN - USER ACTUAL CHECK REQUIRED",
+    "slashPairingRetired": false,
+    "multiUserSoak": "NOT RUN"
+  },
+  "externalWrites": { "commit": false, "push": false, "pullRequest": false, "release": false, "railwayMutation": false },
+  "finalStatus": "WEB OAUTH IMPLEMENTATION READY FOR DEPLOYMENT"
+}

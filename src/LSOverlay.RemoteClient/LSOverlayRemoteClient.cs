@@ -9,7 +9,7 @@ using LSOverlay.Protocol;
 
 namespace LSOverlay.RemoteClient;
 
-public sealed class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSOverlayRemoteSalesClient
+public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSOverlayRemoteSalesClient, ILSOverlayDiscordWebAuthClient
 {
     private static readonly TimeSpan[] ReconnectDelays =
     {

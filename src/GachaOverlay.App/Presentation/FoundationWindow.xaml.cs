@@ -15,6 +15,11 @@ public partial class FoundationWindow : Window, ISettingsWindowHandle
     {
         InitializeComponent();
         Loaded += OnLoaded;
+        IsVisibleChanged += (_, _) =>
+        {
+            if (!IsVisible && DataContext is FoundationViewModel viewModel)
+                viewModel.RemoteChatSettings?.CancelPairingCommand.Execute(null);
+        };
     }
 
     public bool AllowClose { get; set; }
@@ -88,6 +93,8 @@ public partial class FoundationWindow : Window, ISettingsWindowHandle
 
     private void OnClosing(object? sender, CancelEventArgs eventArgs)
     {
+        if (DataContext is FoundationViewModel loginViewModel)
+            loginViewModel.RemoteChatSettings?.CancelPairingCommand.Execute(null);
         if (_visibleCategory.HasValue && DataContext is FoundationViewModel viewModel)
         {
             viewModel.SaveCategoryScrollPosition(

@@ -90,9 +90,9 @@
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsRemoteEndpoint]}"/>
                 <TextBox Width="480" HorizontalAlignment="Left" Text="{Binding RemoteChatSettings.BackendBaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 <WrapPanel Margin="0,12,0,0">
-                    <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Primary}" Command="{Binding RemoteChatSettings.ApplyConfigurationCommand}" Content="{Binding Localization[SettingsRemoteApply]}"/>
+                    <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.ApplyConfigurationCommand}" Content="{Binding Localization[SettingsRemoteApply]}"/>
                     <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.RefreshCommand}" Content="{Binding Localization[SettingsRemoteRefresh]}"/>
-                    <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.BeginPairingCommand}" Content="{Binding Localization[SettingsRemotePair]}"/>
+                    <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Primary}" Command="{Binding RemoteChatSettings.BeginPairingCommand}" Content="{Binding Localization[SettingsRemotePair]}" Visibility="{Binding RemoteChatSettings.NeedsLogin, Converter={StaticResource BoolVisibility}}"/>
                     <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.CancelPairingCommand}" Content="{Binding Localization[SettingsRemotePairCancel]}"/>
                     <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Destructive}" Command="{Binding RemoteChatSettings.ForgetPairingCommand}" Content="{Binding Localization[SettingsRemoteForget]}"/>
                 </WrapPanel>

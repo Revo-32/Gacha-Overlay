@@ -419,7 +419,7 @@ public sealed class JsonSettingsStore : ISettingsStore
 
     private string NormalizeRemoteBackendBaseUrl(string? value)
     {
-        const string fallback = "http://127.0.0.1:5188";
+        const string fallback = AppSettings.ProductionRemoteBackendBaseUrl;
         if (!Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) ||
             (uri.Scheme == Uri.UriSchemeHttp && !uri.IsLoopback))

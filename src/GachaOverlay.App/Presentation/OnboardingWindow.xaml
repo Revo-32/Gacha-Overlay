@@ -38,7 +38,7 @@
                         <WrapPanel Margin="0,14,0,0">
                             <Button Margin="0,0,8,8" Command="{Binding Settings.RemoteChatSettings.ApplyConfigurationCommand}" Content="{Binding Settings.Localization[SettingsRemoteApply]}" />
                             <Button Margin="0,0,8,8" Command="{Binding Settings.RemoteChatSettings.RefreshCommand}" Content="{Binding Settings.Localization[SettingsRemoteRefresh]}" />
-                            <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Primary}" Command="{Binding Settings.RemoteChatSettings.BeginPairingCommand}" Content="{Binding Settings.Localization[SettingsRemotePair]}" />
+                            <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Primary}" Command="{Binding Settings.RemoteChatSettings.BeginPairingCommand}" Content="{Binding Settings.Localization[SettingsRemotePair]}" Visibility="{Binding Settings.RemoteChatSettings.NeedsLogin, Converter={StaticResource BoolVisibility}}" />
                             <Button Margin="0,0,8,8" Command="{Binding Settings.RemoteChatSettings.CancelPairingCommand}" Content="{Binding Settings.Localization[SettingsRemotePairCancel]}" />
                         </WrapPanel>
                         <TextBlock Margin="0,4,0,0" FontWeight="SemiBold" Foreground="{DynamicResource StatusInfoBrush}" Text="{Binding Settings.RemoteChatSettings.HealthText}" />

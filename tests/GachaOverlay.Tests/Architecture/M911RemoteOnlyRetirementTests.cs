@@ -41,6 +41,11 @@ public sealed class M911RemoteOnlyRetirementTests
     public void ProductionSource_HasNoRetiredLocalRpcOrOAuthImplementation(string pattern)
     {
         var matches = ProductionFiles()
+            // M9.14 permits identity-only Web OAuth in this single Backend boundary,
+            // never in WPF, Infrastructure, RemoteClient or retired Local RPC code.
+            .Where(path => pattern != "oauth2/token" || !string.Equals(
+                Path.GetFullPath(path), Path.Combine(RepositoryRoot, "src", "LSOverlay.Backend", "WebAuth", "DiscordIdentityClient.cs"),
+                StringComparison.OrdinalIgnoreCase))
             .Where(path => File.ReadAllText(path).Contains(
                 pattern,
                 StringComparison.OrdinalIgnoreCase))

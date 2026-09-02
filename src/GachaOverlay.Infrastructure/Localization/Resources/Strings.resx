@@ -368,7 +368,7 @@
   <data name="OnboardingLanguageTitle" xml:space="preserve"><value>Choose a language</value></data>
   <data name="OnboardingLanguageHint" xml:space="preserve"><value>The default is English. You can change this later in General settings.</value></data>
   <data name="OnboardingDiscordTitle" xml:space="preserve"><value>Connect Discord</value></data>
-  <data name="OnboardingDiscordHint" xml:space="preserve"><value>Connect to the Remote backend, pair this installation in Discord, then select an authorized main channel. Discord Desktop is not required.</value></data>
+  <data name="OnboardingDiscordHint" xml:space="preserve"><value>Log in with Discord, then select an authorized main channel. Discord Desktop is not required.</value></data>
   <data name="OnboardingHudTitle" xml:space="preserve"><value>HUD is ready</value></data>
   <data name="OnboardingHudHint" xml:space="preserve"><value>After Remote bootstrap completes, the HUD will appear with your selected main channel.</value></data>
   <data name="OnboardingHudDragHint" xml:space="preserve"><value>Unlock the HUD before dragging or resizing it.</value></data>
@@ -376,16 +376,16 @@
   <data name="OnboardingBack" xml:space="preserve"><value>Back</value></data>
   <data name="OnboardingNext" xml:space="preserve"><value>Next</value></data>
   <data name="OnboardingFinish" xml:space="preserve"><value>Finish</value></data>
-  <data name="OnboardingDiscordRequired" xml:space="preserve"><value>Complete Remote pairing and select a ready main channel before continuing.</value></data>
+  <data name="OnboardingDiscordRequired" xml:space="preserve"><value>Log in and select a ready main channel before continuing.</value></data>
   <data name="OnboardingSaveFailed" xml:space="preserve"><value>Initial setup completion could not be saved. Try again.</value></data>
   <data name="SettingsRemoteTitle" xml:space="preserve"><value>Remote Discord connection</value></data>
   <data name="SettingsRemoteDescription" xml:space="preserve"><value>The authenticated Remote backend is the sole production source for Chat, Sales, Presence, and write-back. Discord Desktop is not required.</value></data>
   <data name="SettingsRemoteEndpoint" xml:space="preserve"><value>Remote backend address (HTTPS; HTTP only for this PC)</value></data>
   <data name="SettingsRemoteApply" xml:space="preserve"><value>Apply address</value></data>
   <data name="SettingsRemoteRefresh" xml:space="preserve"><value>Reconnect / refresh</value></data>
-  <data name="SettingsRemotePair" xml:space="preserve"><value>Start pairing</value></data>
-  <data name="SettingsRemotePairCancel" xml:space="preserve"><value>Cancel pairing</value></data>
-  <data name="SettingsRemoteForget" xml:space="preserve"><value>Unpair / forget</value></data>
+  <data name="SettingsRemotePair" xml:space="preserve"><value>Log in with Discord</value></data>
+  <data name="SettingsRemotePairCancel" xml:space="preserve"><value>Cancel login</value></data>
+  <data name="SettingsRemoteForget" xml:space="preserve"><value>Disconnect / forget</value></data>
   <data name="SettingsRemotePairingInstruction" xml:space="preserve"><value>In Discord, run: /lsoverlay pair code:{0}</value></data>
   <data name="SettingsRemoteCredentialSaved" xml:space="preserve"><value>Access token: protected for the current Windows user</value></data>
   <data name="SettingsRemoteCredentialMissing" xml:space="preserve"><value>Access token: pairing required</value></data>
@@ -397,8 +397,8 @@
   <data name="SettingsRemotePairingForgetFailed" xml:space="preserve"><value>The protected credential could not be removed.</value></data>
   <data name="SettingsRemoteChannelSwitchRequested" xml:space="preserve"><value>The channel switch will complete after the new channel is ready.</value></data>
   <data name="SettingsRemoteChannelSwitchFailed" xml:space="preserve"><value>The channel could not be switched.</value></data>
-  <data name="RemoteHealthPairingRequired" xml:space="preserve"><value>Remote: pairing required</value></data>
-  <data name="RemoteHealthPairingInProgress" xml:space="preserve"><value>Remote: pairing in progress</value></data>
+  <data name="RemoteHealthPairingRequired" xml:space="preserve"><value>Remote: login required</value></data>
+  <data name="RemoteHealthPairingInProgress" xml:space="preserve"><value>Remote: login in progress</value></data>
   <data name="RemoteHealthAuthenticating" xml:space="preserve"><value>Remote: authenticating</value></data>
   <data name="RemoteHealthConnecting" xml:space="preserve"><value>Remote: connecting</value></data>
   <data name="RemoteHealthBootstrapping" xml:space="preserve"><value>Remote: loading recent chat</value></data>
@@ -409,8 +409,8 @@
   <data name="RemoteHealthAccessRevoked" xml:space="preserve"><value>Remote: access revoked</value></data>
   <data name="RemoteHealthDisconnected" xml:space="preserve"><value>Remote: disconnected</value></data>
   <data name="RemoteHealthError" xml:space="preserve"><value>Remote: error</value></data>
-  <data name="RemoteDetailPairingRequired" xml:space="preserve"><value>Start pairing to authorize this installation.</value></data>
-  <data name="RemoteDetailPairing" xml:space="preserve"><value>Complete the displayed command in Discord. You can cancel safely.</value></data>
+  <data name="RemoteDetailPairingRequired" xml:space="preserve"><value>Log in with Discord to authorize this installation.</value></data>
+  <data name="RemoteDetailPairing" xml:space="preserve"><value>Complete authentication in your browser. Local developer fallback displays a command when needed.</value></data>
   <data name="RemoteDetailConnecting" xml:space="preserve"><value>Authenticating and preparing the authorized channel catalog.</value></data>
   <data name="RemoteDetailChannel" xml:space="preserve"><value>Select one channel from the server-authorized catalog.</value></data>
   <data name="RemoteDetailLive" xml:space="preserve"><value>Recent messages and live create/update/delete events are active.</value></data>
@@ -463,4 +463,13 @@
   <data name="SettingsNotifySalesCurrent" xml:space="preserve"><value>Notify when my turn starts</value></data>
   <data name="SettingsSalesTurnSoundVolume" xml:space="preserve"><value>Notification volume</value></data>
   <data name="SettingsTestSalesTurnSound" xml:space="preserve"><value>Test sound</value></data>
+  <data name="WebAuthWaiting" xml:space="preserve"><value>Waiting for Discord authorization... Complete authentication in your browser.</value></data>
+  <data name="WebAuthCompleted" xml:space="preserve"><value>Discord connection completed.</value></data>
+  <data name="WebAuthCancelled" xml:space="preserve"><value>Authorization cancelled. Log in again to retry.</value></data>
+  <data name="WebAuthSessionExpired" xml:space="preserve"><value>Login expired. Log in again to retry.</value></data>
+  <data name="WebAuthNotMember" xml:space="preserve"><value>This Discord account is not a member of the server.</value></data>
+  <data name="WebAuthVerificationUnavailable" xml:space="preserve"><value>Server membership could not be verified. Please retry.</value></data>
+  <data name="WebAuthTemporaryFailure" xml:space="preserve"><value>Could not verify your Discord account. Please retry.</value></data>
+  <data name="WebAuthInvalidRequest" xml:space="preserve"><value>Invalid or already used login request. Please retry.</value></data>
+  <data name="WebAuthUnavailable" xml:space="preserve"><value>Browser login is not yet enabled on this server. Please try again later.</value></data>
 </root>

@@ -45,7 +45,8 @@ internal sealed class BackendConfiguration
         string? stateDirectory = null,
         Uri? listenUri = null,
         ulong salesChannelId = RemoteSalesPolicy.ProductionSalesChannelId,
-        BackendDeploymentOptions? deployment = null)
+        BackendDeploymentOptions? deployment = null,
+        DiscordWebAuthOptions? webAuth = null)
     {
         Credential = credential ?? throw new ArgumentNullException(nameof(credential));
         if (targetGuildId == 0)
@@ -76,6 +77,7 @@ internal sealed class BackendConfiguration
         SalesChannelId = salesChannelId;
         SessionHostIds = sessionHostIds.ToArray();
         Deployment = deployment;
+        WebAuth = webAuth;
         StateDirectory = Path.GetFullPath(deployment?.DataDirectory ?? stateDirectory ??
             Path.Combine(AppContext.BaseDirectory, "state"));
         ListenUri = deployment?.ListenUri ?? listenUri ?? new Uri("http://127.0.0.1:5188");
@@ -101,6 +103,8 @@ internal sealed class BackendConfiguration
     public Uri ListenUri { get; }
 
     public BackendDeploymentOptions? Deployment { get; }
+
+    public DiscordWebAuthOptions? WebAuth { get; }
 
     public override string ToString() =>
         $"TargetGuild=Configured, SalesChannel=Configured, SessionHosts={SessionHostIds.Count}, Credential=[REDACTED]";
@@ -164,7 +168,8 @@ internal static class BackendConfigurationLoader
                 guildId,
                 trackedResult.HostIds,
                 salesChannelId: salesChannelId,
-                deployment: deployment));
+                deployment: deployment,
+                webAuth: DiscordWebAuthOptions.Resolve(environmentValueProvider)));
         }
         catch (BackendDeploymentException exception)
         {

@@ -5,6 +5,7 @@ using LSOverlay.Backend.Chat;
 using LSOverlay.Backend.Pairing;
 using LSOverlay.Backend.Sales;
 using LSOverlay.Protocol;
+using LSOverlay.Backend.WebAuth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
@@ -51,6 +52,7 @@ internal static class BackendWebApi
     public static void MapTransportApi(this WebApplication app)
     {
         app.UseBackendTransportSecurity();
+        app.MapDiscordWebAuth();
         app.UseRateLimiter();
         app.UseWebSockets(new WebSocketOptions
         {

@@ -14,7 +14,7 @@ internal static partial class SensitiveDataRedactor
         }
 
         var sanitized = JsonSensitiveFieldPattern().Replace(
-            value,
+            GachaOverlay.Core.Logging.OAuthDataRedactor.Sanitize(value),
             match => match.Groups["prefix"].Value + Replacement);
         sanitized = AuthorizationCredentialPattern().Replace(
             sanitized,

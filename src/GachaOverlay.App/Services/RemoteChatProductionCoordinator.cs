@@ -13,7 +13,7 @@ using LSOverlay.RemoteClient;
 
 namespace GachaOverlay.App.Services;
 
-internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
+internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
 {
     private static readonly TimeSpan[] RetryDelays =
     {
@@ -37,6 +37,8 @@ internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
     private CancellationTokenSource? _sessionCancellation;
     private CancellationTokenSource? _pairingCancellation;
     private Task? _sessionTask;
+    private Task? _pairingTask;
+    private readonly Action<Uri> _openBrowser;
     private RemoteRequestScope? _activeRequests;
     private ILSOverlayRemoteClient? _activeClient;
     private ILSOverlayRemoteSalesClient? _activeSalesClient;
@@ -60,7 +62,8 @@ internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
         string installationIdPath,
         IAppLogger logger,
         Func<Uri, ILSOverlayRemoteClient>? clientFactory = null,
-        RemoteRecoveryAudit? recoveryAudit = null)
+        RemoteRecoveryAudit? recoveryAudit = null,
+        Action<Uri>? openBrowser = null)
     {
         _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
         _credentialStore = credentialStore ?? throw new ArgumentNullException(nameof(credentialStore));
@@ -70,6 +73,8 @@ internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _recoveryAudit = recoveryAudit;
         _clientFactory = clientFactory ?? (uri => new LSOverlayRemoteClient(uri));
+        _openBrowser = openBrowser ?? (uri => System.Diagnostics.Process.Start(
+            new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true })?.Dispose());
         var settings = settingsStore.Current;
         _snapshot = new RemoteChatSnapshot(
             settings.RemoteBackendBaseUrl,
@@ -120,6 +125,8 @@ internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
     public async Task<bool> ApplyConfigurationAsync(string backendBaseUrl)
     {
         ThrowIfDisposed();
+        CancelPairing();
+        if (_pairingTask is { } login) await login.ConfigureAwait(false);
         if (!TryCreateEndpoint(backendBaseUrl, out var endpoint))
         {
             SetHealth(RemoteChatHealthState.Error, "InvalidEndpoint");
@@ -161,7 +168,18 @@ internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
         return true;
     }
 
-    public async Task BeginPairingAsync()
+    public Task BeginPairingAsync()
+    {
+        lock (_sync)
+        {
+            ThrowIfDisposed();
+            if (_pairingTask is { IsCompleted: false }) return Task.CompletedTask;
+            _pairingTask = BeginPairingCoreAsync();
+            return _pairingTask;
+        }
+    }
+
+    private async Task BeginPairingCoreAsync()
     {
         ThrowIfDisposed();
         await StopSessionAsync().ConfigureAwait(false);
@@ -183,6 +201,8 @@ internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
 
             SetHealth(RemoteChatHealthState.PairingInProgress, "CreatingPairing");
             client = _clientFactory(endpoint);
+            if (client is ILSOverlayDiscordWebAuthClient web &&
+                await TryWebLoginAsync(web, endpoint, pairingCancellation.Token).ConfigureAwait(false)) return;
             var pairing = await client.CreatePairingAsync(
                     GetOrCreateInstallationId(),
                     pairingCancellation.Token)
@@ -242,7 +262,8 @@ internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
             SetHealth(RemoteChatHealthState.PairingRequired, "PairingCancelled");
         }
         catch (Exception exception) when (
-            exception is HttpRequestException or IOException or UnauthorizedAccessException)
+            exception is HttpRequestException or IOException or UnauthorizedAccessException or
+                OperationCanceledException or System.ComponentModel.Win32Exception or InvalidOperationException or System.Text.Json.JsonException)
         {
             _logger.Warning("REMOTE", $"Pairing failed ({exception.GetType().Name}).");
             SetHealth(RemoteChatHealthState.Error, "PairingFailed");
@@ -277,6 +298,7 @@ internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
     public async Task<bool> ForgetPairingAsync()
     {
         CancelPairing();
+        if (_pairingTask is { } login) await login.ConfigureAwait(false);
         await StopSessionAsync().ConfigureAwait(false);
         if (!_credentialStore.Clear())
         {
@@ -302,6 +324,8 @@ internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
     public async Task RefreshAsync()
     {
         ThrowIfDisposed();
+        CancelPairing();
+        if (_pairingTask is { } login) await login.ConfigureAwait(false);
         await StopSessionAsync().ConfigureAwait(false);
         StartSession();
     }
@@ -530,6 +554,7 @@ internal sealed class RemoteChatProductionCoordinator : IAsyncDisposable
         _ingress.StateChanged -= OnIngressStateChanged;
         CancelPairing();
         _lifetime.Cancel();
+        if (_pairingTask is { } login) await login.ConfigureAwait(false);
         await StopSessionAsync().ConfigureAwait(false);
         _lifetime.Dispose();
     }

@@ -16,6 +16,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using LSOverlay.Backend.WebAuth;
 
 namespace LSOverlay.Backend;
 
@@ -76,8 +77,16 @@ internal static class Program
         });
         builder.Logging.SetMinimumLevel(LogLevel.Information);
         builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
+        WebAuthLogPolicy.Apply(builder.Services);
 
         builder.Services.AddSingleton(configuration);
+        if (configuration.WebAuth is not null)
+        {
+            builder.Services.AddSingleton<IDiscordIdentityClient>(_ => new DiscordIdentityClient(configuration.WebAuth));
+            builder.Services.AddSingleton<DiscordWebAuthService>();
+            builder.Services.AddSingleton<WebAuthRateLimiter>();
+            builder.Services.AddHostedService<WebAuthExpiryWorker>();
+        }
         builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(20));
         builder.Services.ConfigureHttpJsonOptions(options =>
         {

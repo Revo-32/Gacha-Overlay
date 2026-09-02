@@ -12,14 +12,14 @@ using LSOverlay.RemoteClient;
 
 namespace GachaOverlay.Tests.Backend;
 
-public sealed class M94ProductionRemoteModeTests
+public sealed partial class M94ProductionRemoteModeTests
 {
     [Fact]
     public void Settings_DefaultToRemoteEndpointAndNeverContainRemoteToken()
     {
         var settings = AppSettings.CreateDefault();
 
-        Assert.Equal("http://127.0.0.1:5188", settings.RemoteBackendBaseUrl);
+        Assert.Equal("https://overlay.revo32.cloud", settings.RemoteBackendBaseUrl);
         Assert.DoesNotContain(
             "token",
             JsonSerializer.Serialize(settings),
@@ -64,7 +64,7 @@ public sealed class M94ProductionRemoteModeTests
             """);
         var store = new JsonSettingsStore(path, NullAppLogger.Instance);
 
-        Assert.Equal("http://127.0.0.1:5188", store.Load().RemoteBackendBaseUrl);
+        Assert.Equal("https://overlay.revo32.cloud", store.Load().RemoteBackendBaseUrl);
     }
 
     [Fact]

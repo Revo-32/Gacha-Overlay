@@ -30,7 +30,8 @@ public sealed record AppSettings
     public Dictionary<string, double> SettingsCategoryScrollPositions { get; init; } =
         EmptyScrollPositions;
 
-    public string RemoteBackendBaseUrl { get; init; } = "http://127.0.0.1:5188";
+    public const string ProductionRemoteBackendBaseUrl = "https://overlay.revo32.cloud";
+    public string RemoteBackendBaseUrl { get; init; } = ProductionRemoteBackendBaseUrl;
 
     public string? RemoteSelectedChannelId { get; init; }
 

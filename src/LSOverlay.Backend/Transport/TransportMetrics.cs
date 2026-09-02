@@ -2,6 +2,12 @@ namespace LSOverlay.Backend.Transport;
 
 internal enum TransportMetric
 {
+    WebAuthStarted,
+    WebAuthApproved,
+    WebAuthDenied,
+    WebAuthExpired,
+    WebAuthClaimed,
+    WebAuthTemporaryFailure,
     PairingCreated,
     PairingApproved,
     PairingExpired,
