@@ -1,0 +1,137 @@
+{
+  "version": "2.0.0-rc.1",
+  "status": "LS OVERLAY 2.0.0-rc.1 READY FOR USER REVIEW",
+  "repository": {
+    "branch": "main",
+    "baseCommit": "5a4c10044efcd4cdff1f128261c00f82b3a17c5e",
+    "before": "clean",
+    "stagedChanges": 0,
+    "uncommittedRcChanges": true
+  },
+  "diagnostic": {
+    "investigation": "STOPPED / DEFERRED",
+    "productionOrTestChanges": false,
+    "stressLoops": 0,
+    "knownProductionDefect": false,
+    "observedThisRun": false
+  },
+  "metadata": {
+    "product": "LS Overlay",
+    "version": "2.0.0-rc.1",
+    "assemblyVersion": "2.0.0.0",
+    "fileVersion": "2.0.0.0",
+    "assemblyName": "GachaOverlay.App",
+    "exeRename": "packaging only",
+    "company": "",
+    "codeSigning": "NotSigned",
+    "machine": "AMD64 / 0x8664"
+  },
+  "compatibility": {
+    "localAppData": "unchanged",
+    "dpapi": "unchanged",
+    "mutex": "unchanged",
+    "settingsSchema": 18,
+    "autoStartRegistration": "unchanged; executable path refreshed on normal startup",
+    "autoLogin": "existing regression tests PASS; actual profile not accessed",
+    "resources": "same pack URIs; App.xaml loaded in isolated secondary-instance launch",
+    "sales": "unchanged; main-row own-sale completion only"
+  },
+  "validation": {
+    "baselineTests": 1534,
+    "newTests": 3,
+    "debug": {
+      "total": 1537,
+      "passed": 1537,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 35,
+      "buildWarnings": 0,
+      "buildErrors": 0
+    },
+    "release": {
+      "total": 1537,
+      "passed": 1537,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 34,
+      "buildWarnings": 0,
+      "buildErrors": 0
+    },
+    "restore": "PASS",
+    "format": "PASS",
+    "diff": "PASS",
+    "wpfPublish": "PASS",
+    "backendPublish": "PASS - local only, shared version metadata changed",
+    "package": "PASS - exact 14 files; extracted content hashes match",
+    "checksum": "PASS",
+    "isolatedLaunch": "PASS - fresh EXE-only directory; held original mutex; exits before ApplicationHost",
+    "interactiveLaunch": "NOT RUN - USER CHECK",
+    "soak": "NOT RUN - USER CHECK",
+    "pdf": {
+      "pages": 9,
+      "koreanGlyphCoverage": "PASS",
+      "embeddedFonts": true,
+      "publicLinks": 4,
+      "visualReview": "PASS - all 9 rendered pages",
+      "textBounds": "PASS - 0 outside margins",
+      "screenshots": false
+    }
+  },
+  "statusDomain": {
+    "url": "https://status.revo32.cloud",
+    "status": "PENDING DNS/TLS",
+    "evidence": "Single direct HTTPS request failed with HttpRequestException. No diagnosis of DNS versus TLS; no propagation polling."
+  },
+  "contact": {
+    "email": "revo.32.39.41@gmail.com",
+    "readiness": "PUBLIC CONTACT VERIFIED"
+  },
+  "artifacts": [
+    {
+      "sha256": "2784123788BC9B93B2604D0657CBF126B17F7543BBAD789F4715B40F06FE355F",
+      "bytes": 75725212,
+      "filename": "LS-Overlay-2.0.0-rc.1-win-x64.zip"
+    },
+    {
+      "sha256": "1DFAD6587813D2EA0851B1AC394611004C1AFBD69400302B1872B11E90C3BF3F",
+      "bytes": 78479545,
+      "filename": "LSOverlay.exe"
+    },
+    {
+      "sha256": "095791559B1FBA336909BDB11FB4BE5732A56B307BB78696B62197C15AD4CBF8",
+      "bytes": 2005240,
+      "filename": "LS-Overlay-2.0-RC-User-Guide-ko.pdf"
+    }
+  ],
+  "archiveContents": [
+    "LICENSE",
+    "Licenses/Fonts/License-Cafe24-PRO-Slim-Fit.pdf",
+    "Licenses/Fonts/License-Cafe24-PRO-Slim-Max.pdf",
+    "Licenses/Fonts/NOTICE-Fonts.txt",
+    "Licenses/Fonts/OFL-1.1.txt",
+    "Licenses/Runtime/LICENSE-DOTNET-RUNTIME.txt",
+    "Licenses/Runtime/LICENSE-WINDOWS-DESKTOP-RUNTIME.txt",
+    "Licenses/Runtime/README.txt",
+    "Licenses/Runtime/THIRD-PARTY-NOTICES-DOTNET-RUNTIME.txt",
+    "Licenses/Themes/NOTICE-Color-Themes.txt",
+    "Licenses/THIRD-PARTY-NOTICES.txt",
+    "LS-Overlay-2.0-RC-User-Guide-ko.pdf",
+    "LSOverlay.exe",
+    "README.md"
+  ],
+  "evidence": {
+    "debug": "artifacts/rc-preparation/tests/debug/rc20-debug.trx",
+    "release": "artifacts/rc-preparation/tests/release/rc20-release.trx",
+    "publicManifest": "artifacts/releases/2.0.0-rc.1/LS-Overlay-2.0.0-rc.1-manifest.json"
+  },
+  "publication": {
+    "commit": false,
+    "push": false,
+    "tag": false,
+    "release": false,
+    "upload": false,
+    "railway": false,
+    "dns": false,
+    "discordPortal": false
+  }
+}

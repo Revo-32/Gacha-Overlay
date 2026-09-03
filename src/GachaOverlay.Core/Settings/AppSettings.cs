@@ -66,7 +66,6 @@ public sealed record AppSettings
 
     public HotkeySetting PreviousMainChannelHotkey { get; init; } = new() { Key = "" };
     public HotkeySetting NextMainChannelHotkey { get; init; } = new() { Key = "" };
-    public bool QuickDiscordFocusEnabled { get; init; } = true;
 
     public int HotkeySettingsVersion { get; init; } = CurrentHotkeySettingsVersion;
 

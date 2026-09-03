@@ -441,9 +441,7 @@
   <data name="SettingsAdvancedConnection" xml:space="preserve"><value>詳細な接続 / 互換設定</value></data>
   <data name="SettingsPreviousChannel" xml:space="preserve"><value>前のチャットチャンネル</value></data>
   <data name="SettingsNextChannel" xml:space="preserve"><value>次のチャットチャンネル</value></data>
-  <data name="SettingsChannelHotkeyHint" xml:space="preserve"><value>空欄は未割り当てです。利用可能なチャンネルを表示順に循環します。T は Discord 切替専用です。</value></data>
-  <data name="SettingsQuickDiscordFocus" xml:space="preserve"><value>T: GTA5 Enhanced から Discord に切替</value></data>
-  <data name="SettingsQuickDiscordFocusHint" xml:space="preserve"><value>GTA5 Enhanced が最前面の場合のみ動作します。起動中の Discord ウィンドウを表示し、アプリ起動やマウス移動はしません。</value></data>
+  <data name="SettingsChannelHotkeyHint" xml:space="preserve"><value>空欄は未割り当てです。利用可能なチャンネルを表示順に循環します。</value></data>
   <data name="SalesDetailRequired" xml:space="preserve"><value>詳細を確認</value></data>
   <data name="SalesAgeJustNow" xml:space="preserve"><value>たった今</value></data>
   <data name="SalesAgeMinutes" xml:space="preserve"><value>{0}分前</value></data>

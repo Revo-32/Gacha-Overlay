@@ -190,8 +190,6 @@
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsNextChannel]}"/>
                 <TextBox Text="{Binding NextChannelHotkeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 <TextBlock Margin="0,8,0,12" Text="{Binding Localization[SettingsChannelHotkeyHint]}" TextWrapping="Wrap"/>
-                <CheckBox IsChecked="{Binding QuickDiscordFocusEnabled, Mode=TwoWay}" Content="{Binding Localization[SettingsQuickDiscordFocus]}"/>
-                <TextBlock Margin="28,4,0,8" Text="{Binding Localization[SettingsQuickDiscordFocusHint]}" TextWrapping="Wrap"/>
                 <StackPanel Margin="0,18,0,0" Orientation="Horizontal"><Button Command="{Binding ApplyHotkeysCommand}" Content="{Binding Localization[SettingsApplyHotkeys]}"/><Button Margin="8,0,0,0" Command="{Binding ResetHotkeysCommand}" Content="{Binding Localization[SettingsResetHotkeys]}"/></StackPanel><TextBlock Margin="0,10,0,0" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding HotkeyValidationMessage}" TextWrapping="Wrap"/>
             </StackPanel>
         </DataTemplate>

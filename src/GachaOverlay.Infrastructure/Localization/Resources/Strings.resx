@@ -476,9 +476,7 @@
   <data name="SettingsAdvancedConnection" xml:space="preserve"><value>Advanced connection / compatibility</value></data>
   <data name="SettingsPreviousChannel" xml:space="preserve"><value>Previous chat channel</value></data>
   <data name="SettingsNextChannel" xml:space="preserve"><value>Next chat channel</value></data>
-  <data name="SettingsChannelHotkeyHint" xml:space="preserve"><value>Leave blank to leave unassigned. Accessible channels wrap in the displayed order. T is reserved for Discord focus.</value></data>
-  <data name="SettingsQuickDiscordFocus" xml:space="preserve"><value>T: switch from GTA5 Enhanced to Discord</value></data>
-  <data name="SettingsQuickDiscordFocusHint" xml:space="preserve"><value>Only while GTA5 Enhanced is in the foreground. Opens an already running Discord window; does not launch Discord or move the mouse.</value></data>
+  <data name="SettingsChannelHotkeyHint" xml:space="preserve"><value>Leave blank to leave unassigned. Accessible channels wrap in the displayed order.</value></data>
   <data name="SalesDetailRequired" xml:space="preserve"><value>View details</value></data>
   <data name="SalesAgeJustNow" xml:space="preserve"><value>Just now</value></data>
   <data name="SalesAgeMinutes" xml:space="preserve"><value>{0}m ago</value></data>

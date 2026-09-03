@@ -202,8 +202,7 @@ internal sealed class HudWindowController : IDisposable
             if (old.HudLockHotkey != settings.HudLockHotkey ||
                 old.HudVisibilityHotkey != settings.HudVisibilityHotkey ||
                 old.PreviousMainChannelHotkey != settings.PreviousMainChannelHotkey ||
-                old.NextMainChannelHotkey != settings.NextMainChannelHotkey ||
-                old.QuickDiscordFocusEnabled != settings.QuickDiscordFocusEnabled)
+                old.NextMainChannelHotkey != settings.NextMainChannelHotkey)
             {
                 _hotkeys.Bind(settings);
             }

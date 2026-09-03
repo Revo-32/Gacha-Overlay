@@ -304,7 +304,6 @@ public sealed class JsonSettingsStore : ISettingsStore
         HotkeySetting Optional(HotkeySetting? candidate)
         {
             if (candidate is null || !HotkeyGesture.TryParse(candidate, out var value) ||
-                (value.VirtualKey == 0x54 && value.Modifiers == HotkeyModifiers.None) ||
                 !usedGestures.Add(value)) return new HotkeySetting { Key = "" };
             return value.ToSetting();
         }
@@ -535,6 +534,7 @@ public sealed class JsonSettingsStore : ISettingsStore
         extensionData?.Keys.Any(IsDeprecatedField) == true;
 
     private static bool IsDeprecatedField(string name) =>
+        name.Equals("quickDiscordFocusEnabled", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("salesAcquisitionPreference", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("discordClientId", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("discordClientSecret", StringComparison.OrdinalIgnoreCase) ||

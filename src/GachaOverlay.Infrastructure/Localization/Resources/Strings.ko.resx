@@ -441,9 +441,7 @@
   <data name="SettingsAdvancedConnection" xml:space="preserve"><value>고급 연결 / 호환 설정</value></data>
   <data name="SettingsPreviousChannel" xml:space="preserve"><value>이전 채팅 채널</value></data>
   <data name="SettingsNextChannel" xml:space="preserve"><value>다음 채팅 채널</value></data>
-  <data name="SettingsChannelHotkeyHint" xml:space="preserve"><value>빈칸은 미지정입니다. 접근 가능한 채널을 표시 순서대로 순환합니다. T는 Discord 전환 전용입니다.</value></data>
-  <data name="SettingsQuickDiscordFocus" xml:space="preserve"><value>T: GTA5 Enhanced에서 Discord로 전환</value></data>
-  <data name="SettingsQuickDiscordFocusHint" xml:space="preserve"><value>GTA5 Enhanced가 전면일 때만 동작합니다. 실행 중인 Discord 창만 활성화하며 앱 실행이나 마우스 이동은 하지 않습니다.</value></data>
+  <data name="SettingsChannelHotkeyHint" xml:space="preserve"><value>빈칸은 미지정입니다. 접근 가능한 채널을 표시 순서대로 순환합니다.</value></data>
   <data name="SalesDetailRequired" xml:space="preserve"><value>상세 확인</value></data>
   <data name="SalesAgeJustNow" xml:space="preserve"><value>방금</value></data>
   <data name="SalesAgeMinutes" xml:space="preserve"><value>{0}분 전</value></data>

@@ -4,6 +4,9 @@
     <OutputType>WinExe</OutputType>
     <AssemblyTitle>LS Overlay</AssemblyTitle>
     <Product>LS Overlay</Product>
+    <Description>LS Overlay</Description>
+    <Copyright>Copyright (c) 2026 Gacha Overlay contributors</Copyright>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>

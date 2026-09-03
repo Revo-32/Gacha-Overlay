@@ -706,16 +706,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         set { _nextChannelHotkeyText = value; OnPropertyChanged(); }
     }
 
-    public bool QuickDiscordFocusEnabled
-    {
-        get => _settingsStore.Current.QuickDiscordFocusEnabled;
-        set
-        {
-            if (_settingsStore.Update(settings => settings with { QuickDiscordFocusEnabled = value }))
-            { _applyHudSettings(_settingsStore.Current); OnPropertyChanged(); }
-        }
-    }
-
     private static string FormatOptionalHotkey(HotkeySetting? setting) =>
         setting is not null && HotkeyGesture.TryParse(setting, out var gesture) ? gesture.ToString() : string.Empty;
 
@@ -1222,8 +1212,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
 
         var assigned = new HotkeyGesture?[] { lockGesture, visibilityGesture, previousChannel, nextChannel }
             .Where(value => value.HasValue).Select(value => value!.Value).ToArray();
-        if (assigned.Distinct().Count() != assigned.Length ||
-            assigned.Any(value => value.VirtualKey == 0x54 && value.Modifiers == HotkeyModifiers.None))
+        if (assigned.Distinct().Count() != assigned.Length)
         { HotkeyValidationMessage = Localization["SettingsHotkeyDuplicate"]; return; }
 
         ApplyAndPersistHotkeys(_settingsStore.Current with

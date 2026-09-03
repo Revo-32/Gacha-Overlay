@@ -1,7 +1,6 @@
 using GachaOverlay.App.Presentation;
 using GachaOverlay.App.Services;
 using GachaOverlay.Core.Chat;
-using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Settings;
 using GachaOverlay.Infrastructure.Localization;
 using GachaOverlay.Infrastructure.Settings;
@@ -46,40 +45,6 @@ public sealed class M10InteractionPolicyTests
     }
 
     [Fact]
-    public void TConsumesRepeatsAndKeyUpAfterForegroundChangesButActivatesOnlyOnce()
-    {
-        var policy = new DiscordQuickFocusPolicy();
-        Assert.Equal(new QuickFocusDecision(true, true), policy.HandleT(true, true, false, false, true));
-        for (var i = 0; i < 10; i++)
-            Assert.Equal(new QuickFocusDecision(true, false), policy.HandleT(true, false, false, false, true));
-        Assert.Equal(new QuickFocusDecision(true, false), policy.HandleT(false, false, false, false, true));
-        Assert.Equal(default, policy.HandleT(true, false, false, false, true));
-        Assert.Equal(default, policy.HandleT(false, false, false, false, true));
-    }
-
-    [Theory]
-    [InlineData(false, false, false, true)]
-    [InlineData(true, true, false, true)]
-    [InlineData(true, false, true, true)]
-    [InlineData(true, false, false, false)]
-    public void TOutsideAllowedContextPassesThrough(bool gta, bool modifiers, bool injected, bool enabled)
-    {
-        var policy = new DiscordQuickFocusPolicy();
-        Assert.Equal(default, policy.HandleT(true, gta, modifiers, injected, enabled));
-        Assert.Equal(default, policy.HandleT(false, gta, modifiers, injected, enabled));
-    }
-
-    [Fact]
-    public void HookEnabledWhileTHeldDoesNotSynthesizeActivation()
-    {
-        var policy = new DiscordQuickFocusPolicy();
-        policy.Reset(alreadyDown: true);
-        Assert.Equal(default, policy.HandleT(true, true, false, false, true));
-        policy.HandleT(false, true, false, false, true);
-        Assert.True(policy.HandleT(true, true, false, false, true).RequestFocus);
-    }
-
-    [Fact]
     public void AllowlistMatchesIdsOnlyRetainsServerNamesAndWrapsAccessibleSubset()
     {
         var ordered = MainChannelPolicy.Ordered;
@@ -112,7 +77,6 @@ public sealed class M10InteractionPolicyTests
             Assert.True(settings.MinimalHudMode);
             Assert.False(settings.ShowGtaSession);
             Assert.Equal(0.4, settings.HudSurfaceOpacity);
-            Assert.False(settings.QuickDiscordFocusEnabled);
             Assert.Equal("", settings.PreviousMainChannelHotkey.Key);
             Assert.Equal("", settings.NextMainChannelHotkey.Key);
             Assert.True(store.Update(value => value with { MinimalHudMode = false }));

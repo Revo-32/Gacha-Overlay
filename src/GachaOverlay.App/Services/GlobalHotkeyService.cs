@@ -12,7 +12,6 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
     private const int VisibilityToggleId = 0x5A02;
     private const int PreviousChannelId = 0x5A03;
     private const int NextChannelId = 0x5A04;
-    private DiscordQuickFocusHook? _quickFocus;
     private AppSettings _lastSettings = AppSettings.CreateDefault();
     private const uint ModNoRepeat = 0x4000;
 
@@ -49,8 +48,7 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
             [NextChannelId] = next,
         };
         var assigned = desired.Values.Where(value => value.HasValue).Select(value => value!.Value).ToArray();
-        if (assigned.Distinct().Count() != assigned.Length ||
-            assigned.Any(gesture => gesture.VirtualKey == 0x54 && gesture.Modifiers == HotkeyModifiers.None)) return false;
+        if (assigned.Distinct().Count() != assigned.Length) return false;
         var old = desired.Keys.ToDictionary(id => id, _bindings.GetActiveGesture);
         // Release changed bindings together so swapping two configured actions is safe.
         foreach (var pair in desired.Where(pair => old[pair.Key] != pair.Value))
@@ -63,12 +61,6 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
             { RestoreAll(old); return false; }
         }
         _lastSettings = settings;
-        if (settings.QuickDiscordFocusEnabled)
-        {
-            _quickFocus ??= new DiscordQuickFocusHook(System.Windows.Threading.Dispatcher.CurrentDispatcher, _logger);
-            _quickFocus.SetEnabled(true);
-        }
-        else { _quickFocus?.Dispose(); _quickFocus = null; }
         return true;
     }
 
@@ -151,8 +143,6 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 
         _disposed = true;
         _interop.HotkeyPressed -= OnHotkeyPressed;
-        _quickFocus?.Dispose();
-        _quickFocus = null;
         _bindings.Dispose();
     }
 

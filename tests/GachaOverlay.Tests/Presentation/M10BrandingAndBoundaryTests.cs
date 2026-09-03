@@ -1,8 +1,4 @@
-using System.Reflection;
 using System.Security.Cryptography;
-using System.Windows.Threading;
-using GachaOverlay.App.Services;
-using GachaOverlay.Core.Logging;
 using GachaOverlay.Core.Settings;
 using GachaOverlay.Infrastructure.Localization;
 using GachaOverlay.Infrastructure.Settings;
@@ -80,20 +76,6 @@ public sealed class M10BrandingAndBoundaryTests
         finally { Directory.Delete(Path.GetDirectoryName(path)!, true); }
     }
 
-    [Fact]
-    public void QuickFocusHookDisposalStopsOnlyItsOwnedThreadAndCannotActivateDiscord()
-    {
-        var foreground = new NeverGameForeground();
-        var hook = new DiscordQuickFocusHook(Dispatcher.CurrentDispatcher, NullAppLogger.Instance, foreground);
-        hook.SetEnabled(true);
-        var thread = (Thread)typeof(DiscordQuickFocusHook).GetField("_thread", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(hook)!;
-        hook.Dispose();
-        hook.Dispose();
-        Assert.False(thread.IsAlive);
-        Assert.Equal(0, foreground.Activations);
-        Assert.False(Dispatcher.CurrentDispatcher.HasShutdownStarted);
-    }
-
     [Theory]
     [InlineData("en")]
     [InlineData("ko")]
@@ -102,7 +84,7 @@ public sealed class M10BrandingAndBoundaryTests
     {
         var localization = new ResourceLocalizationService(locale);
         foreach (var key in new[] { "HudHealthReconnecting", "HudHealthError", "HudHealthLoginRequired",
-            "SettingsQuickDiscordFocus", "SalesDetailRequired", "SalesAgeMinutes", "SessionFull" })
+            "SettingsChannelHotkeyHint", "SalesDetailRequired", "SalesAgeMinutes", "SessionFull" })
         {
             Assert.NotEqual(key, localization[key]);
             Assert.DoesNotContain("RemotePrimary", localization[key]);
@@ -110,10 +92,4 @@ public sealed class M10BrandingAndBoundaryTests
         }
     }
 
-    private sealed class NeverGameForeground : IDiscordForegroundService
-    {
-        public int Activations { get; private set; }
-        public bool IsGtaEnhancedForeground() => false;
-        public bool TryActivateDiscord() { Activations++; return false; }
-    }
 }
