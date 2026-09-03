@@ -10,9 +10,9 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
 {
     private readonly ILocalizationService _localization;
     private readonly Func<string, Task<bool>> _applyConfiguration;
-    private readonly Func<Task> _beginPairing;
-    private readonly Action _cancelPairing;
-    private readonly Func<Task<bool>> _forgetPairing;
+    private readonly Func<Task> _beginLogin;
+    private readonly Action _cancelLogin;
+    private readonly Func<Task<bool>> _forgetCredential;
     private readonly Func<Task> _refresh;
     private readonly Func<string, Task<bool>> _switchChannel;
     private RemoteChatSnapshot _snapshot;
@@ -24,9 +24,9 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
         ILocalizationService localization,
         RemoteChatSnapshot initialSnapshot,
         Func<string, Task<bool>> applyConfiguration,
-        Func<Task> beginPairing,
-        Action cancelPairing,
-        Func<Task<bool>> forgetPairing,
+        Func<Task> beginLogin,
+        Action cancelLogin,
+        Func<Task<bool>> forgetCredential,
         Func<Task> refresh,
         Func<string, Task<bool>> switchChannel)
     {
@@ -34,16 +34,16 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
         _snapshot = initialSnapshot;
         _backendBaseUrl = initialSnapshot.BackendBaseUrl;
         _applyConfiguration = applyConfiguration;
-        _beginPairing = beginPairing;
-        _cancelPairing = cancelPairing;
-        _forgetPairing = forgetPairing;
+        _beginLogin = beginLogin;
+        _cancelLogin = cancelLogin;
+        _forgetCredential = forgetCredential;
         _refresh = refresh;
         _switchChannel = switchChannel;
         _selectedChannel = FindSelectedChannel(initialSnapshot);
         ApplyConfigurationCommand = new AsyncRelayCommand(ApplyConfigurationAsync);
-        BeginPairingCommand = new AsyncRelayCommand(beginPairing, () => !IsPairing && NeedsLogin);
-        CancelPairingCommand = new RelayCommand(cancelPairing, () => IsPairing);
-        ForgetPairingCommand = new AsyncRelayCommand(ForgetPairingAsync, () => HasCredential);
+        BeginLoginCommand = new AsyncRelayCommand(beginLogin, () => !IsLoggingIn && NeedsLogin);
+        CancelLoginCommand = new RelayCommand(cancelLogin, () => IsLoggingIn);
+        ForgetCredentialCommand = new AsyncRelayCommand(ForgetCredentialAsync, () => HasCredential);
         RefreshCommand = new AsyncRelayCommand(refresh);
         SwitchChannelCommand = new AsyncRelayCommand(
             SwitchChannelAsync,
@@ -82,24 +82,13 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
     public bool HasCredential => _snapshot.HasProtectedCredential;
 
     public bool NeedsLogin => !HasCredential || _snapshot.Health is
-        RemoteChatHealthState.PairingRequired or RemoteChatHealthState.AccessRevoked;
+        RemoteChatHealthState.LoginRequired or RemoteChatHealthState.AccessRevoked;
 
     public bool IsReady =>
         _snapshot.Health == RemoteChatHealthState.Live &&
         !string.IsNullOrWhiteSpace(_snapshot.SelectedChannelId);
 
-    public bool IsPairing => _snapshot.Health == RemoteChatHealthState.PairingInProgress;
-
-    public bool HasPairingCode => !string.IsNullOrWhiteSpace(_snapshot.PairingCode);
-
-    public string PairingCode => _snapshot.PairingCode ?? string.Empty;
-
-    public string PairingInstruction => HasPairingCode
-        ? string.Format(
-            System.Globalization.CultureInfo.CurrentUICulture,
-            _localization["SettingsRemotePairingInstruction"],
-            PairingCode)
-        : string.Empty;
+    public bool IsLoggingIn => _snapshot.Health == RemoteChatHealthState.LoginInProgress;
 
     public string HealthText => _localization[_snapshot.Detail == "WebAuthWaiting" ? "WebAuthWaiting" : $"RemoteHealth{_snapshot.Health}"];
 
@@ -118,11 +107,11 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
 
     public ICommand ApplyConfigurationCommand { get; }
 
-    public AsyncRelayCommand BeginPairingCommand { get; }
+    public AsyncRelayCommand BeginLoginCommand { get; }
 
-    public RelayCommand CancelPairingCommand { get; }
+    public RelayCommand CancelLoginCommand { get; }
 
-    public AsyncRelayCommand ForgetPairingCommand { get; }
+    public AsyncRelayCommand ForgetCredentialCommand { get; }
 
     public AsyncRelayCommand RefreshCommand { get; }
 
@@ -139,7 +128,7 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
 
     public void Dispose()
     {
-        _cancelPairing();
+        _cancelLogin();
         _localization.LanguageChanged -= OnLanguageChanged;
     }
 
@@ -151,12 +140,12 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
             : "SettingsRemoteConfigurationFailed"];
     }
 
-    private async Task ForgetPairingAsync()
+    private async Task ForgetCredentialAsync()
     {
-        var succeeded = await _forgetPairing();
+        var succeeded = await _forgetCredential();
         StatusMessage = _localization[succeeded
-            ? "SettingsRemotePairingForgotten"
-            : "SettingsRemotePairingForgetFailed"];
+            ? "SettingsRemoteCredentialForgotten"
+            : "SettingsRemoteCredentialForgetFailed"];
     }
 
     private async Task SwitchChannelAsync()
@@ -174,7 +163,6 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
 
     private void OnLanguageChanged(object? sender, EventArgs eventArgs)
     {
-        OnPropertyChanged(nameof(PairingInstruction));
         OnPropertyChanged(nameof(HealthText));
         OnPropertyChanged(nameof(HealthDetailText));
         OnPropertyChanged(nameof(CredentialStatusText));
@@ -191,8 +179,8 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
             return _snapshot.Detail;
         return _snapshot.Health switch
         {
-            RemoteChatHealthState.PairingRequired => "RemoteDetailPairingRequired",
-            RemoteChatHealthState.PairingInProgress => "RemoteDetailPairing",
+            RemoteChatHealthState.LoginRequired => "RemoteDetailLoginRequired",
+            RemoteChatHealthState.LoginInProgress => "RemoteDetailLogin",
             RemoteChatHealthState.Authenticating or
                 RemoteChatHealthState.Connecting or
                 RemoteChatHealthState.Bootstrapping => "RemoteDetailConnecting",
@@ -213,9 +201,9 @@ internal sealed class RemoteChatSettingsViewModel : INotifyPropertyChanged, IDis
 
     private void RaiseCommandStates()
     {
-        BeginPairingCommand.RaiseCanExecuteChanged();
-        CancelPairingCommand.RaiseCanExecuteChanged();
-        ForgetPairingCommand.RaiseCanExecuteChanged();
+        BeginLoginCommand.RaiseCanExecuteChanged();
+        CancelLoginCommand.RaiseCanExecuteChanged();
+        ForgetCredentialCommand.RaiseCanExecuteChanged();
         RefreshCommand.RaiseCanExecuteChanged();
         SwitchChannelCommand.RaiseCanExecuteChanged();
     }

@@ -6,7 +6,6 @@ using Discord;
 using LSOverlay.Backend.Chat;
 using LSOverlay.Backend.Configuration;
 using LSOverlay.Backend.Discord;
-using LSOverlay.Backend.Pairing;
 using LSOverlay.Backend.Presence;
 using LSOverlay.Backend.Runtime;
 using LSOverlay.Backend.Security;
@@ -31,9 +30,7 @@ public sealed class M93KestrelChatIntegrationTests
     {
         await using var fixture = await ChatFixture.StartAsync(shutdownTest: true);
         await using var client = new LSOverlayRemoteClient(fixture.BaseUri);
-        var pairing = await client.CreatePairingAsync(Guid.NewGuid());
-        fixture.Pairing.Approve(123, 456, false, pairing.UserCode);
-        var claim = await client.GetPairingAsync(pairing.PairingId, pairing.PairingClaimSecret);
+        var claim = fixture.Credentials.Issue(Guid.NewGuid(), 456, 123);
         var token = Assert.IsType<string>(claim.AccessToken);
         var presence = await client.GetBootstrapAsync(token);
         var chat = await client.GetChatBootstrapAsync(token, 789);
@@ -79,12 +76,7 @@ public sealed class M93KestrelChatIntegrationTests
     {
         await using var fixture = await ChatFixture.StartAsync();
         await using var client = new LSOverlayRemoteClient(fixture.BaseUri);
-        var pairing = await client.CreatePairingAsync(Guid.NewGuid());
-        Assert.Equal(PairingApprovalResult.Approved,
-            fixture.Pairing.Approve(123, 456, false, pairing.UserCode));
-        var claim = await client.GetPairingAsync(
-            pairing.PairingId,
-            pairing.PairingClaimSecret);
+        var claim = fixture.Credentials.Issue(Guid.NewGuid(), 456, 123);
         var token = Assert.IsType<string>(claim.AccessToken);
 
         var presence = await client.GetBootstrapAsync(token);
@@ -127,12 +119,7 @@ public sealed class M93KestrelChatIntegrationTests
     {
         await using var fixture = await ChatFixture.StartAsync();
         await using var client = new LSOverlayRemoteClient(fixture.BaseUri);
-        var pairing = await client.CreatePairingAsync(Guid.NewGuid());
-        Assert.Equal(PairingApprovalResult.Approved,
-            fixture.Pairing.Approve(123, 456, false, pairing.UserCode));
-        var claim = await client.GetPairingAsync(
-            pairing.PairingId,
-            pairing.PairingClaimSecret);
+        var claim = fixture.Credentials.Issue(Guid.NewGuid(), 456, 123);
         var token = Assert.IsType<string>(claim.AccessToken);
         var presence = await client.GetBootstrapAsync(token);
         var catalog = await client.GetChatChannelsAsync(token);
@@ -186,12 +173,7 @@ public sealed class M93KestrelChatIntegrationTests
     {
         await using var fixture = await ChatFixture.StartAsync();
         await using var client = new LSOverlayRemoteClient(fixture.BaseUri);
-        var pairing = await client.CreatePairingAsync(Guid.NewGuid());
-        Assert.Equal(PairingApprovalResult.Approved,
-            fixture.Pairing.Approve(123, 456, false, pairing.UserCode));
-        var claim = await client.GetPairingAsync(
-            pairing.PairingId,
-            pairing.PairingClaimSecret);
+        var claim = fixture.Credentials.Issue(Guid.NewGuid(), 456, 123);
         var token = Assert.IsType<string>(claim.AccessToken);
         var presence = await client.GetBootstrapAsync(token);
         var catalog = await client.GetChatChannelsAsync(token);
@@ -254,9 +236,7 @@ public sealed class M93KestrelChatIntegrationTests
     {
         await using var fixture = await ChatFixture.StartAsync(rejectAccess: true);
         await using var client = new LSOverlayRemoteClient(fixture.BaseUri);
-        var pairing = await client.CreatePairingAsync(Guid.NewGuid());
-        fixture.Pairing.Approve(123, 456, false, pairing.UserCode);
-        var claim = await client.GetPairingAsync(pairing.PairingId, pairing.PairingClaimSecret);
+        var claim = fixture.Credentials.Issue(Guid.NewGuid(), 456, 123);
         using var http = new HttpClient { BaseAddress = fixture.BaseUri };
         using var request = new HttpRequestMessage(
             endpoint.EndsWith("channels", StringComparison.Ordinal) ? HttpMethod.Get : HttpMethod.Post, endpoint);
@@ -308,12 +288,12 @@ public sealed class M93KestrelChatIntegrationTests
             _app = app;
             _stateDirectory = stateDirectory;
             BaseUri = baseUri;
-            Pairing = app.Services.GetRequiredService<PairingService>();
+            Credentials = app.Services.GetRequiredService<ClientCredentialRegistry>();
             Streams = app.Services.GetRequiredService<ActiveChatStreamRegistry>();
         }
 
         public Uri BaseUri { get; }
-        public PairingService Pairing { get; }
+        public ClientCredentialRegistry Credentials { get; }
         public ActiveChatStreamRegistry Streams { get; }
         public IServiceProvider Services => _app.Services;
         public Task StopAsync() => _app.StopAsync();
@@ -339,7 +319,6 @@ public sealed class M93KestrelChatIntegrationTests
             builder.Services.AddSingleton(new TrackedHostPresenceStore(
                 configuration.SessionHostIds));
             builder.Services.AddSingleton<ClientCredentialRegistry>();
-            builder.Services.AddSingleton<PairingService>();
             builder.Services.AddSingleton<TransportMetrics>();
             builder.Services.AddSingleton<RemotePublicationHub>();
             builder.Services.AddSingleton<RemoteConnectionLimiter>();
@@ -366,7 +345,6 @@ public sealed class M93KestrelChatIntegrationTests
                 builder.Services.AddSingleton<IDiscordGatewayLifecycle>(services => services.GetRequiredService<FakeGateway>());
                 builder.Services.AddHostedService<DiscordBackendWorker>();
             }
-            builder.Services.AddTransportRateLimiting();
             var app = builder.Build();
             app.MapTransportApi();
             await app.StartAsync();

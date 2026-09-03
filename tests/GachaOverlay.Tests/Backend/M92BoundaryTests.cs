@@ -1,6 +1,5 @@
 using Discord;
 using LSOverlay.Backend.Discord;
-using LSOverlay.Backend.Pairing;
 using LSOverlay.Protocol;
 using System.Text.RegularExpressions;
 
@@ -65,20 +64,6 @@ public sealed class M92BoundaryTests
         Assert.Equal(expected, DiscordGatewayPolicy.RequiredIntents);
         Assert.Equal(GatewayIntents.None,
             DiscordGatewayPolicy.RequiredIntents & GatewayIntents.GuildMembers);
-    }
-
-    [Fact]
-    public void PairingCommand_IsGuildReconciledSubcommandAndDoesNotNeedSendMessages()
-    {
-        var command = DiscordPairingCommand.Build();
-        var pair = Assert.Single(command.Options.Value);
-        var code = Assert.Single(pair.Options);
-
-        Assert.Equal("lsoverlay", command.Name.Value);
-        Assert.Equal("pair", pair.Name);
-        Assert.Equal(ApplicationCommandOptionType.SubCommand, pair.Type);
-        Assert.Equal("code", code.Name);
-        Assert.True(code.IsRequired);
     }
 
     [Fact]

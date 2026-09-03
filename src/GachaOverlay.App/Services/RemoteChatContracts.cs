@@ -11,8 +11,8 @@ internal static class RemoteSalesStatusNames
 
 internal enum RemoteChatHealthState
 {
-    PairingRequired,
-    PairingInProgress,
+    LoginRequired,
+    LoginInProgress,
     Authenticating,
     Connecting,
     Bootstrapping,
@@ -40,8 +40,7 @@ internal sealed record RemoteChatSnapshot(
     RemoteChatHealthState Health,
     string Detail,
     bool HasProtectedCredential,
-    string? PairingCode,
-    DateTimeOffset? PairingExpiresAt,
+    DateTimeOffset? WebAuthExpiresAt,
     IReadOnlyList<RemoteChannelOption> Channels,
     string? SelectedChannelId)
 {
@@ -52,7 +51,6 @@ internal sealed record RemoteChatSnapshot(
         RemoteChatHealthState.Disconnected,
         "NotStarted",
         false,
-        null,
         null,
         Array.Empty<RemoteChannelOption>(),
         null);

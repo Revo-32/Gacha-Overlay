@@ -62,51 +62,6 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
     public event Action<SalesMutationEnvelope>? SalesMutationReceived;
     public event Action<string>? SalesStreamStatusChanged;
 
-    public async Task<CreatePairingResponse> CreatePairingAsync(
-        Guid clientInstallationId,
-        CancellationToken cancellationToken = default)
-    {
-        var request = new CreatePairingRequest(
-            OverlayTransportProtocol.Version,
-            clientInstallationId);
-        using var content = JsonContent.Create(request, options: OverlayProtocolJson.Options);
-        using var response = await _http.PostAsync(
-                Endpoint("api/v1/pairings"),
-                content,
-                cancellationToken)
-            .ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-        var value = await DeserializeAsync<CreatePairingResponse>(response, cancellationToken)
-            .ConfigureAwait(false);
-        OverlayProtocolJson.EnsureVersion(value.ProtocolVersion);
-        return value;
-    }
-
-    public async Task<PairingClaimResponse> GetPairingAsync(
-        Guid pairingId,
-        string pairingClaimSecret,
-        CancellationToken cancellationToken = default)
-    {
-        using var request = new HttpRequestMessage(
-            HttpMethod.Get,
-            Endpoint($"api/v1/pairings/{pairingId:D}"));
-        request.Headers.Authorization = new AuthenticationHeaderValue(
-            "LSOPairing",
-            pairingClaimSecret);
-        using var response = await _http.SendAsync(request, cancellationToken)
-            .ConfigureAwait(false);
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            throw new UnauthorizedAccessException("Pairing claim was rejected.");
-        }
-
-        response.EnsureSuccessStatusCode();
-        var value = await DeserializeAsync<PairingClaimResponse>(response, cancellationToken)
-            .ConfigureAwait(false);
-        OverlayProtocolJson.EnsureVersion(value.ProtocolVersion);
-        return value;
-    }
-
     public async Task<BootstrapResponse> GetBootstrapAsync(
         string accessToken,
         CancellationToken cancellationToken = default)

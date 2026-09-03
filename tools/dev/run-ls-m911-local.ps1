@@ -4,12 +4,12 @@ Runs the isolated LS Overlay M9.11 Remote-only quick or five-cycle reconnect val
 
 .DESCRIPTION
 Discord Desktop is not used or controlled by this helper. For the Quick check,
-finish pairing if required, fully close Discord Desktop yourself, and send the
+finish browser login if required, fully close Discord Desktop yourself, and send the
 live-message check from Discord web or mobile. The helper only stops processes
 that it started.
 Reconnect keeps one WPF process alive and gates each restart on fresh WPF Chat,
 Sales and Presence recovery for ten stable seconds, then an explicit user PASS.
-FAIL, lost readiness, re-pair or timeout stops the run instead of advancing.
+FAIL, lost readiness, reauthentication or timeout stops the run instead of advancing.
 
 .EXAMPLE
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "E:\Codex\Projects\Gacha_Overlay\tools\dev\run-ls-m911-local.ps1"
@@ -47,7 +47,7 @@ if ($Mode -eq 'Menu') {
 
 if ($Mode -eq 'Quick') {
     Write-Host ''
-    Write-Host 'Important: after Remote pairing is ready, fully close Discord Desktop.' -ForegroundColor Yellow
+    Write-Host 'Important: after Remote browser login is ready, fully close Discord Desktop.' -ForegroundColor Yellow
     Write-Host 'Use Discord web or mobile for the new-message check. This helper will not close Discord for you.'
 }
 

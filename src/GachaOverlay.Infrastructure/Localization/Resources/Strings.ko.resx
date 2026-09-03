@@ -202,7 +202,7 @@
   <data name="SalesQueueDetails" xml:space="preserve"><value>대기열 상세</value></data>
   <data name="SettingsClearMediaCache" xml:space="preserve"><value>미디어 캐시 비우기</value></data>
   <data name="SettingsResetAll" xml:space="preserve"><value>모든 설정 초기화</value></data>
-  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>모든 프로그램 설정을 안전한 기본값으로 초기화할까요? 보호된 원격 페어링 인증 정보는 삭제되지 않습니다.</value></data>
+  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>모든 프로그램 설정을 안전한 기본값으로 초기화할까요? 보호된 원격 인증 정보는 삭제되지 않습니다.</value></data>
   <data name="SettingsProductSelectEmoji" xml:space="preserve"><value>먼저 관찰된 이모지를 선택하세요.</value></data>
   <data name="SettingsProductDuplicate" xml:space="preserve"><value>같은 서버 범위에 이미 매핑된 이모지입니다.</value></data>
   <data name="SettingsProductSaveFailed" xml:space="preserve"><value>매핑 파일을 저장하지 못했습니다. 이전 파일은 보존되었습니다.</value></data>
@@ -230,7 +230,7 @@
   <data name="SalesPreviewLongNames" xml:space="preserve"><value>긴 이름</value></data>
   <data name="SettingsAppVersion" xml:space="preserve"><value>앱 버전</value></data>
   <data name="SettingsAutoSaveHint" xml:space="preserve"><value>변경 사항은 즉시 적용되고 자동 저장됩니다.</value></data>
-  <data name="SettingsResetAllHint" xml:space="preserve"><value>표시, HUD, 채팅, 미디어, 판매, 단축키 설정을 초기화합니다. 보호된 원격 페어링 인증 정보는 별도로 유지됩니다.</value></data>
+  <data name="SettingsResetAllHint" xml:space="preserve"><value>표시, HUD, 채팅, 미디어, 판매, 단축키 설정을 초기화합니다. 보호된 원격 인증 정보는 별도로 유지됩니다.</value></data>
   <data name="SettingsM8AutoStartPlaceholder" xml:space="preserve"><value>Windows 자동 시작은 M8 온보딩 단계에서 이 위치에 추가됩니다.</value></data>
   <data name="SettingsTransparentHudHint" xml:space="preserve"><value>0%에서는 일반 HUD 표면만 투명해지고 텍스트, 미디어, 상태 표시는 선명하게 유지됩니다.</value></data>
   <data name="SettingsChatMaxLines" xml:space="preserve"><value>최대 줄 수</value></data>
@@ -348,22 +348,21 @@
   <data name="SettingsRemoteEndpoint" xml:space="preserve"><value>원격 백엔드 주소 (HTTPS, 이 PC 내부만 HTTP)</value></data>
   <data name="SettingsRemoteApply" xml:space="preserve"><value>주소 적용</value></data>
   <data name="SettingsRemoteRefresh" xml:space="preserve"><value>재연결 / 새로고침</value></data>
-  <data name="SettingsRemotePair" xml:space="preserve"><value>Discord로 로그인</value></data>
-  <data name="SettingsRemotePairCancel" xml:space="preserve"><value>로그인 취소</value></data>
+  <data name="SettingsRemoteLogin" xml:space="preserve"><value>Discord로 로그인</value></data>
+  <data name="SettingsRemoteLoginCancel" xml:space="preserve"><value>로그인 취소</value></data>
   <data name="SettingsRemoteForget" xml:space="preserve"><value>연결 해제 / 삭제</value></data>
-  <data name="SettingsRemotePairingInstruction" xml:space="preserve"><value>Discord에서 다음 명령을 실행하세요: /lsoverlay pair code:{0}</value></data>
   <data name="SettingsRemoteCredentialSaved" xml:space="preserve"><value>접근 토큰: 현재 Windows 사용자 전용으로 보호됨</value></data>
-  <data name="SettingsRemoteCredentialMissing" xml:space="preserve"><value>접근 토큰: 페어링 필요</value></data>
+  <data name="SettingsRemoteCredentialMissing" xml:space="preserve"><value>원격 인증 정보: 로그인 필요</value></data>
   <data name="SettingsRemoteChannel" xml:space="preserve"><value>허용된 메인 채팅 채널</value></data>
   <data name="SettingsRemoteUseChannel" xml:space="preserve"><value>선택 채널 사용</value></data>
   <data name="SettingsRemoteConfigurationApplied" xml:space="preserve"><value>원격 백엔드 주소를 적용했습니다.</value></data>
   <data name="SettingsRemoteConfigurationFailed" xml:space="preserve"><value>원격 백엔드 주소를 적용하지 못했습니다. 주소와 로그를 확인하세요.</value></data>
-  <data name="SettingsRemotePairingForgotten" xml:space="preserve"><value>보호된 원격 인증 정보와 채널 선택을 삭제했습니다.</value></data>
-  <data name="SettingsRemotePairingForgetFailed" xml:space="preserve"><value>보호된 인증 정보를 삭제하지 못했습니다.</value></data>
+  <data name="SettingsRemoteCredentialForgotten" xml:space="preserve"><value>보호된 원격 인증 정보와 채널 선택을 삭제했습니다.</value></data>
+  <data name="SettingsRemoteCredentialForgetFailed" xml:space="preserve"><value>보호된 인증 정보를 삭제하지 못했습니다.</value></data>
   <data name="SettingsRemoteChannelSwitchRequested" xml:space="preserve"><value>새 채널 준비가 끝나면 전환이 확정됩니다.</value></data>
   <data name="SettingsRemoteChannelSwitchFailed" xml:space="preserve"><value>채널을 전환하지 못했습니다.</value></data>
-  <data name="RemoteHealthPairingRequired" xml:space="preserve"><value>원격: 로그인 필요</value></data>
-  <data name="RemoteHealthPairingInProgress" xml:space="preserve"><value>원격: 로그인 진행 중</value></data>
+  <data name="RemoteHealthLoginRequired" xml:space="preserve"><value>원격: 로그인 필요</value></data>
+  <data name="RemoteHealthLoginInProgress" xml:space="preserve"><value>원격: 로그인 진행 중</value></data>
   <data name="RemoteHealthAuthenticating" xml:space="preserve"><value>원격: 인증 중</value></data>
   <data name="RemoteHealthConnecting" xml:space="preserve"><value>원격: 연결 중</value></data>
   <data name="RemoteHealthBootstrapping" xml:space="preserve"><value>원격: 최근 채팅 불러오는 중</value></data>
@@ -374,13 +373,13 @@
   <data name="RemoteHealthAccessRevoked" xml:space="preserve"><value>원격: 접근 권한 취소됨</value></data>
   <data name="RemoteHealthDisconnected" xml:space="preserve"><value>원격: 연결 끊김</value></data>
   <data name="RemoteHealthError" xml:space="preserve"><value>원격: 오류</value></data>
-  <data name="RemoteDetailPairingRequired" xml:space="preserve"><value>Discord로 로그인하여 이 설치본을 승인하세요.</value></data>
-  <data name="RemoteDetailPairing" xml:space="preserve"><value>브라우저에서 인증을 완료해주세요. 로컬 개발자 모드에서는 필요한 경우 명령이 표시됩니다.</value></data>
+  <data name="RemoteDetailLoginRequired" xml:space="preserve"><value>Discord로 로그인하여 이 설치본을 승인하세요.</value></data>
+  <data name="RemoteDetailLogin" xml:space="preserve"><value>브라우저에서 인증을 완료해주세요.</value></data>
   <data name="RemoteDetailConnecting" xml:space="preserve"><value>인증 후 허용된 채널 목록을 준비하고 있습니다.</value></data>
   <data name="RemoteDetailChannel" xml:space="preserve"><value>서버가 허용한 목록에서 채널 하나를 선택하세요.</value></data>
   <data name="RemoteDetailLive" xml:space="preserve"><value>최근 메시지와 실시간 생성·수정·삭제 이벤트가 활성화되었습니다.</value></data>
   <data name="RemoteDetailNetwork" xml:space="preserve"><value>인증 정보는 유지됩니다. 제한된 지연 간격으로 다시 연결합니다.</value></data>
-  <data name="RemoteDetailAuthentication" xml:space="preserve"><value>현재 권한을 사용할 수 없습니다. 다시 페어링하거나 서버 권한을 복구하세요.</value></data>
+  <data name="RemoteDetailAuthentication" xml:space="preserve"><value>현재 권한을 사용할 수 없습니다. 다시 로그인하거나 서버 권한을 복구하세요.</value></data>
   <data name="RemoteDetailStorage" xml:space="preserve"><value>Windows 보호 저장소 확인이 필요합니다. 평문 토큰은 사용하지 않았습니다.</value></data>
   <data name="RemoteDetailError" xml:space="preserve"><value>원격 채팅을 안전하게 중지했습니다. 로그를 확인한 뒤 다시 연결하세요.</value></data>
   <data name="RemoteDetailDisconnected" xml:space="preserve"><value>원격 채팅이 중지되어 있습니다.</value></data>

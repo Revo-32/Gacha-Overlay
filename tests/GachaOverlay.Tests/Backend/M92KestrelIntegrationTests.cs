@@ -4,7 +4,6 @@ using System.Net.Http.Json;
 using LSOverlay.Backend.Configuration;
 using LSOverlay.Backend.Discord;
 using LSOverlay.Backend.Events;
-using LSOverlay.Backend.Pairing;
 using LSOverlay.Backend.Presence;
 using LSOverlay.Backend.Runtime;
 using LSOverlay.Backend.Security;
@@ -20,21 +19,15 @@ using Microsoft.Extensions.Logging;
 
 namespace GachaOverlay.Tests.Backend;
 
-public sealed class M92KestrelIntegrationTests
+public sealed partial class M92KestrelIntegrationTests
 {
     [Fact]
-    public async Task LoopbackKestrel_PairingBootstrapResumeAndLivePresenceWorkEndToEnd()
+    public async Task LoopbackKestrel_CredentialBootstrapResumeAndLivePresenceWorkEndToEnd()
     {
         await using var fixture = await TransportFixture.StartAsync();
         await using var client = new LSOverlayRemoteClient(fixture.BaseUri);
-        var pairing = await client.CreatePairingAsync(Guid.NewGuid());
-        Assert.Equal(PairingApprovalResult.Approved,
-            fixture.Pairing.Approve(123, 456, false, pairing.UserCode));
-        var claim = await client.GetPairingAsync(
-            pairing.PairingId,
-            pairing.PairingClaimSecret);
+        var claim = fixture.Credentials.Issue(Guid.NewGuid(), 456, 123);
 
-        Assert.Equal(PairingState.Approved, claim.State);
         Assert.NotNull(claim.AccessToken);
         var bootstrap = await client.GetBootstrapAsync(claim.AccessToken);
         Assert.Equal((ulong)456, bootstrap.SelfDiscordUserId);
@@ -123,33 +116,18 @@ public sealed class M92KestrelIntegrationTests
         Assert.Equal(WebSocketCloseStatus.ProtocolError, socket.CloseStatus);
     }
 
-    [Fact]
-    public async Task LoopbackKestrel_PairingCreationRateLimitHasNoQueue()
+    [Theory]
+    [InlineData("api/v1/pairings")]
+    [InlineData("api/v1/pairings/11111111-1111-1111-1111-111111111111")]
+    public async Task LegacyPairCodeRoutesAreNotMapped(string route)
     {
         await using var fixture = await TransportFixture.StartAsync();
         using var http = new HttpClient { BaseAddress = fixture.BaseUri };
-        var responses = new List<HttpResponseMessage>();
-        try
-        {
-            for (var index = 0; index < 6; index++)
-            {
-                responses.Add(await http.PostAsJsonAsync(
-                    "api/v1/pairings",
-                    new CreatePairingRequest(1, Guid.NewGuid()),
-                    OverlayProtocolJson.Options));
-            }
-
-            Assert.All(responses.Take(5), response =>
-                Assert.Equal(HttpStatusCode.OK, response.StatusCode));
-            Assert.Equal(HttpStatusCode.TooManyRequests, responses[5].StatusCode);
-        }
-        finally
-        {
-            foreach (var response in responses)
-            {
-                response.Dispose();
-            }
-        }
+        using var get = await http.GetAsync(route);
+        using var post = await http.PostAsJsonAsync(route, new { protocolVersion = 1, clientInstallationId = Guid.NewGuid() });
+        Assert.Equal(HttpStatusCode.NotFound, get.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, post.StatusCode);
+        Assert.Equal(0, fixture.Credentials.Count);
     }
 
     [Fact]
@@ -260,10 +238,7 @@ public sealed class M92KestrelIntegrationTests
     private static async Task<string> IssueTokenAsync(TransportFixture fixture)
     {
         await using var client = new LSOverlayRemoteClient(fixture.BaseUri);
-        var pairing = await client.CreatePairingAsync(Guid.NewGuid());
-        Assert.Equal(PairingApprovalResult.Approved,
-            fixture.Pairing.Approve(123, 456, false, pairing.UserCode));
-        var claim = await client.GetPairingAsync(pairing.PairingId, pairing.PairingClaimSecret);
+        var claim = fixture.Credentials.Issue(Guid.NewGuid(), 456, 123);
         return Assert.IsType<string>(claim.AccessToken);
     }
 
@@ -279,7 +254,7 @@ public sealed class M92KestrelIntegrationTests
             _stateDirectory = stateDirectory;
             _ownsStateDirectory = ownsStateDirectory;
             BaseUri = baseUri;
-            Pairing = app.Services.GetRequiredService<PairingService>();
+            Credentials = app.Services.GetRequiredService<ClientCredentialRegistry>();
             Publication = app.Services.GetRequiredService<RemotePublicationHub>();
         }
 
@@ -288,7 +263,7 @@ public sealed class M92KestrelIntegrationTests
         {
             Scheme = "ws",
         }.Uri;
-        public PairingService Pairing { get; }
+        public ClientCredentialRegistry Credentials { get; }
         public RemotePublicationHub Publication { get; }
 
         public static async Task<TransportFixture> StartAsync(IGuildMembershipVerifier? membership = null, string? stateDirectory = null)
@@ -316,13 +291,11 @@ public sealed class M92KestrelIntegrationTests
             builder.Services.AddSingleton(new TrackedHostPresenceStore(
                 configuration.SessionHostIds));
             builder.Services.AddSingleton<ClientCredentialRegistry>();
-            builder.Services.AddSingleton<PairingService>();
             builder.Services.AddSingleton<TransportMetrics>();
             builder.Services.AddSingleton<RemotePublicationHub>();
             builder.Services.AddSingleton<RemoteConnectionLimiter>();
             builder.Services.AddSingleton<BackendWebSocketSession>();
             builder.Services.AddSingleton<IGuildMembershipVerifier>(membership ?? new AlwaysMemberVerifier());
-            builder.Services.AddTransportRateLimiting();
             var app = builder.Build();
             app.MapTransportApi();
             await app.StartAsync();

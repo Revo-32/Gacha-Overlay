@@ -220,9 +220,9 @@ internal sealed class ApplicationHost : IDisposable
             _localization,
             _remoteChatCoordinator.Snapshot,
             ApplyRemoteConfigurationAsync,
-            _remoteChatCoordinator.BeginPairingAsync,
-            _remoteChatCoordinator.CancelPairing,
-            _remoteChatCoordinator.ForgetPairingAsync,
+            _remoteChatCoordinator.BeginLoginAsync,
+            _remoteChatCoordinator.CancelLogin,
+            _remoteChatCoordinator.ForgetCredentialAsync,
             _remoteChatCoordinator.RefreshAsync,
             _remoteChatCoordinator.SwitchChannelAsync);
 

@@ -119,14 +119,8 @@ public sealed class M92TransportStateTests
     public void HttpAuthentication_AcceptsOnlyExactHeaderSchemesAndRejectsQueryCredentials()
     {
         var context = new DefaultHttpContext();
-        context.Request.Headers.Authorization = "LSOPairing machine-secret";
-        Assert.True(TransportAuthentication.TryReadPairingClaim(
-            context.Request,
-            out var secret));
-        Assert.Equal("machine-secret", secret);
-
-        context.Request.Headers.Authorization = "Bearer client-token";
-        Assert.False(TransportAuthentication.TryReadPairingClaim(context.Request, out _));
+        // The old scheme has no parser or authentication route after retirement.
+        Assert.Null(typeof(TransportAuthentication).GetMethod("TryReadPairingClaim"));
         context.Request.QueryString = new QueryString("?access_token=client-token");
         Assert.True(TransportAuthentication.HasForbiddenCredentialQuery(context.Request));
     }

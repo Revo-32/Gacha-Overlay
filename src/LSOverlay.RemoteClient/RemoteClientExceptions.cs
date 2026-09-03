@@ -3,7 +3,7 @@ namespace LSOverlay.RemoteClient;
 public sealed class RemoteAuthenticationRequiredException : Exception
 {
     public RemoteAuthenticationRequiredException()
-        : base("LS Overlay pairing is required.")
+        : base("LS Overlay authentication is required.")
     {
     }
 }

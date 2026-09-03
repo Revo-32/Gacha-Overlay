@@ -220,7 +220,7 @@ public sealed partial class M94ProductionRemoteModeTests
     }
 
     [Fact]
-    public async Task Coordinator_PairingStoresApprovedTokenAndStartsRemoteSession()
+    public async Task Coordinator_WebLoginStoresApprovedTokenAndStartsRemoteSession()
     {
         using var directory = new TemporaryDirectory();
         var store = CreateStore(directory, AppSettings.CreateDefault() with
@@ -228,7 +228,7 @@ public sealed partial class M94ProductionRemoteModeTests
             RemoteSelectedChannelId = "100",
         });
         var credential = new MemoryCredentialStore();
-        var pairingClient = new FakeRemoteClient(pairingToken: "approved-token");
+        var loginClient = new FakeRemoteClient(loginToken: "approved-token");
         var sessionClient = new FakeRemoteClient();
         var created = 0;
         await using var coordinator = new RemoteChatProductionCoordinator(
@@ -237,9 +237,9 @@ public sealed partial class M94ProductionRemoteModeTests
             new DiscordMessagePipeline(),
             Path.Combine(directory.Path, "install.txt"),
             NullAppLogger.Instance,
-            _ => Interlocked.Increment(ref created) == 1 ? pairingClient : sessionClient);
+            _ => Interlocked.Increment(ref created) == 1 ? loginClient : sessionClient, openBrowser: _ => { });
 
-        await coordinator.BeginPairingAsync();
+        await coordinator.BeginLoginAsync();
         await WaitUntilAsync(() => coordinator.Snapshot.Health == RemoteChatHealthState.Live);
 
         Assert.Equal("approved-token", credential.Value);
@@ -250,7 +250,7 @@ public sealed partial class M94ProductionRemoteModeTests
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(4)]
-    public async Task Coordinator_RePairAfterRejectedCredentialsRestoresRecentTwentyAndLiveMessages(
+    public async Task Coordinator_ReauthAfterRejectedCredentialsRestoresRecentTwentyAndLiveMessages(
         int rejectedAttempts)
     {
         using var directory = new TemporaryDirectory();
@@ -263,11 +263,11 @@ public sealed partial class M94ProductionRemoteModeTests
         var sessionClient = new FakeRemoteClient(messageCount: 25);
         var clients = new Queue<FakeRemoteClient>(Enumerable.Range(0, rejectedAttempts)
             .Select(_ => new FakeRemoteClient(rejectAuthentication: true)));
-        clients.Enqueue(new FakeRemoteClient(pairingToken: "new-backend-token"));
+        clients.Enqueue(new FakeRemoteClient(loginToken: "new-backend-token"));
         clients.Enqueue(sessionClient);
         await using var coordinator = new RemoteChatProductionCoordinator(
             store, credential, pipeline, Path.Combine(directory.Path, "install.txt"),
-            NullAppLogger.Instance, _ => clients.Dequeue());
+            NullAppLogger.Instance, _ => clients.Dequeue(), openBrowser: _ => { });
 
         coordinator.Start();
         for (var attempt = 0; attempt < rejectedAttempts; attempt++)
@@ -282,7 +282,7 @@ public sealed partial class M94ProductionRemoteModeTests
         }
         var revokedGeneration = pipeline.Current.Generation;
 
-        await coordinator.BeginPairingAsync();
+        await coordinator.BeginLoginAsync();
         await WaitUntilAsync(() => coordinator.Snapshot.Health == RemoteChatHealthState.Live);
 
         Assert.Equal("new-backend-token", credential.Value);
@@ -297,7 +297,7 @@ public sealed partial class M94ProductionRemoteModeTests
     }
 
     [Fact]
-    public async Task Coordinator_AccessRevokedRejectsOldCallbacksAndRecoversAfterRePairAndFiveRestarts()
+    public async Task Coordinator_AccessRevokedRejectsOldCallbacksAndRecoversAfterReauthAndFiveRestarts()
     {
         using var directory = new TemporaryDirectory();
         var store = CreateStore(directory, AppSettings.CreateDefault() with
@@ -309,14 +309,14 @@ public sealed partial class M94ProductionRemoteModeTests
         var oldClient = new FakeRemoteClient(messageCount: 20);
         var clients = new Queue<FakeRemoteClient>();
         clients.Enqueue(oldClient);
-        clients.Enqueue(new FakeRemoteClient(pairingToken: "repaired-token"));
+        clients.Enqueue(new FakeRemoteClient(loginToken: "repaired-token"));
         foreach (var _ in Enumerable.Range(0, 6))
         {
             clients.Enqueue(new FakeRemoteClient(messageCount: 20));
         }
         await using var coordinator = new RemoteChatProductionCoordinator(
             store, credential, pipeline, Path.Combine(directory.Path, "install.txt"),
-            NullAppLogger.Instance, _ => clients.Dequeue());
+            NullAppLogger.Instance, _ => clients.Dequeue(), openBrowser: _ => { });
         coordinator.Start();
         await WaitUntilAsync(() => coordinator.Snapshot.Health == RemoteChatHealthState.Live);
 
@@ -328,7 +328,7 @@ public sealed partial class M94ProductionRemoteModeTests
         Assert.Empty(pipeline.Current.MainChat);
         Assert.Equal(RemoteChatHealthState.AccessRevoked, coordinator.Snapshot.Health);
 
-        await coordinator.BeginPairingAsync();
+        await coordinator.BeginLoginAsync();
         for (var cycle = 0; cycle <= 5; cycle++)
         {
             if (cycle > 0)
@@ -345,7 +345,7 @@ public sealed partial class M94ProductionRemoteModeTests
     }
 
     [Fact]
-    public async Task Coordinator_ForgetPairingThenPairAndSelectChannelRestoresMessages()
+    public async Task Coordinator_ForgetCredentialThenLoginAndSelectChannelRestoresMessages()
     {
         using var directory = new TemporaryDirectory();
         var store = CreateStore(directory, AppSettings.CreateDefault() with
@@ -356,20 +356,20 @@ public sealed partial class M94ProductionRemoteModeTests
         var clients = new Queue<FakeRemoteClient>(new[]
         {
             new FakeRemoteClient(messageCount: 20),
-            new FakeRemoteClient(pairingToken: "repaired-token"),
+            new FakeRemoteClient(loginToken: "repaired-token"),
             new FakeRemoteClient(),
             new FakeRemoteClient(messageCount: 20),
         });
         await using var coordinator = new RemoteChatProductionCoordinator(
             store, new MemoryCredentialStore("token"), pipeline, Path.Combine(directory.Path, "install.txt"),
-            NullAppLogger.Instance, _ => clients.Dequeue());
+            NullAppLogger.Instance, _ => clients.Dequeue(), openBrowser: _ => { });
         coordinator.Start();
         await WaitUntilAsync(() => coordinator.Snapshot.Health == RemoteChatHealthState.Live);
 
-        Assert.True(await coordinator.ForgetPairingAsync());
+        Assert.True(await coordinator.ForgetCredentialAsync());
         Assert.Empty(pipeline.Current.MainChat);
         var revokedGeneration = pipeline.Current.Generation;
-        await coordinator.BeginPairingAsync();
+        await coordinator.BeginLoginAsync();
         await WaitUntilAsync(() => coordinator.Snapshot.Health == RemoteChatHealthState.ChannelSelectionRequired);
         Assert.True(await coordinator.SwitchChannelAsync("100"));
         await WaitUntilAsync(() => coordinator.Snapshot.Health == RemoteChatHealthState.Live);
@@ -626,7 +626,7 @@ public sealed partial class M94ProductionRemoteModeTests
     }
 
     [Fact]
-    public async Task RecoveryAudit_Presence503RetriesAutomaticallyWithoutRePairAndLogsSafePhase()
+    public async Task RecoveryAudit_Presence503RetriesAutomaticallyWithoutReauthAndLogsSafePhase()
     {
         using var directory = new TemporaryDirectory();
         var store = CreateStore(directory, AppSettings.CreateDefault() with
@@ -810,13 +810,13 @@ public sealed partial class M94ProductionRemoteModeTests
         public void Error(string category, string message, Exception? exception = null) { }
     }
 
-    private class FakeRemoteClient : ILSOverlayRemoteClient
+    private class FakeRemoteClient : ILSOverlayRemoteClient, ILSOverlayDiscordWebAuthClient
     {
         private readonly int _messageCount;
         private readonly bool _failBootstrap;
         private readonly bool _delaySwitchReady;
         private readonly bool _rejectAuthentication;
-        private readonly string? _pairingToken;
+        private readonly string? _loginToken;
         private readonly Action? _beforeChatBootstrap;
         private readonly string _presenceGeneration;
         private readonly Exception? _presenceFailure;
@@ -826,7 +826,7 @@ public sealed partial class M94ProductionRemoteModeTests
             int messageCount = 1,
             bool failBootstrap = false,
             bool delaySwitchReady = false,
-            string? pairingToken = null,
+            string? loginToken = null,
             bool rejectAuthentication = false,
             Action? beforeChatBootstrap = null,
             string presenceGeneration = "presence",
@@ -835,7 +835,7 @@ public sealed partial class M94ProductionRemoteModeTests
             _messageCount = messageCount;
             _failBootstrap = failBootstrap;
             _delaySwitchReady = delaySwitchReady;
-            _pairingToken = pairingToken;
+            _loginToken = loginToken;
             _rejectAuthentication = rejectAuthentication;
             _beforeChatBootstrap = beforeChatBootstrap;
             _presenceGeneration = presenceGeneration;
@@ -864,23 +864,15 @@ public sealed partial class M94ProductionRemoteModeTests
         public event Action<ChatMutationEnvelope>? ChatMutationReceived;
         public event Action<ulong, string>? ChatStreamStatusChanged;
 
-        public Task<CreatePairingResponse> CreatePairingAsync(
-            Guid clientInstallationId,
-            CancellationToken cancellationToken = default) => Task.FromResult(new CreatePairingResponse(
-                OverlayTransportProtocol.Version,
-                Guid.NewGuid(),
-                "ABCD-1234",
-                "claim",
-                DateTimeOffset.UtcNow.AddMinutes(2)));
+        public virtual Task<DiscordWebAuthStartResponse?> StartDiscordWebAuthAsync(Guid installation, CancellationToken cancellationToken = default) =>
+            Task.FromResult<DiscordWebAuthStartResponse?>(new(1, Guid.NewGuid(), "synthetic-claim",
+                "https://discord.com/oauth2/authorize?scope=identify", DateTimeOffset.UtcNow.AddMinutes(5)));
 
-        public Task<PairingClaimResponse> GetPairingAsync(
-            Guid pairingId,
-            string pairingClaimSecret,
-            CancellationToken cancellationToken = default) => Task.FromResult(new PairingClaimResponse(
-                OverlayTransportProtocol.Version,
-                _pairingToken is null ? PairingState.Expired : PairingState.Approved,
-                _pairingToken,
-                DateTimeOffset.UtcNow.AddDays(1)));
+        public virtual Task<DiscordWebAuthClaimResult> GetDiscordWebAuthStatusAsync(Guid session, string claim, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new DiscordWebAuthClaimResult(1, _loginToken is null ? DiscordWebAuthStatus.Expired : DiscordWebAuthStatus.Approved,
+                AccessToken: _loginToken, CredentialExpiresAt: DateTimeOffset.UtcNow.AddDays(180)));
+
+        public virtual Task CancelDiscordWebAuthAsync(Guid session, string claim, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task<BootstrapResponse> GetBootstrapAsync(
             string accessToken,

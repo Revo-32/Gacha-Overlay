@@ -237,7 +237,7 @@
   <data name="SalesQueueDetails" xml:space="preserve"><value>Queue details</value></data>
   <data name="SettingsClearMediaCache" xml:space="preserve"><value>Clear media cache</value></data>
   <data name="SettingsResetAll" xml:space="preserve"><value>Reset all settings</value></data>
-  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>Reset every application setting to its safe default? The protected Remote pairing credential is not deleted.</value></data>
+  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>Reset every application setting to its safe default? The protected Remote credential is not deleted.</value></data>
   <data name="SettingsProductSelectEmoji" xml:space="preserve"><value>Select an observed emoji first.</value></data>
   <data name="SettingsProductDuplicate" xml:space="preserve"><value>This emoji is already mapped in the same guild scope.</value></data>
   <data name="SettingsProductSaveFailed" xml:space="preserve"><value>The mapping file could not be saved; the previous file is intact.</value></data>
@@ -265,7 +265,7 @@
   <data name="SalesPreviewLongNames" xml:space="preserve"><value>Long names</value></data>
   <data name="SettingsAppVersion" xml:space="preserve"><value>App version</value></data>
   <data name="SettingsAutoSaveHint" xml:space="preserve"><value>Changes are applied and saved automatically.</value></data>
-  <data name="SettingsResetAllHint" xml:space="preserve"><value>Resets display, HUD, chat, media, sales, and hotkey settings. The protected Remote pairing credential remains separate.</value></data>
+  <data name="SettingsResetAllHint" xml:space="preserve"><value>Resets display, HUD, chat, media, sales, and hotkey settings. The protected Remote credential remains separate.</value></data>
   <data name="SettingsM8AutoStartPlaceholder" xml:space="preserve"><value>Windows auto-start will be added here during M8 onboarding.</value></data>
   <data name="SettingsTransparentHudHint" xml:space="preserve"><value>At 0%, ordinary HUD surfaces become transparent while text, media, and semantic status indicators remain readable.</value></data>
   <data name="SettingsChatMaxLines" xml:space="preserve"><value>Maximum lines</value></data>
@@ -383,22 +383,21 @@
   <data name="SettingsRemoteEndpoint" xml:space="preserve"><value>Remote backend address (HTTPS; HTTP only for this PC)</value></data>
   <data name="SettingsRemoteApply" xml:space="preserve"><value>Apply address</value></data>
   <data name="SettingsRemoteRefresh" xml:space="preserve"><value>Reconnect / refresh</value></data>
-  <data name="SettingsRemotePair" xml:space="preserve"><value>Log in with Discord</value></data>
-  <data name="SettingsRemotePairCancel" xml:space="preserve"><value>Cancel login</value></data>
+  <data name="SettingsRemoteLogin" xml:space="preserve"><value>Log in with Discord</value></data>
+  <data name="SettingsRemoteLoginCancel" xml:space="preserve"><value>Cancel login</value></data>
   <data name="SettingsRemoteForget" xml:space="preserve"><value>Disconnect / forget</value></data>
-  <data name="SettingsRemotePairingInstruction" xml:space="preserve"><value>In Discord, run: /lsoverlay pair code:{0}</value></data>
   <data name="SettingsRemoteCredentialSaved" xml:space="preserve"><value>Access token: protected for the current Windows user</value></data>
-  <data name="SettingsRemoteCredentialMissing" xml:space="preserve"><value>Access token: pairing required</value></data>
+  <data name="SettingsRemoteCredentialMissing" xml:space="preserve"><value>Remote credential: login required</value></data>
   <data name="SettingsRemoteChannel" xml:space="preserve"><value>Authorized main chat channel</value></data>
   <data name="SettingsRemoteUseChannel" xml:space="preserve"><value>Use selected channel</value></data>
   <data name="SettingsRemoteConfigurationApplied" xml:space="preserve"><value>Remote backend address was applied.</value></data>
   <data name="SettingsRemoteConfigurationFailed" xml:space="preserve"><value>The Remote backend address could not be applied. Check the address and log.</value></data>
-  <data name="SettingsRemotePairingForgotten" xml:space="preserve"><value>The protected remote credential and channel selection were removed.</value></data>
-  <data name="SettingsRemotePairingForgetFailed" xml:space="preserve"><value>The protected credential could not be removed.</value></data>
+  <data name="SettingsRemoteCredentialForgotten" xml:space="preserve"><value>The protected remote credential and channel selection were removed.</value></data>
+  <data name="SettingsRemoteCredentialForgetFailed" xml:space="preserve"><value>The protected credential could not be removed.</value></data>
   <data name="SettingsRemoteChannelSwitchRequested" xml:space="preserve"><value>The channel switch will complete after the new channel is ready.</value></data>
   <data name="SettingsRemoteChannelSwitchFailed" xml:space="preserve"><value>The channel could not be switched.</value></data>
-  <data name="RemoteHealthPairingRequired" xml:space="preserve"><value>Remote: login required</value></data>
-  <data name="RemoteHealthPairingInProgress" xml:space="preserve"><value>Remote: login in progress</value></data>
+  <data name="RemoteHealthLoginRequired" xml:space="preserve"><value>Remote: login required</value></data>
+  <data name="RemoteHealthLoginInProgress" xml:space="preserve"><value>Remote: login in progress</value></data>
   <data name="RemoteHealthAuthenticating" xml:space="preserve"><value>Remote: authenticating</value></data>
   <data name="RemoteHealthConnecting" xml:space="preserve"><value>Remote: connecting</value></data>
   <data name="RemoteHealthBootstrapping" xml:space="preserve"><value>Remote: loading recent chat</value></data>
@@ -409,13 +408,13 @@
   <data name="RemoteHealthAccessRevoked" xml:space="preserve"><value>Remote: access revoked</value></data>
   <data name="RemoteHealthDisconnected" xml:space="preserve"><value>Remote: disconnected</value></data>
   <data name="RemoteHealthError" xml:space="preserve"><value>Remote: error</value></data>
-  <data name="RemoteDetailPairingRequired" xml:space="preserve"><value>Log in with Discord to authorize this installation.</value></data>
-  <data name="RemoteDetailPairing" xml:space="preserve"><value>Complete authentication in your browser. Local developer fallback displays a command when needed.</value></data>
+  <data name="RemoteDetailLoginRequired" xml:space="preserve"><value>Log in with Discord to authorize this installation.</value></data>
+  <data name="RemoteDetailLogin" xml:space="preserve"><value>Complete authentication in your browser.</value></data>
   <data name="RemoteDetailConnecting" xml:space="preserve"><value>Authenticating and preparing the authorized channel catalog.</value></data>
   <data name="RemoteDetailChannel" xml:space="preserve"><value>Select one channel from the server-authorized catalog.</value></data>
   <data name="RemoteDetailLive" xml:space="preserve"><value>Recent messages and live create/update/delete events are active.</value></data>
   <data name="RemoteDetailNetwork" xml:space="preserve"><value>The credential was preserved. Reconnection uses bounded backoff.</value></data>
-  <data name="RemoteDetailAuthentication" xml:space="preserve"><value>Authorization is no longer usable. Re-pair or repair server authorization.</value></data>
+  <data name="RemoteDetailAuthentication" xml:space="preserve"><value>Authorization is no longer usable. Log in again or restore server authorization.</value></data>
   <data name="RemoteDetailStorage" xml:space="preserve"><value>Windows protected storage needs attention; no plaintext token was used.</value></data>
   <data name="RemoteDetailError" xml:space="preserve"><value>Remote chat stopped safely. Review the application log, then reconnect.</value></data>
   <data name="RemoteDetailDisconnected" xml:space="preserve"><value>Remote chat is stopped.</value></data>

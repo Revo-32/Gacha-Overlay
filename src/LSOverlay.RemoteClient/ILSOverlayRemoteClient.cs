@@ -15,15 +15,6 @@ public interface ILSOverlayRemoteClient : IAsyncDisposable
 
     event Action<ulong, string>? ChatStreamStatusChanged;
 
-    Task<CreatePairingResponse> CreatePairingAsync(
-        Guid clientInstallationId,
-        CancellationToken cancellationToken = default);
-
-    Task<PairingClaimResponse> GetPairingAsync(
-        Guid pairingId,
-        string pairingClaimSecret,
-        CancellationToken cancellationToken = default);
-
     Task<BootstrapResponse> GetBootstrapAsync(
         string accessToken,
         CancellationToken cancellationToken = default);

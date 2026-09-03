@@ -1,14 +1,11 @@
 using System.Net.WebSockets;
-using System.Threading.RateLimiting;
 using LSOverlay.Backend.Discord;
 using LSOverlay.Backend.Chat;
-using LSOverlay.Backend.Pairing;
 using LSOverlay.Backend.Sales;
 using LSOverlay.Protocol;
 using LSOverlay.Backend.WebAuth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,131 +13,16 @@ namespace LSOverlay.Backend.Transport;
 
 internal static class BackendWebApi
 {
-    public const string PairingCreatePolicy = "pairing-create";
-    public const string PairingClaimPolicy = "pairing-claim";
-
-    public static void AddTransportRateLimiting(this IServiceCollection services)
-    {
-        services.AddRateLimiter(options =>
-        {
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.AddPolicy(PairingCreatePolicy, context =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    PartitionKey(context),
-                    _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 5,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueLimit = 0,
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        AutoReplenishment = true,
-                    }));
-            options.AddPolicy(PairingClaimPolicy, context =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    PartitionKey(context),
-                    _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 60,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueLimit = 0,
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        AutoReplenishment = true,
-                    }));
-        });
-    }
-
     public static void MapTransportApi(this WebApplication app)
     {
         app.UseBackendTransportSecurity();
         app.MapDiscordWebAuth();
-        app.UseRateLimiter();
         app.UseWebSockets(new WebSocketOptions
         {
             KeepAliveInterval = TimeSpan.Zero,
         });
 
         app.MapGet("/healthz", () => BackendTransportHosting.HealthResult(app.Services));
-
-        app.MapPost("/api/v1/pairings", (
-            HttpContext context,
-            CreatePairingRequest request,
-            PairingService pairing,
-            Security.ClientCredentialRegistry credentials,
-            TransportMetrics metrics) =>
-        {
-            if (TransportAuthentication.HasForbiddenCredentialQuery(context.Request))
-            {
-                return Results.BadRequest();
-            }
-
-            if (credentials.IsFaulted)
-            {
-                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-            }
-
-            try
-            {
-                OverlayProtocolJson.EnsureVersion(request.ProtocolVersion);
-                var created = pairing.Create(request.ClientInstallationId);
-                metrics.Increment(TransportMetric.PairingCreated);
-                return Results.Json(new CreatePairingResponse(
-                    OverlayTransportProtocol.Version,
-                    created.PairingId,
-                    created.UserCode,
-                    created.PairingClaimSecret,
-                    created.ExpiresAt));
-            }
-            catch (NotSupportedException)
-            {
-                return Results.StatusCode(StatusCodes.Status426UpgradeRequired);
-            }
-            catch (ArgumentException)
-            {
-                return Results.BadRequest();
-            }
-            catch (InvalidOperationException)
-            {
-                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-            }
-        }).RequireRateLimiting(PairingCreatePolicy);
-
-        app.MapGet("/api/v1/pairings/{pairingId:guid}", (
-            HttpContext context,
-            Guid pairingId,
-            PairingService pairing,
-            TransportMetrics metrics) =>
-        {
-            if (TransportAuthentication.HasForbiddenCredentialQuery(context.Request) ||
-                !TransportAuthentication.TryReadPairingClaim(context.Request, out var secret))
-            {
-                metrics.Increment(TransportMetric.PairingClaimRejected);
-                return Results.Unauthorized();
-            }
-
-            try
-            {
-                var result = pairing.Claim(pairingId, secret);
-                if (result.State == PairingState.Expired)
-                {
-                    metrics.Increment(TransportMetric.PairingExpired);
-                }
-
-                return Results.Json(new PairingClaimResponse(
-                    OverlayTransportProtocol.Version,
-                    result.State,
-                    result.Credential?.AccessToken,
-                    result.Credential?.ExpiresAt));
-            }
-            catch (UnauthorizedAccessException)
-            {
-                metrics.Increment(TransportMetric.PairingClaimRejected);
-                return Results.Unauthorized();
-            }
-            catch (InvalidOperationException)
-            {
-                return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-            }
-        }).RequireRateLimiting(PairingClaimPolicy);
 
         app.MapGet("/api/v1/bootstrap", async (
             HttpContext context,
@@ -397,6 +279,4 @@ internal static class BackendWebApi
         return identity;
     }
 
-    private static string PartitionKey(HttpContext context) =>
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 }

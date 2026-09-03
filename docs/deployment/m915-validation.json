@@ -1,0 +1,185 @@
+{
+  "milestone": "M9.15 SLASH PAIRING RETIREMENT / WEB AUTH FINALIZATION",
+  "validatedLocalDate": "2026-09-03",
+  "baselineCommit": "c15f84f",
+  "baselineTests": 1401,
+  "removedObsoleteTests": 26,
+  "addedReplacementTests": 29,
+  "finalTests": 1404,
+  "removedTestGroups": {
+    "legacyM9121CommandPermission": 21,
+    "legacyPairingService": 3,
+    "legacyCommandMetadata": 1,
+    "legacyPairingRateLimit": 1
+  },
+  "addedTestGroups": {
+    "commandRetirementMigration": 13,
+    "credentialCompatibility": 2,
+    "removedHttpRoutes": 2,
+    "architectureBoundaries": 4,
+    "loginUiStates": 6,
+    "loopbackNoFallback": 1,
+    "pendingGitDeletionDockerContext": 1
+  },
+  "debug": {
+    "passed": 1404,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  "release": {
+    "passed": 1404,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  "debugRepeat": {
+    "passed": 1404,
+    "failed": 0,
+    "skipped": 0
+  },
+  "testEvidence": [
+    "artifacts/m915-validation/m915-complete-debug.trx",
+    "artifacts/m915-validation/m915-complete-release.trx",
+    "artifacts/m915-validation/m915-repeat-debug.trx"
+  ],
+  "testExecutionNote": "One earlier whole-suite attempt stalled and was interrupted. Cause unconfirmed. Unchanged sources subsequently passed Debug, Release and repeated Debug with a 90-second no-progress guard; no hang reproduced. No product fix or long-term stability claim is made for that stall.",
+  "restore": "PASS",
+  "formatVerifyNoChanges": "PASS",
+  "diffCheck": "PASS",
+  "backendPublish": {
+    "runtime": "linux-x64",
+    "configuration": "Release",
+    "selfContained": false,
+    "status": "PASS",
+    "path": "artifacts/m915/backend-linux-x64",
+    "files": 11,
+    "bytes": 5571148,
+    "backendDllSha256": "A181A511B6A871C625363EC4A7A2F4FAA54F7C905F43299FD268E11E27497BB3",
+    "linuxRuntimeExecution": "NOT RUN",
+    "deployment": "NOT RUN - user reviews and pushes main"
+  },
+  "wpfPublish": {
+    "runtime": "win-x64",
+    "configuration": "Release",
+    "selfContained": true,
+    "singleFile": true,
+    "status": "PASS",
+    "path": "artifacts/m915/wpf-win-x64/GachaOverlay.App.exe",
+    "bytes": 179118667,
+    "sha256": "836ED6F0C7CB0735EA709615E7F1008B0C7DC50C3C57CC9B6FA25F6FDB41CB7A",
+    "offlineExecution": {
+      "status": "PASS",
+      "copiedExecutableOnly": true,
+      "diagnosticExports": 2,
+      "parsedRequiredJsonEntries": 6,
+      "settingsReuseAndGearRoute": "PASS",
+      "pendingTemporaryFiles": 0,
+      "realUserDataRead": false,
+      "networkStarted": false,
+      "evidenceDirectoryName": "GachaOverlay-M9141-14bbaf0cc9a34b7cb43ce84d2eb0f8df"
+    },
+    "finalBinaryInGamePhysicalInput": "NOT RUN"
+  },
+  "dockerContext": {
+    "sourceFiles": 134,
+    "projects": [
+      "GachaOverlay.Core",
+      "LSOverlay.Protocol",
+      "LSOverlay.Backend"
+    ],
+    "sourceClosure": "PASS",
+    "isolatedRestore": "PASS",
+    "isolatedPublish": "PASS",
+    "publishFiles": 12,
+    "publishBytes": 5572106,
+    "mode": "Tracked plus non-ignored pending sources, excluding deleted working-tree files; required graph remains validated",
+    "stagingDirectoryName": "LSOverlay-DockerContext-113cb009dae04cb9ac1c6d5143e06f32",
+    "dockerCliAvailable": false,
+    "dockerImageBuild": "NOT RUN"
+  },
+  "commandRetirement": {
+    "version": "M9.15/slash-retirement-v1",
+    "status": "IMPLEMENTED AND LOCALLY TESTED - not deployed",
+    "scope": "Current bot application, configured Target Guild, exact lsoverlay root / pair subcommand / required string code",
+    "worker": "Independent from Gateway callbacks and health/readiness",
+    "requestTimeoutSeconds": 10,
+    "attemptDeadlineSeconds": 20,
+    "maximumAttemptsPerStartup": 3,
+    "retryDelaySeconds": 30,
+    "redirectsAllowed": false,
+    "maximumResponseBytes": 1048576,
+    "persistentMarker": false,
+    "policy": "Verified absent ends worker; next process start performs bounded reconciliation again",
+    "deletesUnrelatedCommands": false,
+    "usesGlobalCommandApi": false,
+    "registersCommands": false,
+    "changesCredentialRegistry": false,
+    "actualDiscordCommandDeletion": "NOT RUN"
+  },
+  "credentialCompatibility": {
+    "historicalSlashIssued": "PASS - frozen historical v1 JSON fixture survives two Kestrel restarts and authenticates without reissue",
+    "webAuthIssued": "PASS - service-issued credential survives two Kestrel restarts and authenticates without reissue",
+    "registrySchema": 1,
+    "maximumCredentials": 128,
+    "expiryDays": 180,
+    "hashOnly": true,
+    "formatChanged": false,
+    "forcedReauthentication": false,
+    "registryFileBytesUnchangedOnAuthenticatedRestart": true,
+    "actualUserCredentialReadOrChanged": false,
+    "liveRailwayVolumeInspection": "NOT RUN - source and isolated fixtures inspected only",
+    "persistentPairingFiles": "None found in old service implementation; old session state was memory-only"
+  },
+  "developerTools": {
+    "obsoleteM9121HelperRemoved": true,
+    "transportProbe": "Existing credential only via secure prompt/environment, never CLI argument; no new authentication",
+    "probeInvalidArgumentsExitCode": 2,
+    "probeMissingCredentialExitCode": 3,
+    "guardChecks": "PASS - no network request",
+    "isolatedBackendHelpers": "Require preconfigured WebAuth and callback routed to the isolated Backend; no slash fallback",
+    "powershellSyntax": "PASS",
+    "webAuthEnvironmentIsolation": "PASS with synthetic values"
+  },
+  "priorUserBaseline": {
+    "source": "M9.15 request explicitly confirms prior M9.14/M9.14.1 actual validation",
+    "webOAuthDeveloperAccount": "PASS",
+    "webOAuthOrdinaryMember": "PASS",
+    "restartAutoLogin": "PASS",
+    "hudGear": "PASS",
+    "traySettings": "PASS",
+    "diagnosticBundle": "PASS",
+    "mentionsAfterRailwayRedeploy": "PASS",
+    "isM915ActualValidation": false
+  },
+  "userActualValidation": {
+    "webAuthFinalization": "NOT RUN",
+    "existingCredentialAutoConnect": "NOT RUN",
+    "cleanWebOAuth": "NOT RUN",
+    "legacySlashCommandAbsent": "NOT RUN"
+  },
+  "externalWrites": {
+    "commit": false,
+    "push": false,
+    "pullRequest": false,
+    "tag": false,
+    "release": false,
+    "railwayMutation": false,
+    "dnsMutation": false,
+    "portalMutation": false,
+    "serverPermissionMutation": false,
+    "botReinstall": false
+  },
+  "finalStatus": "SLASH PAIRING RETIREMENT BLOCKED",
+  "blockedOn": "User review/main push, Railway deployment, migration completion and real existing-credential/WebAuth/command-absence verification. No local new-user flow retains slash authentication.",
+  "deferred": [
+    "status.revo32.cloud",
+    "LS Overlay 2.0 UI/UX + Branding Overhaul",
+    "final namespace/project/package rename",
+    "multi-user 4-5 hour RC soak",
+    "release engineering"
+  ],
+  "nextStage": "First complete M9.15 production validation; then recommend LS Overlay 2.0 UI/UX + Branding Overhaul, not started automatically"
+}

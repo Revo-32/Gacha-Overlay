@@ -25,6 +25,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'LSOverlay.WebAuthEnvironment.ps1')
+$webAuthEnvironment = Get-LsWebAuthEnvironment
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $backendProject = Join-Path $repositoryRoot 'src\LSOverlay.Backend\LSOverlay.Backend.csproj'
 $wpfProject = Join-Path $repositoryRoot 'src\GachaOverlay.App\GachaOverlay.App.csproj'
@@ -55,7 +57,7 @@ $host2Name = 'LSO_SESSION_HOST_2_ID'
 $stateName = 'LSO_STATE_DIRECTORY'
 $listenName = 'LSO_LISTEN_URL'
 $shutdownName = 'LSO_DEV_SHUTDOWN_FILE'
-$backendEnvironmentNames = @(
+$backendEnvironmentNames = @($webAuthEnvironment.Keys) + @(
     $tokenName,
     $guildName,
     $legacyHostsName,
@@ -173,6 +175,7 @@ function Start-AuditBackend {
         [Environment]::SetEnvironmentVariable($stateName, $stateDirectory, 'Process')
         [Environment]::SetEnvironmentVariable($listenName, $BackendUrl, 'Process')
         [Environment]::SetEnvironmentVariable($shutdownName, $shutdownFile, 'Process')
+        Set-LsWebAuthEnvironment -Values $webAuthEnvironment
         $dotnetHost = (Get-Command dotnet -ErrorAction Stop).Source
         $backendDll = Join-Path $backendOutput 'LSOverlay.Backend.dll'
         $process = Start-Process -FilePath $dotnetHost `
@@ -223,7 +226,7 @@ function Wait-BackendReady {
             $healthWasReady = $health.status -eq 'ok'
             if ($healthWasReady -and
                 $logText.IndexOf(
-                    'Discord pairing command: Available',
+                    'Discord: Ready',
                     [StringComparison]::Ordinal) -ge 0) {
                 return
             }
@@ -245,7 +248,7 @@ function Wait-BackendReady {
             }
             else {
                 Write-Host (
-                    "Backend is ready; waiting for Discord Gateway and pairing command ({0}/120 seconds)." -f
+                    "Backend is ready; waiting for Discord Gateway ({0}/120 seconds)." -f
                     $elapsedSeconds) -ForegroundColor Yellow
             }
             $nextProgressSeconds = if ($nextProgressSeconds -eq 5) { 30 } else { $nextProgressSeconds + 30 }
@@ -278,13 +281,8 @@ function Wait-BackendReady {
             [StringComparison]::Ordinal) -ge 0) {
         throw "Backend started, but Discord Gateway WebSocket connection remained unavailable after 120 seconds. Check the network, VPN/proxy/firewall, or Discord service status, then retry. Sanitized log: $failureLogHint"
     }
-    if ($logText.IndexOf(
-            'Discord pairing command registration unavailable',
-            [StringComparison]::Ordinal) -ge 0) {
-        throw "Discord connected, but the pairing command could not be registered. Verify the Bot application/Guild configuration, then retry. Sanitized log: $failureLogHint"
-    }
     if ($healthWasReady) {
-        throw "Backend is healthy, but Discord and its pairing command did not become ready within 120 seconds. Sanitized log: $failureLogHint"
+        throw "Backend is healthy, but Discord Gateway did not become ready within 120 seconds. Sanitized log: $failureLogHint"
     }
 
     throw "Backend health endpoint did not become ready within 120 seconds. Sanitized log: $failureLogHint"
@@ -370,7 +368,7 @@ function Confirm-WpfRecovery {
     param([Parameter(Mandatory = $true)]$Check)
 
     Write-Host 'Confirm on screen: Chat updates, Sales is healthy (empty is allowed), selected Session is shown.'
-    Write-Host 'Also check: WPF stayed open; no re-pair, duplicate rows or sound; own-sale controls recover when applicable.'
+    Write-Host 'Also check: WPF stayed open; no reauthentication, duplicate rows or sound; own-sale controls recover when applicable.'
     $answer = (Read-Host "Cycle $($Check.Cycle): type PASS if these checks passed, otherwise FAIL (case-insensitive)").Trim()
     if ($answer -ine 'PASS') {
         $Check.Status = 'UserRejected'
@@ -483,18 +481,7 @@ function Invoke-SamplingWindow {
 function Write-ModeChecklist {
     Write-Host ''
     Write-Host "$AuditLabel USER CHECKPOINT" -ForegroundColor Green
-    if ($AuditLabel -eq 'M9.12.1') {
-        Write-Host '[ ] Use an ordinary account with no Administrator, Manage Guild or moderator privileges'
-        Write-Host '[ ] /lsoverlay pair is visible in the configured Target Guild'
-        Write-Host '[ ] A valid fresh WPF pairing code is approved with a private response'
-        Write-Host '[ ] WPF receives the credential and connects as that ordinary account'
-        Write-Host '[ ] An invalid code is privately rejected without changing the valid pairing'
-        Write-Host '[ ] No server roles or Integration overrides were changed for this test'
-        Write-Host 'Completion records capture only; explicitly report whether every check passed.'
-        Write-Host ''
-        return
-    }
-    Write-Host '[ ] Pair if this isolated Backend requests pairing'
+    Write-Host '[ ] Use browser Web OAuth if this isolated Backend requires login'
     Write-Host '[ ] Remote Main Chat becomes Live and recent messages appear'
     Write-Host '[ ] Remote Sales becomes RemotePrimary / Complete'
     Write-Host '[ ] Session HUD shows only the selected Host slot'
@@ -509,7 +496,7 @@ function Write-ModeChecklist {
         Write-Host '[ ] Main Chat recent20, a new message, and a channel switch work'
         Write-Host '[ ] Own-message Sales write-back and one-shot notification work'
         Write-Host '[ ] Settings and onboarding contain no source selector or legacy sign-in UI'
-        Write-Host '[ ] Fully close Discord Desktop after pairing, then use web/mobile for a test message'
+        Write-Host '[ ] Fully close Discord Desktop after browser login, then use web/mobile for a test message'
         Write-Host '[ ] Chat, Sales, Session HUD, write-back and sound remain healthy with Desktop closed'
         Write-Host '[ ] No local connection status, warning, setup, or fallback appears'
     }
@@ -521,9 +508,9 @@ function Write-ModeChecklist {
     }
     if ($Mode -eq 'Reconnect') {
         Write-Host '[ ] WPF stays open through every Backend restart'
-        Write-Host '[ ] No re-pair is requested and write-back returns after RemotePrimary'
+        Write-Host '[ ] No reauthentication is requested and write-back returns after RemotePrimary'
         Write-Host '[ ] Each cycle waits for WPF recovery + 10 stable seconds, then requires an explicit PASS'
-        Write-Host '[ ] Timeout, re-pair, missing readiness or FAIL stops the test; completion alone is not PASS'
+        Write-Host '[ ] Timeout, reauthentication, missing readiness or FAIL stops the test; completion alone is not PASS'
     }
     elseif ($Mode -eq 'Soak') {
         Write-Host '[ ] Use the PC normally with Remote Chat/Sales and Session HUD active'
@@ -745,7 +732,7 @@ try {
     Wait-BackendReady $backendProcess
     $activeWpfProcess = Start-AuditWpf
     Write-ModeChecklist
-    Read-Host 'Complete pairing/readiness checks, then press Enter to start measurement' | Out-Null
+    Read-Host 'Complete login/readiness checks, then press Enter to start measurement' | Out-Null
     $auditStarted = [DateTimeOffset]::UtcNow
 
     if ($Mode -eq 'Soak') {
@@ -821,6 +808,7 @@ finally {
     [Environment]::SetEnvironmentVariable($wpfRecoveryDirectoryName, $null, 'Process')
     [Environment]::SetEnvironmentVariable($wpfRecoveryRunName, $null, 'Process')
     Clear-BackendEnvironment
+    $webAuthEnvironment.Clear()
     Stop-OwnedWpf $activeWpfProcess
     Stop-OwnedBackend $backendProcess
     if ($null -ne $secureToken) {

@@ -11,8 +11,9 @@ internal static class Program
         var endpoint = args.Length > 0
             ? args[0]
             : "http://127.0.0.1:5188";
-        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var baseUri) ||
-            !TransportEndpointSecurity.IsAllowed(baseUri))
+        if (args.Length > 1 || !Uri.TryCreate(endpoint, UriKind.Absolute, out var baseUri) ||
+            !TransportEndpointSecurity.IsAllowed(baseUri) ||
+            baseUri.UserInfo.Length != 0 || baseUri.Query.Length != 0 || baseUri.Fragment.Length != 0)
         {
             Console.Error.WriteLine("Transport Probe endpoint is invalid or insecure.");
             return 2;
@@ -28,43 +29,14 @@ internal static class Program
         try
         {
             await using var client = new LSOverlayRemoteClient(baseUri);
-            var installationId = Guid.NewGuid();
-            var pairing = await client.CreatePairingAsync(installationId, shutdown.Token);
-            Console.WriteLine("Pairing: Waiting");
-            Console.WriteLine($"LS Overlay pairing code: {pairing.UserCode}");
-            Console.WriteLine($"In Discord run: /lsoverlay pair {pairing.UserCode}");
-
-            string? accessToken = null;
-            while (!shutdown.IsCancellationRequested &&
-                   DateTimeOffset.UtcNow < pairing.ExpiresAt)
+            // Developer-only: never accept or print a credential on the command line.
+            var accessToken = Environment.GetEnvironmentVariable("LSO_PROBE_ACCESS_TOKEN");
+            Environment.SetEnvironmentVariable("LSO_PROBE_ACCESS_TOKEN", null);
+            if (string.IsNullOrWhiteSpace(accessToken))
             {
-                await Task.Delay(TimeSpan.FromSeconds(2), shutdown.Token);
-                var status = await client.GetPairingAsync(
-                    pairing.PairingId,
-                    pairing.PairingClaimSecret,
-                    shutdown.Token);
-                if (status.State == PairingState.Approved &&
-                    !string.IsNullOrWhiteSpace(status.AccessToken))
-                {
-                    accessToken = status.AccessToken;
-                    break;
-                }
-
-                if (status.State is PairingState.Expired or PairingState.Consumed)
-                {
-                    Console.Error.WriteLine($"Pairing: {status.State}");
-                    return 3;
-                }
-            }
-
-            if (accessToken is null)
-            {
-                Console.Error.WriteLine("Pairing: Expired");
+                Console.Error.WriteLine("An existing Remote credential is required in LSO_PROBE_ACCESS_TOKEN. New login uses the WPF browser flow.");
                 return 3;
             }
-
-            Console.WriteLine("Pairing: Approved");
-            Console.WriteLine("Authenticated: Yes");
             var bootstrap = await client.GetBootstrapAsync(accessToken, shutdown.Token);
             Console.WriteLine("Bootstrap: OK");
             foreach (var host in bootstrap.TrackedHosts)

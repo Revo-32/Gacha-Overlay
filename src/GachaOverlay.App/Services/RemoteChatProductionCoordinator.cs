@@ -35,9 +35,9 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
     private readonly Func<Uri, ILSOverlayRemoteClient> _clientFactory;
     private readonly CancellationTokenSource _lifetime = new();
     private CancellationTokenSource? _sessionCancellation;
-    private CancellationTokenSource? _pairingCancellation;
+    private CancellationTokenSource? _loginCancellation;
     private Task? _sessionTask;
-    private Task? _pairingTask;
+    private Task? _loginTask;
     private readonly Action<Uri> _openBrowser;
     private RemoteRequestScope? _activeRequests;
     private ILSOverlayRemoteClient? _activeClient;
@@ -82,7 +82,6 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
             "Starting",
             credentialStore.Status == RemoteCredentialStatus.Available,
             null,
-            null,
             Array.Empty<RemoteChannelOption>(),
             settings.RemoteSelectedChannelId);
         _lastSalesTrackingEnabled = settings.SalesTrackingEnabled;
@@ -125,8 +124,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
     public async Task<bool> ApplyConfigurationAsync(string backendBaseUrl)
     {
         ThrowIfDisposed();
-        CancelPairing();
-        if (_pairingTask is { } login) await login.ConfigureAwait(false);
+        CancelLogin();
+        if (_loginTask is { } login) await login.ConfigureAwait(false);
         if (!TryCreateEndpoint(backendBaseUrl, out var endpoint))
         {
             SetHealth(RemoteChatHealthState.Error, "InvalidEndpoint");
@@ -157,8 +156,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
             BackendBaseUrl = normalizedEndpoint,
             Health = RemoteChatHealthState.Disconnected,
             Detail = "Starting",
-            PairingCode = null,
-            PairingExpiresAt = null,
+            WebAuthExpiresAt = null,
         });
         StartSession();
 
@@ -168,26 +166,26 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         return true;
     }
 
-    public Task BeginPairingAsync()
+    public Task BeginLoginAsync()
     {
         lock (_sync)
         {
             ThrowIfDisposed();
-            if (_pairingTask is { IsCompleted: false }) return Task.CompletedTask;
-            _pairingTask = BeginPairingCoreAsync();
-            return _pairingTask;
+            if (_loginTask is { IsCompleted: false }) return Task.CompletedTask;
+            _loginTask = BeginLoginCoreAsync();
+            return _loginTask;
         }
     }
 
-    private async Task BeginPairingCoreAsync()
+    private async Task BeginLoginCoreAsync()
     {
         ThrowIfDisposed();
         await StopSessionAsync().ConfigureAwait(false);
-        CancelPairing();
-        var pairingCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        CancelLogin();
+        var loginCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         lock (_sync)
         {
-            _pairingCancellation = pairingCancellation;
+            _loginCancellation = loginCancellation;
         }
 
         ILSOverlayRemoteClient? client = null;
@@ -199,74 +197,23 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                 return;
             }
 
-            SetHealth(RemoteChatHealthState.PairingInProgress, "CreatingPairing");
+            SetHealth(RemoteChatHealthState.LoginInProgress, "WebAuthWaiting");
             client = _clientFactory(endpoint);
-            if (client is ILSOverlayDiscordWebAuthClient web &&
-                await TryWebLoginAsync(web, endpoint, pairingCancellation.Token).ConfigureAwait(false)) return;
-            var pairing = await client.CreatePairingAsync(
-                    GetOrCreateInstallationId(),
-                    pairingCancellation.Token)
-                .ConfigureAwait(false);
-            UpdateSnapshot(current => current with
-            {
-                Health = RemoteChatHealthState.PairingInProgress,
-                Detail = "WaitingForDiscordCommand",
-                PairingCode = pairing.UserCode,
-                PairingExpiresAt = pairing.ExpiresAt,
-            });
-
-            while (DateTimeOffset.UtcNow < pairing.ExpiresAt)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(1), pairingCancellation.Token)
-                    .ConfigureAwait(false);
-                var claim = await client.GetPairingAsync(
-                        pairing.PairingId,
-                        pairing.PairingClaimSecret,
-                        pairingCancellation.Token)
-                    .ConfigureAwait(false);
-                if (claim.State == PairingState.Pending)
-                {
-                    continue;
-                }
-
-                if (claim.State == PairingState.Approved &&
-                    !string.IsNullOrWhiteSpace(claim.AccessToken))
-                {
-                    if (!_credentialStore.Save(claim.AccessToken))
-                    {
-                        SetHealth(RemoteChatHealthState.Error, "ProtectedSaveFailed");
-                        return;
-                    }
-
-                    UpdateSnapshot(current => current with
-                    {
-                        Health = RemoteChatHealthState.Disconnected,
-                        Detail = "PairingCompleted",
-                        HasProtectedCredential = true,
-                        PairingCode = null,
-                        PairingExpiresAt = null,
-                    });
-                    _logger.Information("REMOTE", "Remote pairing completed and token was protected.");
-                    StartSession();
-                    return;
-                }
-
-                SetHealth(RemoteChatHealthState.PairingRequired, $"Pairing{claim.State}");
-                return;
-            }
-
-            SetHealth(RemoteChatHealthState.PairingRequired, "PairingExpired");
+            if (client is ILSOverlayDiscordWebAuthClient web)
+                await TryWebLoginAsync(web, loginCancellation.Token).ConfigureAwait(false);
+            else
+                SetHealth(RemoteChatHealthState.LoginRequired, "WebAuthUnavailable");
         }
-        catch (OperationCanceledException) when (pairingCancellation.IsCancellationRequested)
+        catch (OperationCanceledException) when (loginCancellation.IsCancellationRequested)
         {
-            SetHealth(RemoteChatHealthState.PairingRequired, "PairingCancelled");
+            SetHealth(RemoteChatHealthState.LoginRequired, "WebAuthCancelled");
         }
         catch (Exception exception) when (
             exception is HttpRequestException or IOException or UnauthorizedAccessException or
                 OperationCanceledException or System.ComponentModel.Win32Exception or InvalidOperationException or System.Text.Json.JsonException)
         {
-            _logger.Warning("REMOTE", $"Pairing failed ({exception.GetType().Name}).");
-            SetHealth(RemoteChatHealthState.Error, "PairingFailed");
+            _logger.Warning("REMOTE", $"Browser login failed ({exception.GetType().Name}).");
+            SetHealth(RemoteChatHealthState.Error, "WebAuthTemporaryFailure");
         }
         finally
         {
@@ -277,28 +224,28 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
 
             lock (_sync)
             {
-                if (ReferenceEquals(_pairingCancellation, pairingCancellation))
+                if (ReferenceEquals(_loginCancellation, loginCancellation))
                 {
-                    _pairingCancellation = null;
+                    _loginCancellation = null;
                 }
             }
 
-            pairingCancellation.Dispose();
+            loginCancellation.Dispose();
         }
     }
 
-    public void CancelPairing()
+    public void CancelLogin()
     {
         lock (_sync)
         {
-            _pairingCancellation?.Cancel();
+            _loginCancellation?.Cancel();
         }
     }
 
-    public async Task<bool> ForgetPairingAsync()
+    public async Task<bool> ForgetCredentialAsync()
     {
-        CancelPairing();
-        if (_pairingTask is { } login) await login.ConfigureAwait(false);
+        CancelLogin();
+        if (_loginTask is { } login) await login.ConfigureAwait(false);
         await StopSessionAsync().ConfigureAwait(false);
         if (!_credentialStore.Clear())
         {
@@ -310,11 +257,10 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         _ingress.ClearForAccessRevocation();
         UpdateSnapshot(current => current with
         {
-            Health = RemoteChatHealthState.PairingRequired,
+            Health = RemoteChatHealthState.LoginRequired,
             Detail = "CredentialForgotten",
             HasProtectedCredential = false,
-            PairingCode = null,
-            PairingExpiresAt = null,
+            WebAuthExpiresAt = null,
             Channels = Array.Empty<RemoteChannelOption>(),
             SelectedChannelId = null,
         });
@@ -324,8 +270,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
     public async Task RefreshAsync()
     {
         ThrowIfDisposed();
-        CancelPairing();
-        if (_pairingTask is { } login) await login.ConfigureAwait(false);
+        CancelLogin();
+        if (_loginTask is { } login) await login.ConfigureAwait(false);
         await StopSessionAsync().ConfigureAwait(false);
         StartSession();
     }
@@ -552,9 +498,9 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
 
         _disposed = true;
         _ingress.StateChanged -= OnIngressStateChanged;
-        CancelPairing();
+        CancelLogin();
         _lifetime.Cancel();
-        if (_pairingTask is { } login) await login.ConfigureAwait(false);
+        if (_loginTask is { } login) await login.ConfigureAwait(false);
         await StopSessionAsync().ConfigureAwait(false);
         _lifetime.Dispose();
     }
@@ -618,7 +564,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                 SetHealth(
                     _credentialStore.Status == RemoteCredentialStatus.Unreadable
                         ? RemoteChatHealthState.Error
-                        : RemoteChatHealthState.PairingRequired,
+                        : RemoteChatHealthState.LoginRequired,
                     _credentialStore.Status == RemoteCredentialStatus.Unreadable
                         ? "CredentialUnreadable"
                         : "CredentialMissing");
@@ -1165,12 +1111,12 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         }
         if (health is RemoteChatHealthState.Reconnecting or RemoteChatHealthState.Disconnected or
             RemoteChatHealthState.Error or RemoteChatHealthState.AccessRevoked or
-            RemoteChatHealthState.PairingRequired or RemoteChatHealthState.PairingInProgress or
+            RemoteChatHealthState.LoginRequired or RemoteChatHealthState.LoginInProgress or
             RemoteChatHealthState.AuthorizationUnavailable)
         {
             _recoveryAudit?.InvalidateConnection(
                 authenticationRequired: health is RemoteChatHealthState.AccessRevoked or
-                    RemoteChatHealthState.PairingRequired or RemoteChatHealthState.PairingInProgress,
+                    RemoteChatHealthState.LoginRequired or RemoteChatHealthState.LoginInProgress,
                 terminalFailure: health == RemoteChatHealthState.Error);
         }
         UpdateSnapshot(current => current with
@@ -1180,11 +1126,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
             Detail = detail,
             HasProtectedCredential =
                 _credentialStore.Status == RemoteCredentialStatus.Available,
-            PairingCode = health == RemoteChatHealthState.PairingInProgress
-                ? current.PairingCode
-                : null,
-            PairingExpiresAt = health == RemoteChatHealthState.PairingInProgress
-                ? current.PairingExpiresAt
+            WebAuthExpiresAt = health == RemoteChatHealthState.LoginInProgress
+                ? current.WebAuthExpiresAt
                 : null,
         });
     }

@@ -202,7 +202,7 @@
   <data name="SalesQueueDetails" xml:space="preserve"><value>キュー詳細</value></data>
   <data name="SettingsClearMediaCache" xml:space="preserve"><value>メディアキャッシュを消去</value></data>
   <data name="SettingsResetAll" xml:space="preserve"><value>すべての設定をリセット</value></data>
-  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>すべての設定を安全な既定値に戻しますか？保護されたリモートペアリング資格情報は削除されません。</value></data>
+  <data name="SettingsResetAllConfirm" xml:space="preserve"><value>すべての設定を安全な既定値に戻しますか？保護されたリモート資格情報は削除されません。</value></data>
   <data name="SettingsProductSelectEmoji" xml:space="preserve"><value>先に観測された絵文字を選択してください。</value></data>
   <data name="SettingsProductDuplicate" xml:space="preserve"><value>同じサーバー範囲ですでにマッピングされています。</value></data>
   <data name="SettingsProductSaveFailed" xml:space="preserve"><value>マッピングを保存できませんでした。以前のファイルは保持されています。</value></data>
@@ -230,7 +230,7 @@
   <data name="SalesPreviewLongNames" xml:space="preserve"><value>長い名前</value></data>
   <data name="SettingsAppVersion" xml:space="preserve"><value>アプリのバージョン</value></data>
   <data name="SettingsAutoSaveHint" xml:space="preserve"><value>変更内容はすぐに適用され、自動保存されます。</value></data>
-  <data name="SettingsResetAllHint" xml:space="preserve"><value>表示、HUD、チャット、メディア、販売、ホットキー設定をリセットします。保護されたリモートペアリング資格情報は別に保持されます。</value></data>
+  <data name="SettingsResetAllHint" xml:space="preserve"><value>表示、HUD、チャット、メディア、販売、ホットキー設定をリセットします。保護されたリモート資格情報は別に保持されます。</value></data>
   <data name="SettingsM8AutoStartPlaceholder" xml:space="preserve"><value>Windows 自動起動は M8 のオンボーディングでここに追加されます。</value></data>
   <data name="SettingsTransparentHudHint" xml:space="preserve"><value>0% では通常の HUD 表面だけが透明になり、テキスト、メディア、状態表示は鮮明に保たれます。</value></data>
   <data name="SettingsChatMaxLines" xml:space="preserve"><value>最大行数</value></data>
@@ -348,22 +348,21 @@
   <data name="SettingsRemoteEndpoint" xml:space="preserve"><value>リモートバックエンドのアドレス（HTTPS、この PC 内のみ HTTP）</value></data>
   <data name="SettingsRemoteApply" xml:space="preserve"><value>アドレスを適用</value></data>
   <data name="SettingsRemoteRefresh" xml:space="preserve"><value>再接続 / 更新</value></data>
-  <data name="SettingsRemotePair" xml:space="preserve"><value>Discordでログイン</value></data>
-  <data name="SettingsRemotePairCancel" xml:space="preserve"><value>ログインを取消</value></data>
+  <data name="SettingsRemoteLogin" xml:space="preserve"><value>Discordでログイン</value></data>
+  <data name="SettingsRemoteLoginCancel" xml:space="preserve"><value>ログインを取消</value></data>
   <data name="SettingsRemoteForget" xml:space="preserve"><value>接続解除 / 削除</value></data>
-  <data name="SettingsRemotePairingInstruction" xml:space="preserve"><value>Discord で実行してください: /lsoverlay pair code:{0}</value></data>
   <data name="SettingsRemoteCredentialSaved" xml:space="preserve"><value>アクセストークン: 現在の Windows ユーザー用に保護済み</value></data>
-  <data name="SettingsRemoteCredentialMissing" xml:space="preserve"><value>アクセストークン: ペアリングが必要</value></data>
+  <data name="SettingsRemoteCredentialMissing" xml:space="preserve"><value>リモート資格情報: ログインが必要</value></data>
   <data name="SettingsRemoteChannel" xml:space="preserve"><value>許可されたメインチャットチャンネル</value></data>
   <data name="SettingsRemoteUseChannel" xml:space="preserve"><value>選択したチャンネルを使用</value></data>
   <data name="SettingsRemoteConfigurationApplied" xml:space="preserve"><value>リモートバックエンドのアドレスを適用しました。</value></data>
   <data name="SettingsRemoteConfigurationFailed" xml:space="preserve"><value>リモートバックエンドのアドレスを適用できませんでした。アドレスとログを確認してください。</value></data>
-  <data name="SettingsRemotePairingForgotten" xml:space="preserve"><value>保護された認証情報とチャンネル選択を削除しました。</value></data>
-  <data name="SettingsRemotePairingForgetFailed" xml:space="preserve"><value>保護された認証情報を削除できませんでした。</value></data>
+  <data name="SettingsRemoteCredentialForgotten" xml:space="preserve"><value>保護された認証情報とチャンネル選択を削除しました。</value></data>
+  <data name="SettingsRemoteCredentialForgetFailed" xml:space="preserve"><value>保護された認証情報を削除できませんでした。</value></data>
   <data name="SettingsRemoteChannelSwitchRequested" xml:space="preserve"><value>新しいチャンネルの準備後に切り替えが確定します。</value></data>
   <data name="SettingsRemoteChannelSwitchFailed" xml:space="preserve"><value>チャンネルを切り替えられませんでした。</value></data>
-  <data name="RemoteHealthPairingRequired" xml:space="preserve"><value>リモート: ログインが必要</value></data>
-  <data name="RemoteHealthPairingInProgress" xml:space="preserve"><value>リモート: ログイン中</value></data>
+  <data name="RemoteHealthLoginRequired" xml:space="preserve"><value>リモート: ログインが必要</value></data>
+  <data name="RemoteHealthLoginInProgress" xml:space="preserve"><value>リモート: ログイン中</value></data>
   <data name="RemoteHealthAuthenticating" xml:space="preserve"><value>リモート: 認証中</value></data>
   <data name="RemoteHealthConnecting" xml:space="preserve"><value>リモート: 接続中</value></data>
   <data name="RemoteHealthBootstrapping" xml:space="preserve"><value>リモート: 最近のチャットを読込中</value></data>
@@ -374,13 +373,13 @@
   <data name="RemoteHealthAccessRevoked" xml:space="preserve"><value>リモート: アクセスが取り消されました</value></data>
   <data name="RemoteHealthDisconnected" xml:space="preserve"><value>リモート: 切断</value></data>
   <data name="RemoteHealthError" xml:space="preserve"><value>リモート: エラー</value></data>
-  <data name="RemoteDetailPairingRequired" xml:space="preserve"><value>Discordでログインしてこのインストールを許可してください。</value></data>
-  <data name="RemoteDetailPairing" xml:space="preserve"><value>ブラウザーで認証を完了してください。ローカル開発者モードでは必要に応じてコマンドが表示されます。</value></data>
+  <data name="RemoteDetailLoginRequired" xml:space="preserve"><value>Discordでログインしてこのインストールを許可してください。</value></data>
+  <data name="RemoteDetailLogin" xml:space="preserve"><value>ブラウザーで認証を完了してください。</value></data>
   <data name="RemoteDetailConnecting" xml:space="preserve"><value>認証し、許可されたチャンネル一覧を準備しています。</value></data>
   <data name="RemoteDetailChannel" xml:space="preserve"><value>サーバーが許可した一覧からチャンネルを選択してください。</value></data>
   <data name="RemoteDetailLive" xml:space="preserve"><value>最近のメッセージと作成・更新・削除イベントが有効です。</value></data>
   <data name="RemoteDetailNetwork" xml:space="preserve"><value>認証情報は保持されます。制限付きバックオフで再接続します。</value></data>
-  <data name="RemoteDetailAuthentication" xml:space="preserve"><value>認可を利用できません。再ペアリングするかサーバー認可を修復してください。</value></data>
+  <data name="RemoteDetailAuthentication" xml:space="preserve"><value>認可を利用できません。再ログインするかサーバー認可を修復してください。</value></data>
   <data name="RemoteDetailStorage" xml:space="preserve"><value>Windows 保護ストレージの確認が必要です。平文トークンは使用していません。</value></data>
   <data name="RemoteDetailError" xml:space="preserve"><value>リモートチャットを安全に停止しました。ログを確認して再接続してください。</value></data>
   <data name="RemoteDetailDisconnected" xml:space="preserve"><value>リモートチャットは停止中です。</value></data>

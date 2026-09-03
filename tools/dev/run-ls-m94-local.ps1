@@ -17,6 +17,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'LSOverlay.WebAuthEnvironment.ps1')
+$webAuthEnvironment = Get-LsWebAuthEnvironment
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $backendProject = Join-Path $repositoryRoot 'src\LSOverlay.Backend\LSOverlay.Backend.csproj'
 $wpfProject = Join-Path $repositoryRoot 'src\GachaOverlay.App\GachaOverlay.App.csproj'
@@ -74,7 +76,7 @@ $host2Name = 'LSO_SESSION_HOST_2_ID'
 $stateName = 'LSO_STATE_DIRECTORY'
 $listenName = 'LSO_LISTEN_URL'
 $shutdownName = 'LSO_DEV_SHUTDOWN_FILE'
-$backendEnvironmentNames = @(
+$backendEnvironmentNames = @($webAuthEnvironment.Keys) + @(
     $tokenName,
     $guildName,
     $hostsName,
@@ -309,17 +311,17 @@ function Wait-BackendHealth {
     throw 'Backend /healthz did not become ready within 30 seconds.'
 }
 
-function Wait-DiscordPairingReady {
+function Wait-DiscordGatewayReady {
     param([Parameter(Mandatory = $true)][System.Diagnostics.Process]$Process)
 
     for ($attempt = 0; $attempt -lt 240; $attempt++) {
         if ($Process.HasExited) {
-            throw "Backend exited before Discord pairing became ready. See $backendStderr"
+            throw "Backend exited before Discord Gateway became ready. See $backendStderr"
         }
 
         if ((Test-Path -LiteralPath $backendStdout) -and
             (Select-String -LiteralPath $backendStdout `
-                -Pattern 'Discord pairing command: Available' `
+                -Pattern 'Discord: Ready' `
                 -Quiet)) {
             return
         }
@@ -327,7 +329,7 @@ function Wait-DiscordPairingReady {
         Start-Sleep -Milliseconds 250
     }
 
-    throw 'Discord pairing command did not become ready within 60 seconds.'
+    throw 'Discord Gateway did not become ready within 60 seconds.'
 }
 
 function Start-WpfApplication {
@@ -354,8 +356,7 @@ function Write-ValidationChecklist {
     Write-Host ''
     Write-Host '[ ] Settings -> Discord -> Main Chat Source = Remote'
     Write-Host "[ ] Backend URL = $Url"
-    Write-Host '[ ] Start Pairing'
-    Write-Host '[ ] Run /lsoverlay pair code:<code> in Discord'
+    Write-Host '[ ] Log in with Discord in the browser'
     Write-Host '[ ] Remote state becomes Live'
     Write-Host '[ ] Authorized channel list appears'
     Write-Host ('[ ] Select #' + [char]0xBA54 + [char]0xC778)
@@ -398,7 +399,7 @@ function Write-ValidationChecklist {
     if ($ValidationMilestone -in @('M9.8', 'M9.8.1')) {
         Write-Host '[ ] Select Host 1 and verify only Host 1 drives Session HUD'
         Write-Host '[ ] Select Host 2 and verify only Host 2 drives Session HUD'
-        Write-Host '[ ] Switch hosts without Backend restart or re-pair'
+        Write-Host '[ ] Switch hosts without Backend restart or reauthentication'
         Write-Host '[ ] Select an offline Host while the other is online: no automatic switch'
         Write-Host '[ ] Change selected Host player count and verify one event-driven update'
         Write-Host '[ ] Stop selected Host GTA Online and verify stale occupancy is cleared'
@@ -412,8 +413,8 @@ function Write-ValidationChecklist {
         Write-Host '[ ] Lock HUD and verify Session remains informational and click-through'
     }
     Write-Host '[ ] Switch back to Remote if desired'
-    Write-Host '[ ] Close/relaunch WPF and verify no re-pair'
-    Write-Host '[ ] Unpair/Forget and verify PairingRequired'
+    Write-Host '[ ] Close/relaunch WPF and verify no reauthentication'
+    Write-Host '[ ] Disconnect/Delete credential and verify LoginRequired'
     Write-Host ''
     Write-Host 'For restart validation:' -ForegroundColor Yellow
     Write-Host '- Close the WPF app.'
@@ -605,6 +606,7 @@ try {
     [Environment]::SetEnvironmentVariable($stateName, $stateDirectory, 'Process')
     [Environment]::SetEnvironmentVariable($listenName, $BackendUrl, 'Process')
     [Environment]::SetEnvironmentVariable($shutdownName, $shutdownFile, 'Process')
+    Set-LsWebAuthEnvironment -Values $webAuthEnvironment
 
     $dotnetHost = (Get-Command dotnet -ErrorAction Stop).Source
     $backendArgument = '"' + $backendDll + '"'
@@ -622,9 +624,9 @@ try {
     Clear-TokenMaterial
 
     Wait-BackendHealth -Process $backendProcess -Url $BackendUrl
-    Wait-DiscordPairingReady -Process $backendProcess
+    Wait-DiscordGatewayReady -Process $backendProcess
     Write-Host 'Backend: HTTP Ready'
-    Write-Host 'Discord: Pairing Ready'
+    Write-Host 'Discord: Ready'
     Write-Host "Backend logs: $backendStdout"
 
     $checklistPrinted = $false
@@ -665,6 +667,7 @@ catch {
 }
 finally {
     Clear-BackendEnvironment
+    $webAuthEnvironment.Clear()
     Clear-TokenMaterial
     Stop-HelperWpfProcess -Process $activeWpfProcess
     Stop-HelperBackendProcess -Process $backendProcess

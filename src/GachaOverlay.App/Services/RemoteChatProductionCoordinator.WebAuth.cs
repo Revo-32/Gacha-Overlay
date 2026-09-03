@@ -7,7 +7,7 @@ namespace GachaOverlay.App.Services;
 
 internal sealed partial class RemoteChatProductionCoordinator
 {
-    private async Task<bool> TryWebLoginAsync(ILSOverlayDiscordWebAuthClient web, Uri endpoint, CancellationToken cancellationToken)
+    private async Task TryWebLoginAsync(ILSOverlayDiscordWebAuthClient web, CancellationToken cancellationToken)
     {
         DiscordWebAuthStartResponse? session = null;
         var claimed = false;
@@ -16,17 +16,15 @@ internal sealed partial class RemoteChatProductionCoordinator
             session = await web.StartDiscordWebAuthAsync(GetOrCreateInstallationId(), cancellationToken).ConfigureAwait(false);
             if (session is null)
             {
-                if (endpoint.IsLoopback) return false; // Temporary developer/admin local fallback only.
-                SetHealth(RemoteChatHealthState.PairingRequired, "WebAuthUnavailable");
-                return true;
+                SetHealth(RemoteChatHealthState.LoginRequired, "WebAuthUnavailable");
+                return;
             }
             cancellationToken.ThrowIfCancellationRequested();
             UpdateSnapshot(current => current with
             {
-                Health = RemoteChatHealthState.PairingInProgress,
+                Health = RemoteChatHealthState.LoginInProgress,
                 Detail = "WebAuthWaiting",
-                PairingCode = null,
-                PairingExpiresAt = session.ExpiresAt,
+                WebAuthExpiresAt = session.ExpiresAt,
             });
             _openBrowser(new Uri(session.AuthorizationUrl));
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -43,35 +41,34 @@ internal sealed partial class RemoteChatProductionCoordinator
                     if (!_credentialStore.Save(result.AccessToken))
                     {
                         SetHealth(RemoteChatHealthState.Error, "ProtectedSaveFailed");
-                        return true;
+                        return;
                     }
                     UpdateSnapshot(current => current with
                     {
                         Health = RemoteChatHealthState.Disconnected,
                         Detail = "WebAuthCompleted",
                         HasProtectedCredential = true,
-                        PairingCode = null,
-                        PairingExpiresAt = null,
+                        WebAuthExpiresAt = null,
                     });
                     _logger.Information("REMOTE", "Discord browser login completed; Remote credential protected.");
                     StartSession();
-                    return true;
+                    return;
                 }
                 var failure = result.Failure == DiscordWebAuthFailure.None ? DiscordWebAuthFailure.InvalidRequest : result.Failure;
-                SetHealth(RemoteChatHealthState.PairingRequired, "WebAuth" + failure);
-                return true;
+                SetHealth(RemoteChatHealthState.LoginRequired, "WebAuth" + failure);
+                return;
             }
-            SetHealth(RemoteChatHealthState.PairingRequired, "WebAuthSessionExpired");
+            SetHealth(RemoteChatHealthState.LoginRequired, "WebAuthSessionExpired");
         }
         catch (OperationCanceledException)
         {
-            SetHealth(RemoteChatHealthState.PairingRequired, cancellationToken.IsCancellationRequested ? "WebAuthCancelled" : "WebAuthTemporaryFailure");
+            SetHealth(RemoteChatHealthState.LoginRequired, cancellationToken.IsCancellationRequested ? "WebAuthCancelled" : "WebAuthTemporaryFailure");
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or
             System.ComponentModel.Win32Exception or InvalidOperationException or System.Text.Json.JsonException)
         {
             _logger.Warning("REMOTE", "Browser login could not complete; retry is available.");
-            SetHealth(RemoteChatHealthState.PairingRequired, "WebAuthTemporaryFailure");
+            SetHealth(RemoteChatHealthState.LoginRequired, "WebAuthTemporaryFailure");
         }
         finally
         {
@@ -83,6 +80,6 @@ internal sealed partial class RemoteChatProductionCoordinator
                 catch (Exception exception) when (exception is HttpRequestException or OperationCanceledException or IOException) { }
             }
         }
-        return true;
+        return;
     }
 }

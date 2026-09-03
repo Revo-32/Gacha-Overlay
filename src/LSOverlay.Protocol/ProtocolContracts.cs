@@ -70,14 +70,6 @@ public static class RemoteSalesPolicy
         id.HasValue ? id.Value == NegotiatingEmojiId : name == NegotiatingEmojiName;
 }
 
-public enum PairingState
-{
-    Pending,
-    Approved,
-    Expired,
-    Consumed,
-}
-
 public enum HostPresenceState
 {
     AwaitingPresence,
@@ -85,23 +77,6 @@ public enum HostPresenceState
     OnlineButNotGtaOnline,
     GtaOnline,
 }
-
-public sealed record CreatePairingRequest(
-    int ProtocolVersion,
-    Guid ClientInstallationId);
-
-public sealed record CreatePairingResponse(
-    int ProtocolVersion,
-    Guid PairingId,
-    string UserCode,
-    string PairingClaimSecret,
-    DateTimeOffset ExpiresAt);
-
-public sealed record PairingClaimResponse(
-    int ProtocolVersion,
-    PairingState State,
-    string? AccessToken,
-    DateTimeOffset? AccessTokenExpiresAt);
 
 public sealed record HostPresenceSnapshot(
     int HostSlot,

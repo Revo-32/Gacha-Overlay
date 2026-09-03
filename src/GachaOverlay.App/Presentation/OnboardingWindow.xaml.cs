@@ -10,7 +10,7 @@ public partial class OnboardingWindow : Window
         Closed += (_, _) =>
         {
             if (DataContext is OnboardingViewModel viewModel)
-                viewModel.Settings.RemoteChatSettings?.CancelPairingCommand.Execute(null);
+                viewModel.Settings.RemoteChatSettings?.CancelLoginCommand.Execute(null);
         };
     }
 }

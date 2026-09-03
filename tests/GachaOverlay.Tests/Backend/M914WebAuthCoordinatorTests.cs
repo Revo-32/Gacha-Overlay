@@ -22,8 +22,8 @@ public sealed partial class M94ProductionRemoteModeTests
             Path.Combine(directory.Path, "install.txt"), NullAppLogger.Instance,
             _ => factoryCalls++ == 0 ? login : next, openBrowser: _ => browsers++))
         {
-            var running = coordinator.BeginPairingAsync();
-            Assert.Null(coordinator.Snapshot.PairingCode);
+            var running = coordinator.BeginLoginAsync();
+            Assert.Null(typeof(RemoteChatSnapshot).GetProperty("PairingCode"));
             await running;
             await WaitUntilAsync(() => coordinator.Snapshot.Health == RemoteChatHealthState.Live);
             Assert.Equal("m914-remote-only", credentials.Value); Assert.Equal(1, browsers);
@@ -52,10 +52,10 @@ public sealed partial class M94ProductionRemoteModeTests
             Path.Combine(directory.Path, "install.txt"), NullAppLogger.Instance, _ => login, openBrowser: _ => { });
         try
         {
-            var running = coordinator.BeginPairingAsync();
-            for (var i = 0; i < 20; i++) await coordinator.BeginPairingAsync();
+            var running = coordinator.BeginLoginAsync();
+            for (var i = 0; i < 20; i++) await coordinator.BeginLoginAsync();
             Assert.Equal(1, login.Starts);
-            if (dispose) await coordinator.DisposeAsync(); else coordinator.CancelPairing();
+            if (dispose) await coordinator.DisposeAsync(); else coordinator.CancelLogin();
             await running.WaitAsync(TimeSpan.FromSeconds(4));
             Assert.True(login.Disposed); Assert.Equal(1, login.Cancellations);
             Assert.Null(credentials.Value); Assert.Equal(0, login.Polls);
@@ -75,9 +75,9 @@ public sealed partial class M94ProductionRemoteModeTests
         var credentials = new MemoryCredentialStore("existing-credential");
         await using var coordinator = new RemoteChatProductionCoordinator(store, credentials, new DiscordMessagePipeline(),
             Path.Combine(directory.Path, "install.txt"), NullAppLogger.Instance, _ => login, openBrowser: _ => { });
-        await coordinator.BeginPairingAsync();
+        await coordinator.BeginLoginAsync();
         Assert.Equal("WebAuth" + failure, coordinator.Snapshot.Detail);
-        Assert.Equal(RemoteChatHealthState.PairingRequired, coordinator.Snapshot.Health);
+        Assert.Equal(RemoteChatHealthState.LoginRequired, coordinator.Snapshot.Health);
         Assert.Equal("existing-credential", credentials.Value); Assert.Equal(1, login.Cancellations);
     }
 
@@ -99,16 +99,19 @@ public sealed partial class M94ProductionRemoteModeTests
         Assert.Equal("existing-credential", credentials.Value);
     }
 
-    [Fact]
-    public async Task M914MissingProductionWebAuthNeverFallsBackToSlashInstructions()
+    [Theory]
+    [InlineData("https://overlay.revo32.cloud")]
+    [InlineData("http://127.0.0.1:5188")]
+    public async Task M914MissingProductionWebAuthNeverFallsBackToSlashInstructions(string endpoint)
     {
         using var directory = new TemporaryDirectory();
         var store = CreateStore(directory, AppSettings.CreateDefault());
+        store.Update(settings => settings with { RemoteBackendBaseUrl = endpoint });
         var client = new M914WebClient { Disabled = true };
         await using var coordinator = new RemoteChatProductionCoordinator(store, new MemoryCredentialStore(), new DiscordMessagePipeline(),
             Path.Combine(directory.Path, "install.txt"), NullAppLogger.Instance, _ => client, openBrowser: _ => throw new Exception("Browser must not open"));
-        await coordinator.BeginPairingAsync();
-        Assert.Equal("WebAuthUnavailable", coordinator.Snapshot.Detail); Assert.Null(coordinator.Snapshot.PairingCode);
+        await coordinator.BeginLoginAsync();
+        Assert.Equal("WebAuthUnavailable", coordinator.Snapshot.Detail); Assert.Null(typeof(RemoteChatSnapshot).GetProperty("PairingCode"));
     }
 
     private sealed class M914WebClient(bool fail = false, bool revoked = false)
@@ -118,15 +121,15 @@ public sealed partial class M94ProductionRemoteModeTests
         public bool Disabled;
         public DiscordWebAuthClaimResult Result = new(1, DiscordWebAuthStatus.Approved,
             AccessToken: "m914-remote-only", CredentialExpiresAt: DateTimeOffset.UtcNow.AddDays(180));
-        public Task<DiscordWebAuthStartResponse?> StartDiscordWebAuthAsync(Guid installation, CancellationToken cancellationToken = default)
+        public override Task<DiscordWebAuthStartResponse?> StartDiscordWebAuthAsync(Guid installation, CancellationToken cancellationToken = default)
         {
             Starts++;
             return Task.FromResult<DiscordWebAuthStartResponse?>(Disabled ? null : new(1, Guid.NewGuid(), new string('c', 43),
                 "https://discord.com/oauth2/authorize?scope=identify", DateTimeOffset.UtcNow.AddMinutes(5)));
         }
-        public Task<DiscordWebAuthClaimResult> GetDiscordWebAuthStatusAsync(Guid session, string claim, CancellationToken cancellationToken = default)
+        public override Task<DiscordWebAuthClaimResult> GetDiscordWebAuthStatusAsync(Guid session, string claim, CancellationToken cancellationToken = default)
         { Polls++; return Task.FromResult(Result); }
-        public Task CancelDiscordWebAuthAsync(Guid session, string claim, CancellationToken cancellationToken = default)
+        public override Task CancelDiscordWebAuthAsync(Guid session, string claim, CancellationToken cancellationToken = default)
         { Cancellations++; return Task.CompletedTask; }
     }
 }

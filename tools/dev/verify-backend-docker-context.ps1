@@ -164,7 +164,9 @@ foreach ($name in @('global.json', 'Directory.Build.props', 'Directory.Build.tar
 
 $gitArgs = @('-C', $root, '-c', 'core.quotepath=false', 'ls-files', '--cached')
 if (-not $RequireTracked) { $gitArgs += @('--others', '--exclude-standard') }
-$gitFiles = (Invoke-Captured git $gitArgs) -split '\r?\n' | Where-Object { $_ }
+$gitFiles = (Invoke-Captured git $gitArgs) -split '\r?\n' | Where-Object {
+    $_ -and (Test-Path -LiteralPath (Join-Path $root $_) -PathType Leaf)
+}
 $eligible = [Collections.Generic.HashSet[string]]::new([string[]]$gitFiles, [StringComparer]::Ordinal)
 $rules = @(Read-DockerRules (Join-Path $root '.dockerignore'))
 $required = @($graph.Inputs) + @($metadata) + @('Dockerfile', '.dockerignore')

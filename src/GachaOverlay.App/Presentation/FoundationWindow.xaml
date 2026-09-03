@@ -92,17 +92,14 @@
                 <WrapPanel Margin="0,12,0,0">
                     <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.ApplyConfigurationCommand}" Content="{Binding Localization[SettingsRemoteApply]}"/>
                     <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.RefreshCommand}" Content="{Binding Localization[SettingsRemoteRefresh]}"/>
-                    <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Primary}" Command="{Binding RemoteChatSettings.BeginPairingCommand}" Content="{Binding Localization[SettingsRemotePair]}" Visibility="{Binding RemoteChatSettings.NeedsLogin, Converter={StaticResource BoolVisibility}}"/>
-                    <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.CancelPairingCommand}" Content="{Binding Localization[SettingsRemotePairCancel]}"/>
-                    <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Destructive}" Command="{Binding RemoteChatSettings.ForgetPairingCommand}" Content="{Binding Localization[SettingsRemoteForget]}"/>
+                    <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Primary}" Command="{Binding RemoteChatSettings.BeginLoginCommand}" Content="{Binding Localization[SettingsRemoteLogin]}" Visibility="{Binding RemoteChatSettings.NeedsLogin, Converter={StaticResource BoolVisibility}}"/>
+                    <Button Margin="0,0,8,8" Command="{Binding RemoteChatSettings.CancelLoginCommand}" Content="{Binding Localization[SettingsRemoteLoginCancel]}"/>
+                    <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Destructive}" Command="{Binding RemoteChatSettings.ForgetCredentialCommand}" Content="{Binding Localization[SettingsRemoteForget]}"/>
                 </WrapPanel>
                 <TextBlock Margin="0,4,0,0" FontWeight="SemiBold" Foreground="{DynamicResource StatusInfoBrush}" Text="{Binding RemoteChatSettings.HealthText}"/>
                 <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding RemoteChatSettings.HealthDetailText}" TextWrapping="Wrap"/>
                 <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding RemoteChatSettings.CredentialStatusText}"/>
                 <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding RemoteChatSettings.RemoteSalesHealthText}"/>
-                <Border Margin="0,10,0,0" Padding="12" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="6" Visibility="{Binding RemoteChatSettings.HasPairingCode, Converter={StaticResource BoolVisibility}}">
-                    <StackPanel><TextBlock FontSize="18" FontWeight="Bold" Text="{Binding RemoteChatSettings.PairingCode}"/><TextBlock Margin="0,5,0,0" Text="{Binding RemoteChatSettings.PairingInstruction}" TextWrapping="Wrap"/></StackPanel>
-                </Border>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsRemoteChannel]}"/>
                 <WrapPanel>
                     <ComboBox x:Name="RemoteChannelComboBox" Width="380" Margin="0,0,8,8" ItemsSource="{Binding RemoteChatSettings.Channels}" ItemTemplate="{StaticResource RemoteDisplayNameTemplate}" SelectedItem="{Binding RemoteChatSettings.SelectedChannel, Mode=TwoWay}"/>

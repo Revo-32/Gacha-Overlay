@@ -5,7 +5,6 @@ using LSOverlay.Backend.Chat;
 using LSOverlay.Backend.Configuration;
 using LSOverlay.Backend.Events;
 using LSOverlay.Backend.Presence;
-using LSOverlay.Backend.Pairing;
 using LSOverlay.Backend.Runtime;
 using LSOverlay.Backend.Sales;
 using LSOverlay.Backend.Transport;
@@ -27,7 +26,6 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
     private readonly GtaPresenceNormalizer _presenceNormalizer;
     private readonly ILogger<DiscordGatewayAdapter> _logger;
     private readonly IRemotePresencePublisher? _remotePublisher;
-    private readonly DiscordPairingCommand? _pairingCommand;
     private readonly TransportMetrics? _transportMetrics;
     private readonly RemoteChatService? _remoteChat;
     private readonly RemoteSalesService? _remoteSales;
@@ -47,7 +45,6 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         GtaPresenceNormalizer presenceNormalizer,
         ILogger<DiscordGatewayAdapter> logger,
         IRemotePresencePublisher? remotePublisher = null,
-        DiscordPairingCommand? pairingCommand = null,
         TransportMetrics? transportMetrics = null,
         RemoteChatService? remoteChat = null,
         RemoteSalesService? remoteSales = null)
@@ -62,7 +59,6 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         _presenceNormalizer = presenceNormalizer;
         _logger = logger;
         _remotePublisher = remotePublisher;
-        _pairingCommand = pairingCommand;
         _transportMetrics = transportMetrics;
         _remoteChat = remoteChat;
         _remoteSales = remoteSales;
@@ -158,10 +154,6 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         _client.RoleDeleted += OnRoleDeletedAsync;
         _client.GuildMemberUpdated += OnGuildMemberUpdatedAsync;
         _client.PresenceUpdated += OnPresenceUpdatedAsync;
-        if (_pairingCommand is not null)
-        {
-            _client.SlashCommandExecuted += _pairingCommand.HandleAsync;
-        }
     }
 
     private void Unsubscribe()
@@ -189,10 +181,6 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         _client.RoleDeleted -= OnRoleDeletedAsync;
         _client.GuildMemberUpdated -= OnGuildMemberUpdatedAsync;
         _client.PresenceUpdated -= OnPresenceUpdatedAsync;
-        if (_pairingCommand is not null)
-        {
-            _client.SlashCommandExecuted -= _pairingCommand.HandleAsync;
-        }
     }
 
     private Task OnDiscordLogAsync(LogMessage message)
@@ -229,7 +217,7 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         return Task.CompletedTask;
     }
 
-    private Task OnReadyAsync() => HandleSafelyAsync("Ready", async () =>
+    private Task OnReadyAsync() => HandleSafelyAsync("Ready", () =>
     {
         _metrics.Increment(BackendMetric.DiscordReady);
         Volatile.Write(ref _hasCompletedReady, 1);
@@ -274,14 +262,10 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         }
 
         PublishInitialPresence(guild);
-        if (_pairingCommand is not null)
-        {
-            await _pairingCommand.ReconcileAsync().ConfigureAwait(false);
-        }
     });
 
     private Task OnGuildAvailableAsync(SocketGuild guild) =>
-        HandleSafelyAsync("GuildAvailable", async () =>
+        HandleSafelyAsync("GuildAvailable", () =>
         {
             if (Volatile.Read(ref _hasCompletedReady) == 0 ||
                 !_guildFilter.Accepts(guild.Id))
@@ -294,10 +278,6 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
                 BackendConnectionHealthReason.GatewayReady,
                 "Discord: Ready; target Guild available");
             PublishInitialPresence(guild);
-            if (_pairingCommand is not null)
-            {
-                await _pairingCommand.ReconcileAsync().ConfigureAwait(false);
-            }
         });
 
     private Task OnGuildUnavailableAsync(SocketGuild guild) =>

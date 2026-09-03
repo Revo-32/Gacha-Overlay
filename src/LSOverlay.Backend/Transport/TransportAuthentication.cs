@@ -30,9 +30,6 @@ internal static class TransportAuthentication
         return registry.Authenticate(token);
     }
 
-    public static bool TryReadPairingClaim(HttpRequest request, out string secret) =>
-        TryReadScheme(request.Headers.Authorization, "LSOPairing", out secret);
-
     private static bool TryReadScheme(
         StringValues values,
         string expectedScheme,

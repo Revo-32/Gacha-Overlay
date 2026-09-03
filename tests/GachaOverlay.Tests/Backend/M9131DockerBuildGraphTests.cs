@@ -18,6 +18,18 @@ public sealed class M9131DockerBuildGraphTests : IDisposable
     }
 
     [Fact]
+    public async Task DeletedTrackedSourceIsExcludedFromPendingBuildContext()
+    {
+        await CreateFixtureAsync();
+        Write("src/SyntheticLeaf/Retired.cs", "public class Retired { }");
+        var add = await RunAsync("git", _fixture, new[] { "add", "src/SyntheticLeaf/Retired.cs" });
+        Assert.Equal(0, add.ExitCode);
+        File.Delete(Path.Combine(_fixture, "src/SyntheticLeaf/Retired.cs"));
+        var result = await VerifyAsync(_fixture);
+        Assert.True(result.ExitCode == 0, result.Output);
+    }
+
+    [Fact]
     public async Task TransitiveProjectAndNewSourceSubdirectoryAreDiscoveredWithoutAFileAllowlist()
     {
         await CreateFixtureAsync();
@@ -142,6 +154,13 @@ public sealed class M9131DockerBuildGraphTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_fixture)) Directory.Delete(_fixture, recursive: true);
+        if (Directory.Exists(_fixture))
+        {
+            // git add creates read-only object files on Windows. This GUID
+            // directory contains only this test's synthetic repository.
+            foreach (var file in Directory.EnumerateFiles(_fixture, "*", SearchOption.AllDirectories))
+                File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly);
+            Directory.Delete(_fixture, recursive: true);
+        }
     }
 }

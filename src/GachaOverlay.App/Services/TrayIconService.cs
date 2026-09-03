@@ -191,8 +191,8 @@ internal sealed class TrayIconService : IDisposable
             RemoteChatHealthState.Bootstrapping => "DiscordStatusConnecting",
         RemoteChatHealthState.Authenticating => "DiscordStatusAuthenticating",
         RemoteChatHealthState.Reconnecting => "DiscordStatusReconnecting",
-        RemoteChatHealthState.PairingRequired or
-            RemoteChatHealthState.PairingInProgress => "DiscordStatusAuthenticationRequired",
+        RemoteChatHealthState.LoginRequired or
+            RemoteChatHealthState.LoginInProgress => "DiscordStatusAuthenticationRequired",
         RemoteChatHealthState.ChannelSelectionRequired =>
             "DiscordStatusTargetConfigurationRequired",
         RemoteChatHealthState.Error or

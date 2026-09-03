@@ -3,7 +3,7 @@ using LSOverlay.Backend.Configuration;
 using LSOverlay.Backend.Chat;
 using LSOverlay.Backend.Discord;
 using LSOverlay.Backend.Events;
-using LSOverlay.Backend.Pairing;
+using LSOverlay.Backend.Migrations;
 using LSOverlay.Backend.Presence;
 using LSOverlay.Backend.Runtime;
 using LSOverlay.Backend.Security;
@@ -107,8 +107,6 @@ internal static class Program
         builder.Services.AddSingleton<BackendMetrics>();
         builder.Services.AddSingleton<GtaPresenceNormalizer>();
         builder.Services.AddSingleton<ClientCredentialRegistry>();
-        builder.Services.AddSingleton<PairingService>();
-        builder.Services.AddSingleton<PairingHealth>();
         builder.Services.AddSingleton<TransportMetrics>();
         builder.Services.AddSingleton<RemotePublicationHub>();
         builder.Services.AddSingleton<IRemotePresencePublisher>(services =>
@@ -132,14 +130,13 @@ internal static class Program
             DiscordNetSalesStatusSource>();
         builder.Services.AddSingleton<RemoteSalesActionService>();
         builder.Services.AddHostedService<ActiveChatStreamEvictionWorker>();
-        builder.Services.AddSingleton<DiscordPairingCommand>();
+        builder.Services.AddHostedService<SlashPairingRetirementWorker>();
         builder.Services.AddSingleton<DiscordGatewayAdapter>();
         builder.Services.AddSingleton<IDiscordGatewayLifecycle>(services =>
             services.GetRequiredService<DiscordGatewayAdapter>());
         builder.Services.AddHostedService<DiscordBackendWorker>();
         builder.Services.AddHostedService<RemoteAuthenticationHealthReporter>();
         builder.Services.AddHostedService<DeveloperShutdownWatcher>();
-        builder.Services.AddTransportRateLimiting();
         var app = builder.Build();
         if (app.Services.GetRequiredService<ClientCredentialRegistry>().IsFaulted)
         {

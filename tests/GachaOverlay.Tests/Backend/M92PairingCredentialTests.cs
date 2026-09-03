@@ -1,5 +1,4 @@
 using LSOverlay.Backend.Configuration;
-using LSOverlay.Backend.Pairing;
 using LSOverlay.Backend.Security;
 using LSOverlay.Protocol;
 
@@ -15,9 +14,6 @@ public sealed class M92PairingCredentialTests : IDisposable
     [Fact]
     public void SecretGenerators_UseExpectedEntropyAndIndependentValues()
     {
-        var codes = Enumerable.Range(0, 128)
-            .Select(_ => CryptographicSecrets.CreateUserCode())
-            .ToArray();
         var claims = Enumerable.Range(0, 32)
             .Select(_ => CryptographicSecrets.CreateClaimSecret())
             .ToArray();
@@ -25,70 +21,11 @@ public sealed class M92PairingCredentialTests : IDisposable
             .Select(_ => CryptographicSecrets.CreateAccessToken())
             .ToArray();
 
-        Assert.Equal(128, codes.Distinct(StringComparer.Ordinal).Count());
-        Assert.All(codes, code => Assert.Matches("^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$", code));
         Assert.Equal(32, claims.Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(32, tokens.Distinct(StringComparer.Ordinal).Count());
         Assert.All(claims, claim => Assert.True(ConvertFromBase64Url(claim).Length >= 32));
         Assert.All(tokens, token => Assert.True(ConvertFromBase64Url(token[4..]).Length >= 32));
         Assert.DoesNotContain(tokens, token => claims.Contains(token, StringComparer.Ordinal));
-    }
-
-    [Fact]
-    public void Pairing_RequiresMachineClaimAndIssuesTokenOnlyOnce()
-    {
-        var registry = Registry();
-        var pairing = new PairingService(registry, 123, () => _now);
-        var created = pairing.Create(Guid.NewGuid());
-
-        Assert.Equal(PairingState.Pending, pairing.Claim(
-            created.PairingId,
-            created.PairingClaimSecret).State);
-        Assert.Throws<UnauthorizedAccessException>(() => pairing.Claim(created.PairingId, "wrong"));
-        Assert.Equal(PairingApprovalResult.Approved,
-            pairing.Approve(123, 456, false, created.UserCode.ToLowerInvariant()));
-        var issued = pairing.Claim(created.PairingId, created.PairingClaimSecret);
-
-        Assert.Equal(PairingState.Approved, issued.State);
-        Assert.NotNull(issued.Credential);
-        Assert.Equal(PairingState.Consumed,
-            pairing.Claim(created.PairingId, created.PairingClaimSecret).State);
-    }
-
-    [Fact]
-    public void Pairing_RejectsWrongGuildBotUnknownExpiredAndOtherApprover()
-    {
-        var now = _now;
-        var pairing = new PairingService(Registry(() => now), 123, () => now);
-        var created = pairing.Create(Guid.NewGuid());
-
-        Assert.Equal(PairingApprovalResult.InvalidGuild,
-            pairing.Approve(999, 456, false, created.UserCode));
-        Assert.Equal(PairingApprovalResult.InvalidCaller,
-            pairing.Approve(123, 456, true, created.UserCode));
-        Assert.Equal(PairingApprovalResult.UnknownCode,
-            pairing.Approve(123, 456, false, "0000-0000"));
-        Assert.Equal(PairingApprovalResult.Approved,
-            pairing.Approve(123, 456, false, created.UserCode));
-        Assert.Equal(PairingApprovalResult.ApprovedByAnotherUser,
-            pairing.Approve(123, 789, false, created.UserCode));
-
-        now = now.Add(PairingService.PairingLifetime).AddTicks(1);
-        Assert.Equal(PairingApprovalResult.Expired,
-            pairing.Approve(123, 456, false, created.UserCode));
-    }
-
-    [Fact]
-    public void PairingStore_IsBounded()
-    {
-        var pairing = new PairingService(Registry(), 123, () => _now);
-        for (var index = 0; index < PairingService.MaximumActivePairings; index++)
-        {
-            pairing.Create(Guid.NewGuid());
-        }
-
-        Assert.Equal(PairingService.MaximumActivePairings, pairing.Count);
-        Assert.Throws<InvalidOperationException>(() => pairing.Create(Guid.NewGuid()));
     }
 
     [Fact]
