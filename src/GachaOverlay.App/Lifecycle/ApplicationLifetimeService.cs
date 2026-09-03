@@ -10,6 +10,7 @@ internal enum ApplicationExitSource
     SecondaryInstance,
     FatalUnhandledException,
     WindowsSessionEnding,
+    ClientVerification,
 }
 
 internal sealed class ApplicationLifetimeService

@@ -27,6 +27,12 @@ public partial class App : System.Windows.Application
             () => _host?.Logger ?? NullAppLogger.Instance,
             CompleteOrderedShutdown);
 
+        if (eventArgs.Args.Length == 2 && eventArgs.Args[0] == "--verify-client-export")
+        {
+            _ = VerifyClientExportAsync(eventArgs.Args[1]);
+            return;
+        }
+
         if (!SingleInstanceGuard.TryAcquire(
                 SingleInstanceMutexName,
                 out _singleInstanceGuard,
@@ -79,6 +85,12 @@ public partial class App : System.Windows.Application
         _singleInstanceGuard?.Dispose();
         _singleInstanceGuard = null;
         base.OnExit(eventArgs);
+    }
+
+    private async Task VerifyClientExportAsync(string directory)
+    {
+        var exitCode = await ClientExportVerification.RunAsync(this, directory);
+        _applicationLifetime?.RequestExit(ApplicationExitSource.ClientVerification, exitCode);
     }
 
     private void CompleteOrderedShutdown(int exitCode)

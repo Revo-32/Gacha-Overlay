@@ -23,6 +23,7 @@ public enum DiagnosticBundleExportStatus
 public enum DiagnosticExportStage
 {
     None,
+    SelectDestination,
     CreateSnapshot,
     BuildSummary,
     BuildSanitizedSettings,
@@ -139,10 +140,9 @@ public sealed partial class DiagnosticBundleExporter
         catch (Exception exception)
         {
             _metrics?.Increment(RuntimeMetricNames.DiagnosticExportFailures);
-            var safeMessage = SanitizeFailureText(exception.Message, 1024);
-            var safeStack = SanitizeFailureText(
-                exception.StackTrace ?? "unavailable",
-                8192);
+            // Exception messages/paths can contain arbitrary data supplied by files or serializers.
+            const string safeMessage = "Diagnostic operation failed.";
+            const string safeStack = "omitted";
             var safeEntry = progress.Entry is null
                 ? "none"
                 : SanitizeFailureText(progress.Entry, 256);
@@ -172,8 +172,10 @@ public sealed partial class DiagnosticBundleExporter
         DiagnosticExportProgress progress,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.DestinationPath);
         progress.Update(DiagnosticExportStage.WriteArchive);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.DestinationPath);
+        if (!Path.IsPathFullyQualified(request.DestinationPath))
+            throw new ArgumentException("The diagnostic destination must be absolute.");
         var destination = Path.GetFullPath(request.DestinationPath);
         var directory = Path.GetDirectoryName(destination)
             ?? throw new InvalidOperationException("The diagnostic destination is invalid.");
@@ -192,20 +194,23 @@ public sealed partial class DiagnosticBundleExporter
                        FileShare.None,
                        bufferSize: 81920,
                        FileOptions.SequentialScan))
-            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: false))
             {
-                foreach (var artifact in entries)
+                using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    progress.Update(DiagnosticExportStage.WriteArchive, artifact.Name);
-                    var entry = archive.CreateEntry(
-                        artifact.Name,
-                        CompressionLevel.Optimal);
-                    using var writer = new StreamWriter(
-                        entry.Open(),
-                        new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-                    writer.Write(artifact.Content);
+                    foreach (var artifact in entries)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        progress.Update(DiagnosticExportStage.WriteArchive, artifact.Name);
+                        var entry = archive.CreateEntry(
+                            artifact.Name,
+                            CompressionLevel.Optimal);
+                        using var writer = new StreamWriter(
+                            entry.Open(),
+                            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                        writer.Write(artifact.Content);
+                    }
                 }
+                stream.Flush(flushToDisk: true);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -253,7 +258,7 @@ public sealed partial class DiagnosticBundleExporter
             }
 
             var json = JsonSerializer.Serialize(pair.Value, JsonOptions);
-            entries.Add(new DiagnosticArtifact(pair.Key, SanitizeContent(json)));
+            entries.Add(new DiagnosticArtifact(pair.Key, SanitizeContent(json, isJson: true)));
         }
 
         var crashSummaryStatus = "notConfigured";
@@ -345,7 +350,7 @@ public sealed partial class DiagnosticBundleExporter
         }, JsonOptions);
         entries[index] = entries[index] with
         {
-            Content = SanitizeContent(root.ToJsonString(JsonOptions)),
+            Content = SanitizeContent(root.ToJsonString(JsonOptions), isJson: true),
         };
     }
 
@@ -361,7 +366,7 @@ public sealed partial class DiagnosticBundleExporter
             SanitizedStack = ReadJsonString(root, "sanitizedStack", 32 * 1024),
             SubsystemContext = ReadJsonString(root, "subsystemContext", 240),
         };
-        return SanitizeContent(JsonSerializer.Serialize(summary, JsonOptions));
+        return SanitizeContent(JsonSerializer.Serialize(summary, JsonOptions), isJson: true);
     }
 
     private static string? ReadJsonString(
@@ -453,10 +458,11 @@ public sealed partial class DiagnosticBundleExporter
 
     private static bool IsOptionalFileFailure(Exception exception) =>
         exception is IOException or UnauthorizedAccessException or JsonException or
-            NotSupportedException or System.Security.SecurityException or ArgumentException;
+            NotSupportedException or System.Security.SecurityException or ArgumentException or InvalidDataException;
 
     private static string GetOptionalFileFailureReason(Exception exception) => exception switch
     {
+        InvalidDataException => "privacyBoundary",
         JsonException => "invalidJson",
         UnauthorizedAccessException or System.Security.SecurityException => "accessDenied",
         NotSupportedException or ArgumentException => "invalidPathOrFormat",
@@ -500,24 +506,60 @@ public sealed partial class DiagnosticBundleExporter
             FileMode.Open,
             FileAccess.Read,
             FileShare.ReadWrite | FileShare.Delete);
-        if (stream.Length > maximumBytes)
-        {
-            stream.Seek(-maximumBytes, SeekOrigin.End);
-        }
+        Span<byte> header = stackalloc byte[4];
+        var headerLength = stream.ReadAtLeast(header, 4, throwOnEndOfStream: false);
+        Encoding encoding = Encoding.UTF8;
+        var preamble = 0;
+        var unit = 1;
+        if (headerLength >= 4 && header.SequenceEqual(new byte[] { 0xff, 0xfe, 0, 0 }))
+            (encoding, preamble, unit) = (Encoding.UTF32, 4, 4);
+        else if (headerLength >= 4 && header.SequenceEqual(new byte[] { 0, 0, 0xfe, 0xff }))
+            (encoding, preamble, unit) = (new UTF32Encoding(bigEndian: true, byteOrderMark: false), 4, 4);
+        else if (headerLength >= 2 && header[0] == 0xff && header[1] == 0xfe)
+            (encoding, preamble, unit) = (Encoding.Unicode, 2, 2);
+        else if (headerLength >= 2 && header[0] == 0xfe && header[1] == 0xff)
+            (encoding, preamble, unit) = (Encoding.BigEndianUnicode, 2, 2);
+        else if (headerLength >= 3 && header[0] == 0xef && header[1] == 0xbb && header[2] == 0xbf)
+            preamble = 3;
+        var snapshotLength = stream.Length;
+        var start = Math.Max(preamble, snapshotLength - maximumBytes);
+        start += (unit - ((start - preamble) % unit)) % unit;
+        stream.Position = Math.Min(start, snapshotLength);
 
+        // Capture a finite tail, even if another process keeps appending while we read.
+        var buffer = new byte[(int)Math.Min(snapshotLength - stream.Position, maximumBytes)];
+        var read = 0;
+        while (read < buffer.Length)
+        {
+            var count = stream.Read(buffer, read, buffer.Length - read);
+            if (count == 0) break;
+            read += count;
+        }
+        using var snapshot = new MemoryStream(buffer, 0, read, writable: false);
         using var reader = new StreamReader(
-            stream,
-            Encoding.UTF8,
-            detectEncodingFromByteOrderMarks: true,
+            snapshot,
+            encoding,
+            detectEncodingFromByteOrderMarks: false,
             bufferSize: 81920,
             leaveOpen: false);
         var text = reader.ReadToEnd();
+        if (text.Contains('\0')) throw new InvalidDataException("Unsupported binary diagnostic source.");
+        // A tail can begin inside a body or secret value, without its identifying
+        // field name. Omit that partial line instead of exporting unlabelled data.
+        if (start > preamble)
+        {
+            var newline = text.IndexOf('\n');
+            return newline < 0 ? string.Empty : text[(newline + 1)..];
+        }
         return text.Length > 0 && text[0] == '�' ? text[1..] : text;
     }
 
-    private static string SanitizeContent(string content)
+    private static string SanitizeContent(string content, bool isJson = false)
     {
-        var sanitized = SensitiveDataRedactor.Sanitize(content);
+        var sanitized = isJson ? DiagnosticContentSanitizer.Json(content) : DiagnosticContentSanitizer.Text(content);
+        // A log can mention retiring a credential file without containing that file.
+        // Mask the name; never add credential files to the source allowlist.
+        sanitized = ProhibitedCredentialArtifactPattern().Replace(sanitized, "[REDACTED-FILE]");
         if (ProhibitedCredentialArtifactPattern().IsMatch(sanitized) ||
             DpapiBlobPattern().IsMatch(sanitized))
         {
@@ -530,7 +572,7 @@ public sealed partial class DiagnosticBundleExporter
 
     private static string SanitizeFailureText(string value, int maximumCharacters)
     {
-        var sanitized = SensitiveDataRedactor.Sanitize(value);
+        var sanitized = DiagnosticContentSanitizer.Text(value);
         return sanitized.Length <= maximumCharacters
             ? sanitized
             : sanitized[..maximumCharacters];
@@ -556,13 +598,16 @@ public sealed partial class DiagnosticBundleExporter
 
             if (!string.Equals(
                     artifact.Content,
-                    SensitiveDataRedactor.Sanitize(artifact.Content),
+                    SanitizeContent(artifact.Content, artifact.Name.EndsWith(".json", StringComparison.Ordinal)),
                     StringComparison.Ordinal))
             {
                 throw new InvalidDataException(
                     $"Diagnostic entry '{artifact.Name}' failed the final redaction audit.");
             }
         }
+
+        if (!AllowedJsonEntryNames.IsSubsetOf(names))
+            throw new InvalidDataException("A required diagnostic artifact is missing.");
     }
 
     private static void TryDelete(string path)

@@ -1,4 +1,5 @@
 using Discord;
+using Discord.Rest;
 using Discord.WebSocket;
 using LSOverlay.Protocol;
 
@@ -308,6 +309,18 @@ internal sealed partial class DiscordChatMessageNormalizer
             foreach (var channel in socket.MentionedChannels)
             {
                 channels[channel.Id] = channel.Name;
+            }
+        }
+        else if (message is RestMessage rest)
+        {
+            // Recent history and REST canonical updates carry names in MentionedUsers,
+            // not in the socket cache or interaction-only ResolvedData. Retain that
+            // already supplied data without adding member REST requests per mention.
+            foreach (var user in rest.MentionedUsers)
+            {
+                users[user.Id] = string.IsNullOrWhiteSpace(user.GlobalName)
+                    ? user.Username
+                    : user.GlobalName;
             }
         }
 

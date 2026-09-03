@@ -780,49 +780,48 @@ internal sealed class ApplicationHost : IDisposable
                 "The diagnostic file could not be created.";
         }
 
-        var dialog = new Microsoft.Win32.SaveFileDialog
-        {
-            AddExtension = true,
-            DefaultExt = ".zip",
-            FileName = $"GachaOverlay-Diagnostics-{DateTime.Now:yyyyMMdd-HHmmss}.zip",
-            Filter = _localization["SettingsDiagnosticZipFilter"],
-            Title = _localization["SettingsCreateDiagnosticBundle"],
-        };
-        if (dialog.ShowDialog(SettingsOwnerWindow) != true)
-        {
-            return _localization["SettingsDiagnosticCancelled"];
-        }
-
-        DiagnosticBundleRequest request;
+        var stage = DiagnosticExportStage.SelectDestination;
         try
         {
-            request = BuildDiagnosticRequest(dialog.FileName);
+            var diagnosticDirectory = System.IO.Path.Combine(_paths.DataDirectory, "Diagnostics");
+            System.IO.Directory.CreateDirectory(diagnosticDirectory);
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                AddExtension = true,
+                DefaultExt = ".zip",
+                FileName = $"GachaOverlay-Diagnostics-{DateTime.Now:yyyyMMdd-HHmmss}.zip",
+                Filter = _localization["SettingsDiagnosticZipFilter"],
+                Title = _localization["SettingsCreateDiagnosticBundle"],
+                InitialDirectory = diagnosticDirectory,
+            };
+            if (dialog.ShowDialog(SettingsOwnerWindow) != true)
+            {
+                return _localization["SettingsDiagnosticCancelled"];
+            }
+
+            stage = DiagnosticExportStage.CreateSnapshot;
+            var request = BuildDiagnosticRequest(dialog.FileName);
+            var result = await _diagnosticExporter.ExportAsync(request).ConfigureAwait(true);
+            return result.Status switch
+            {
+                DiagnosticBundleExportStatus.Succeeded => string.Format(
+                    System.Globalization.CultureInfo.CurrentUICulture,
+                    _localization["SettingsDiagnosticCreated"],
+                    result.DestinationPath),
+                DiagnosticBundleExportStatus.Busy => _localization["SettingsDiagnosticBusy"],
+                DiagnosticBundleExportStatus.Cancelled =>
+                    _localization["SettingsDiagnosticCancelled"],
+                _ => $"{_localization["SettingsDiagnosticFailed"]} [{result.FailureStage}/{result.FailureType}]",
+            };
         }
         catch (Exception exception)
         {
-            Logger.Error(
-                "DIAGNOSTICS",
-                "exportStage=CreateSnapshot entry=none result=Failed " +
-                $"exception={exception.GetType().Name}",
-                exception);
-            return _localization["SettingsDiagnosticFailed"];
+            Logger.Error("DIAGNOSTICS", $"exportStage={stage} entry=none result=Failed exception={exception.GetType().Name}");
+            return $"{_localization["SettingsDiagnosticFailed"]} [{stage}/{exception.GetType().Name}]";
         }
-
-        var result = await _diagnosticExporter.ExportAsync(request).ConfigureAwait(true);
-        return result.Status switch
-        {
-            DiagnosticBundleExportStatus.Succeeded => string.Format(
-                System.Globalization.CultureInfo.CurrentUICulture,
-                _localization["SettingsDiagnosticCreated"],
-                result.DestinationPath),
-            DiagnosticBundleExportStatus.Busy => _localization["SettingsDiagnosticBusy"],
-            DiagnosticBundleExportStatus.Cancelled =>
-                _localization["SettingsDiagnosticCancelled"],
-            _ => _localization["SettingsDiagnosticFailed"],
-        };
     }
 
-    private DiagnosticBundleRequest BuildDiagnosticRequest(string destinationPath)
+    internal DiagnosticBundleRequest BuildDiagnosticRequest(string destinationPath)
     {
         var settings = _settingsStore?.Current ?? AppSettings.CreateDefault();
         var runtime = _runtimeMetrics.Snapshot();

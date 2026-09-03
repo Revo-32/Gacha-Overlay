@@ -54,7 +54,8 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Margin="12,0,0,0" Orientation="Horizontal" VerticalAlignment="Top">
-                    <Button x:Name="HeaderSettingsButton" Width="30" Height="30" Padding="7" ToolTip="{Binding Localization[HudOpenSettings]}" Click="OnSettingsClick">
+                    <Button x:Name="HeaderSettingsButton" Width="30" Height="30" Padding="7" Focusable="False" IsEnabled="{Binding IsUnlocked}"
+                            ToolTip="{Binding Localization[HudOpenSettings]}" PreviewMouseLeftButtonDown="OnSettingsMouseDown" Click="OnSettingsClick">
                         <Path Data="M12,1 L14,1 14.7,3.3 16.5,4.1 18.7,3 20,4.3 18.9,6.5 19.7,8.3 22,9 22,11 19.7,11.7 18.9,13.5 20,15.7 18.7,17 16.5,15.9 14.7,16.7 14,19 12,19 11.3,16.7 9.5,15.9 7.3,17 6,15.7 7.1,13.5 6.3,11.7 4,11 4,9 6.3,8.3 7.1,6.5 6,4.3 7.3,3 9.5,4.1 11.3,3.3 Z M13,7 A3,3 0 1 0 13,13 A3,3 0 1 0 13,7" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform"/>
                     </Button>
                     <Border x:Name="LockBadgeSurface" Margin="8,0,0,0" Padding="10,5" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="{DynamicResource CornerRadius.Small}">
@@ -70,7 +71,8 @@
                     <Border Width="76" Height="28" Background="Transparent" Cursor="SizeAll" MouseLeftButtonDown="OnDragSurfaceMouseLeftButtonDown">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><Rectangle Width="36" Height="2" Fill="{DynamicResource TextSecondaryBrush}"/><Rectangle Width="24" Height="2" Margin="0,4,0,0" Fill="{DynamicResource TextSecondaryBrush}"/></StackPanel>
                     </Border>
-                    <Button x:Name="FloatingSettingsButton" Width="28" Height="28" Padding="6" ToolTip="{Binding Localization[HudOpenSettings]}" Click="OnSettingsClick">
+                    <Button x:Name="FloatingSettingsButton" Width="28" Height="28" Padding="6" Focusable="False" IsEnabled="{Binding IsUnlocked}"
+                            ToolTip="{Binding Localization[HudOpenSettings]}" PreviewMouseLeftButtonDown="OnSettingsMouseDown" Click="OnSettingsClick">
                         <Path Data="M12,1 L14,1 14.7,3.3 16.5,4.1 18.7,3 20,4.3 18.9,6.5 19.7,8.3 22,9 22,11 19.7,11.7 18.9,13.5 20,15.7 18.7,17 16.5,15.9 14.7,16.7 14,19 12,19 11.3,16.7 9.5,15.9 7.3,17 6,15.7 7.1,13.5 6.3,11.7 4,11 4,9 6.3,8.3 7.1,6.5 6,4.3 7.3,3 9.5,4.1 11.3,3.3 Z M13,7 A3,3 0 1 0 13,13 A3,3 0 1 0 13,7" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform"/>
                     </Button>
                 </StackPanel>

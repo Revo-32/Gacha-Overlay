@@ -316,8 +316,9 @@ internal sealed class HudWindowController : IDisposable
 
     private void OnSettingsRequested()
     {
-        if (!_stateService.Current.IsLocked)
+        if (!_disposed && !_stateService.Current.IsLocked)
         {
+            _logger.Information("HUD", "Settings input accepted while unlocked.");
             _openHudSettings();
         }
     }

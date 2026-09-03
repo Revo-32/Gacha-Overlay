@@ -75,6 +75,20 @@ public partial class HudWindow : Window
         SettingsRequested?.Invoke();
     }
 
+    private void OnSettingsMouseDown(object sender, MouseButtonEventArgs eventArgs)
+    {
+        // This HUD deliberately returns MA_NOACTIVATE. ButtonBase's default release
+        // click relies on focus/capture surviving until mouse-up, which a foreground
+        // game can interrupt. Dispatch this navigation action before ButtonBase
+        // tries to focus/capture. Handling the preview also prevents a second Click
+        // and prevents the parent drag surface from starting a move.
+        if (eventArgs.ChangedButton == MouseButton.Left && sender is UIElement { IsEnabled: true })
+        {
+            eventArgs.Handled = true;
+            SettingsRequested?.Invoke();
+        }
+    }
+
     private void OnDragSurfaceMouseLeftButtonDown(
         object sender,
         MouseButtonEventArgs eventArgs)

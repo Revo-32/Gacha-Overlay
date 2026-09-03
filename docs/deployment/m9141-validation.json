@@ -1,0 +1,92 @@
+{
+  "milestone": "M9.14.1 CLIENT CORRECTIVE",
+  "validatedLocalDate": "2026-09-03",
+  "baselineCommit": "244613e",
+  "baselineTests": 1366,
+  "addedTests": 35,
+  "debug": { "passed": 1401, "failed": 0, "skipped": 0, "warnings": 0, "errors": 0 },
+  "release": { "passed": 1401, "failed": 0, "skipped": 0, "warnings": 0, "errors": 0 },
+  "testEvidence": [
+    "artifacts/m9141-validation/m9141-complete-debug.trx",
+    "artifacts/m9141-validation/m9141-complete-release.trx"
+  ],
+  "restore": "PASS",
+  "formatVerifyNoChanges": "PASS",
+  "diffCheck": "PASS",
+  "backendPublish": {
+    "runtime": "linux-x64",
+    "configuration": "Release",
+    "selfContained": false,
+    "status": "PASS",
+    "path": "artifacts/m9141-final/backend-linux-x64",
+    "files": 11,
+    "bytes": 5587532,
+    "backendDllSha256": "1AEC52F7B5D71516BFF58FE0492D46E6FA7A21939D7915255F02B6A5D6B13C89",
+    "linuxRuntimeExecution": "NOT RUN",
+    "deployment": "NOT RUN - requires separate authorization"
+  },
+  "wpfPublish": {
+    "runtime": "win-x64",
+    "configuration": "Release",
+    "selfContained": true,
+    "singleFile": true,
+    "status": "PASS",
+    "path": "artifacts/m9141-final/wpf-win-x64/GachaOverlay.App.exe",
+    "bytes": 179130955,
+    "sha256": "32658EEFCFCE5EBA6F0C1C7F39DAC30B9CDB5A056594BD36D0667B5EE7287341",
+    "offlineExecution": {
+      "status": "PASS",
+      "copiedExecutableOnly": true,
+      "diagnosticExports": 2,
+      "parsedRequiredJsonEntries": 6,
+      "settingsReuseAndGearRoute": "PASS",
+      "pendingTemporaryFiles": 0,
+      "realUserDataRead": false,
+      "networkStarted": false,
+      "evidenceDirectoryName": "GachaOverlay-M9141-144e6d64e27f4cbd9456746bd0d7b67b"
+    },
+    "finalBinaryInGamePhysicalInput": "NOT RUN - user tested earlier corrective binaries"
+  },
+  "dockerContext": {
+    "sourceFiles": 135,
+    "sourceClosure": "PASS",
+    "isolatedRestore": "PASS",
+    "isolatedPublish": "PASS",
+    "mode": "Tracked plus non-ignored pending sources; no commit performed",
+    "stagingDirectoryName": "LSOverlay-DockerContext-f50d6637c1fe42299332a993d042422f",
+    "dockerImageBuild": "NOT RUN"
+  },
+  "userActualValidation": {
+    "clientCorrective": "RUN",
+    "hudGear": "PASS - user confirmed Settings opens from minimal HUD in game",
+    "traySettings": "NOT RUN - not re-confirmed by user in this corrective turn; automated route passed",
+    "diagnosticBundle": "PASS - user confirmed successful export using m9141-corrected",
+    "otherUsersComputer": "NOT RUN",
+    "inspectedUserBundle": {
+      "entries": 8,
+      "validJsonEntries": 6,
+      "unexpectedEntries": 0,
+      "unmaskedDiscordIdentifierPatternMatches": 0,
+      "dpapiMarkerMatches": 0,
+      "credentialFileNameMarkerMatches": 0
+    }
+  },
+  "webOAuthPriorLiveValidation": {
+    "evidenceSource": "User-reported M9.14 live validation, not re-run by this agent",
+    "developerAccount": "PASS",
+    "ordinaryNonAdminAccount": "PASS",
+    "slashCommandUsed": false,
+    "applicationCommandRestrictionsChanged": false,
+    "restartAutoLogin": "PASS"
+  },
+  "approvedAdditionalRestMentionFix": {
+    "status": "IMPLEMENTED AND LOCALLY TESTED",
+    "realSdkRestMessageRegressionCases": 3,
+    "displayNamePolicy": "RestMessage.MentionedUsers GlobalName then Username; existing resolved member precedence retained",
+    "additionalMemberRequestsPerMention": 0,
+    "liveValidation": "NOT RUN - backend not redeployed"
+  },
+  "externalWrites": { "commit": false, "push": false, "pullRequest": false, "release": false, "railwayMutation": false },
+  "finalStatus": "M9.14.1 CLIENT REGRESSIONS FIXED",
+  "nextStage": "Slash Pairing Retirement / Web Auth Finalization - not started"
+}

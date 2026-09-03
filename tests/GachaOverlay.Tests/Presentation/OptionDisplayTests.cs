@@ -135,6 +135,7 @@ public sealed class OptionDisplayTests
                 using var fixture = new ViewModelFixture(SupportedLocales.Korean);
                 Assert.Null(System.Windows.Application.Current);
                 using var application = new WpfTestApplicationScope();
+                M9141ClientCorrectiveTests.AssertSettingsReuse();
                 AssertM81OnboardingSmoke(application);
                 var window = new FoundationWindow
                 {
