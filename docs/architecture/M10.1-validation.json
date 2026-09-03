@@ -1,0 +1,113 @@
+{
+  "milestone": "M10.1",
+  "date": "2026-09-03",
+  "scope": "local source, automated verification and offline visual checks only",
+  "historicalM10Baseline": 1486,
+  "preWorkHead": "a1b8bb1",
+  "preWorkCurrent": {
+    "debug": { "total": 1497, "passed": 1497, "failed": 0, "skipped": 0 },
+    "release": { "total": 1497, "passed": 1497, "failed": 0, "skipped": 0 },
+    "modifiedTrackedFiles": 43,
+    "existingUntrackedFiles": 20,
+    "stagedBrandingFiles": 3,
+    "existingPendingFileHashesChecked": 63,
+    "existingPendingFileHashesChanged": 0
+  },
+  "final": {
+    "verificationScope": "Build, full .NET tests, format and diff checks refreshed for contact finalization. JS, visual, publish and isolated-context results below retain the original foundation verification and were not rerun.",
+    "newDotNetCases": 37,
+    "debug": { "total": 1534, "passed": 1534, "failed": 0, "skipped": 0 },
+    "release": { "total": 1534, "passed": 1534, "failed": 0, "skipped": 0 },
+    "javascript": { "total": 15, "passed": 15, "failed": 0, "skipped": 0 },
+    "restore": "PASS",
+    "debugBuild": { "result": "PASS", "warnings": 0, "errors": 0 },
+    "releaseBuild": { "result": "PASS", "warnings": 0, "errors": 0 },
+    "formatVerify": "PASS",
+    "gitDiffCheck": "PASS",
+    "backendLinuxPublish": "PASS",
+    "wpfWindowsSingleFilePublish": "PASS",
+    "backendIsolatedContext": { "result": "PASS", "inputFiles": 144, "projects": 3, "publishedFiles": 12, "publishedBytes": 6905354 },
+    "statusIsolatedContext": { "result": "PASS", "inputFiles": 7, "runtimeFiles": 4 },
+    "backendDockerImageBuild": "NOT RUN - Docker CLI unavailable",
+    "statusDockerImageBuild": "NOT RUN - Docker CLI unavailable",
+    "linuxContainerPortAndHttpRuntime": "NOT RUN - Docker CLI unavailable",
+    "offlineHttpAndVisualCheck": "PASS",
+    "productionBotAndPublicUrls": "NOT RUN - manual deployment required"
+  },
+  "evidence": {
+    "baselineDebug": "tests/GachaOverlay.Tests/TestResults/m101-baseline-debug.trx",
+    "baselineRelease": "tests/GachaOverlay.Tests/TestResults/m101-baseline-release.trx",
+    "finalDebug": "tests/GachaOverlay.Tests/TestResults/m101-contact-debug-recheck.trx",
+    "finalRelease": "tests/GachaOverlay.Tests/TestResults/m101-contact-release.trx",
+    "javascriptCommand": "node --test web/status/tests/status.test.cjs",
+    "backendContextHelper": "tools/dev/verify-backend-docker-context.ps1 (PowerShell 7)",
+    "statusContextHelper": "tools/dev/verify-status-site-context.ps1 (Windows PowerShell 5.1 verified)",
+    "offlinePreviewHelper": "tools/dev/preview-ls-m101-public.ps1 (Windows PowerShell 5.1 verified)",
+    "visualViewportsPx": [320, 768, 1280],
+    "visualStates": ["operational", "degraded", "maintenance", "unavailable", "unknown", "api-fetch-failure"],
+    "visualDocuments": ["privacy", "terms"],
+    "previewProcessStopped": true
+  },
+  "intermediateAnomalies": [
+    {
+      "test": "M82DiagnosticBundleTests.Bundle_contains_only_allowlisted_generated_artifacts_and_bounded_logs",
+      "failedFullDebugRuns": ["m101-final-debug.trx", "m101-final-debug-recheck.trx"],
+      "failureCountPerRun": 1,
+      "subsequentResult": "Focused, investigation and final full Debug/Release runs passed without changing diagnostic production code or test semantics.",
+      "rootCause": "NOT CONFIRMED - retain as an intermittent regression-test risk"
+    },
+    {
+      "build": "Intermediate Debug build overlapped its prior testhost",
+      "copyRetryWarnings": 4,
+      "finalBuildWarnings": 0
+    },
+    {
+      "helper": "Existing Backend context helper rejected Windows PowerShell 5.1 due to #requires 7.0",
+      "resolution": "Executed successfully using PowerShell 7; guide corrected"
+    }
+  ],
+  "artifacts": {
+    "scope": "Original foundation publish; the Backend package predates contact finalization. Rebuild current source before deployment.",
+    "backendDirectory": "artifacts/m101/backend-linux-x64",
+    "backendDllSha256": "25DAA68DF5C4A72951F115029DD9A84EBE8371CCF9A0E05B2FBA804C19A91B1F",
+    "wpfExe": "artifacts/m101/wpf-win-x64/GachaOverlay.App.exe",
+    "wpfExeBytes": 78480095,
+    "wpfExeSha256": "4ECB09ACD752A160D7AECF00DCA72796412915D9340199881EE741D76445F5D1",
+    "wpfMatchesPreviousCompletedOnlyArtifact": true
+  },
+  "brandingSha256": {
+    "LS_Overlay_icon.png": "AD47711F668097536B24DC71706ADF612E3A420900860A086B2EA61F6CF6D295",
+    "LS_Overlay_logo.png": "3317B093CAFD8F97D797CF159C795589E0E2A8C959571A9C049367DEB30F42CB",
+    "LS_Overlay_Banner.png": "ACFDE7902FD7CA5911BA9FB98D44B54C94CC8B5C8150A1D1BE7CB0F33BE3AE3C"
+  },
+  "productionMutations": {
+    "commit": false,
+    "push": false,
+    "pullRequest": false,
+    "tagOrRelease": false,
+    "railway": false,
+    "dns": false,
+    "discordPortal": false
+  },
+  "contactFinalization": {
+    "date": "2026-09-03",
+    "operatorConfirmedEmail": "revo.32.39.41@gmail.com",
+    "contactUri": "mailto:revo.32.39.41@gmail.com",
+    "runtimeSource": "src/LSOverlay.Backend/PublicWeb/PublicServicePages.cs: ContactEmail; ContactUrl is derived",
+    "changedFiles": 7,
+    "filesCompared": 554,
+    "outOfScopeFilesChanged": 0,
+    "newTestCases": 2,
+    "publicServiceTestsPassed": 37,
+    "initialDebugRun": {
+      "evidence": "tests/GachaOverlay.Tests/TestResults/m101-contact-debug.trx",
+      "passed": 1533,
+      "failed": 1,
+      "test": "M82DiagnosticBundleTests.Bundle_contains_only_allowlisted_generated_artifacts_and_bounded_logs",
+      "resolution": "Full Debug rerun and Release passed without changing diagnostic production code or existing test semantics; cause remains unconfirmed."
+    },
+    "productionChanges": false
+  },
+  "engineeringResult": "M10.1 PUBLIC CONTACT FINALIZED",
+  "contactReadiness": "PUBLIC CONTACT VERIFIED"
+}

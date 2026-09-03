@@ -12,6 +12,7 @@
 !src/LSOverlay.Protocol/**
 !src/LSOverlay.Backend/
 !src/LSOverlay.Backend/**
+!assets/branding/LS_Overlay_logo.png
 
 # Re-exclude generated output and any accidental runtime/secret files in source.
 **/bin/**

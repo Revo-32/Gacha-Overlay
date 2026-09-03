@@ -167,6 +167,16 @@ public sealed class SalesProductCatalog
         return mapped;
     }
 
+    public SaleProduct? ResolveCanonical(string guildId, string canonicalName, string locale)
+    {
+        var definition = _products.FirstOrDefault(product => product.Enabled &&
+            (string.IsNullOrWhiteSpace(product.GuildId) || product.GuildId == guildId) &&
+            (product.GroupName == canonicalName || product.DisplayNames.GetValueOrDefault("ko") == canonicalName));
+        if (definition is null) return null;
+        var display = ResolveDisplayName(definition, locale);
+        return display is null ? null : new SaleProduct(definition.ProductId, display, definition.EmojiId, definition.EmojiName ?? "");
+    }
+
     public SaleProduct Relocalize(string guildId, SaleProduct product, string locale)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(guildId);

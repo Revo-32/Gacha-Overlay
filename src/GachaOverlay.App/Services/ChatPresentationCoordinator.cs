@@ -27,6 +27,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     private ChatResponsiveLevel _responsiveLevel = ChatResponsiveLevel.Full;
     private int _responsiveMeasurementRevision;
     private bool _disposed;
+    private long _scrollGeneration = -1;
     private readonly IRuntimeMetrics? _metrics;
 
     public ChatPresentationCoordinator(
@@ -57,6 +58,12 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             return;
         }
 
+        if (_scrollGeneration != state.Generation)
+        {
+            _scrollGeneration = state.Generation;
+            _viewModel.JumpToLatest();
+        }
+        _viewModel.BeginMessageUpdate();
         try
         {
             foreach (var change in _synchronizer.Synchronize(state, authenticatedUserId))
@@ -75,6 +82,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                         break;
                 }
 
+                if (change.Kind == ChatPresentationChangeKind.Add) _viewModel.NotifyNewMessage();
+
                 if (change.RequestMentionPulse)
                 {
                     _viewModel.RequestMentionPulse();
@@ -88,6 +97,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         }
         finally
         {
+            _viewModel.EndMessageUpdate();
             _metrics?.RecordDuration(
                 RuntimeMetricNames.ChatPresentationDuration,
                 Stopwatch.GetElapsedTime(started));

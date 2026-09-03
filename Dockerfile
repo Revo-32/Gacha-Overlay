@@ -12,6 +12,7 @@ RUN dotnet restore src/LSOverlay.Backend/LSOverlay.Backend.csproj
 COPY src/GachaOverlay.Core/ src/GachaOverlay.Core/
 COPY src/LSOverlay.Protocol/ src/LSOverlay.Protocol/
 COPY src/LSOverlay.Backend/ src/LSOverlay.Backend/
+COPY assets/branding/LS_Overlay_logo.png assets/branding/
 RUN dotnet publish src/LSOverlay.Backend/LSOverlay.Backend.csproj \
     -c Release --no-restore --self-contained false -p:UseAppHost=false -o /app/publish
 

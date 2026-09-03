@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:GachaOverlay.App.Presentation"
         Title="{Binding Settings.Localization[OnboardingTitle]}"
-        Icon="/GachaOverlay.App;component/Assets/Branding/GachaOverlay-AppIcon.ico"
+        Icon="/GachaOverlay.App;component/Assets/Branding/LSOverlay-AppIcon.ico"
         Width="760" Height="620" MinWidth="680" MinHeight="540"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource AppBackgroundBrush}">
@@ -33,10 +33,7 @@
                     <StackPanel Visibility="{Binding IsDiscordStep, Converter={StaticResource BoolVisibility}}">
                         <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingDiscordTitle]}" />
                         <TextBlock Margin="0,7,0,14" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingDiscordHint]}" TextWrapping="Wrap" />
-                        <TextBlock Margin="0,8,0,5" Text="{Binding Settings.Localization[SettingsRemoteEndpoint]}" />
-                        <TextBox Text="{Binding Settings.RemoteChatSettings.BackendBaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         <WrapPanel Margin="0,14,0,0">
-                            <Button Margin="0,0,8,8" Command="{Binding Settings.RemoteChatSettings.ApplyConfigurationCommand}" Content="{Binding Settings.Localization[SettingsRemoteApply]}" />
                             <Button Margin="0,0,8,8" Command="{Binding Settings.RemoteChatSettings.RefreshCommand}" Content="{Binding Settings.Localization[SettingsRemoteRefresh]}" />
                             <Button Margin="0,0,8,8" Style="{StaticResource Style.Button.Primary}" Command="{Binding Settings.RemoteChatSettings.BeginLoginCommand}" Content="{Binding Settings.Localization[SettingsRemoteLogin]}" Visibility="{Binding Settings.RemoteChatSettings.NeedsLogin, Converter={StaticResource BoolVisibility}}" />
                             <Button Margin="0,0,8,8" Command="{Binding Settings.RemoteChatSettings.CancelLoginCommand}" Content="{Binding Settings.Localization[SettingsRemoteLoginCancel]}" />

@@ -73,7 +73,8 @@ public sealed record SalesQueueChangeContext(
     string? PreviousCurrentSellerMessageId,
     string? NewCurrentSellerMessageId,
     SalesQueueChangeReason Reason,
-    long StateRevision)
+    long StateRevision,
+    IReadOnlyList<string>? ConfirmedSoldMessageIds = null)
 {
     public static SalesQueueChangeContext None { get; } = new(
         false,
@@ -110,7 +111,8 @@ public sealed record SalesQueuePresentationStrings(
     string NextTurnSelf,
     string CurrentTurnSelf,
     string RemoteUnavailable = "",
-    string RemoteAccessRevoked = "");
+    string RemoteAccessRevoked = "",
+    string DetailRequired = "View details");
 
 public sealed record SalesQueueFieldMeasurements(
     double CurrentSellerWidth,
@@ -296,7 +298,7 @@ public static class SalesQueuePresentationFactory
             }
         }
 
-        var isVisible = true;
+        var isVisible = !(current is null && trustworthy);
         if (input.IsUltraCompact &&
             mode is SalesQueueContentMode.Normal or SalesQueueContentMode.Empty)
         {
@@ -367,9 +369,9 @@ public static class SalesQueuePresentationFactory
         var waitingText = input.DisplayOptions.ShowWaitingCount
             ? Format(input.Strings.WaitingCountFormat, input.Queue.WaitingCount)
             : string.Empty;
-        var productText = input.DisplayOptions.ShowProduct && current.AllProducts.Count > 0
+        var productText = !input.DisplayOptions.ShowProduct ? string.Empty : current.AllProducts.Count > 0
             ? SalesProductSummaryFormatter.Format(current.AllProducts)
-            : string.Empty;
+            : input.Strings.DetailRequired;
         var nextText = input.DisplayOptions.ShowNextWaitingUser && next is not null
             ? Format(input.Strings.NextSellerFormat, next.DisplayName)
             : string.Empty;

@@ -105,6 +105,7 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
         if (_isLocked != state.IsLocked)
         {
             _isLocked = state.IsLocked;
+            Chat.IsHudUnlocked = !state.IsLocked;
             OnPropertyChanged(nameof(IsUnlocked));
             OnPropertyChanged(nameof(IsFloatingEditStripVisible));
         }
@@ -126,6 +127,17 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
             state.IsTargetGameForeground
                 ? _localization["HudTargetYes"]
                 : _localization["HudTargetNo"]);
+        var healthKey = connectionState switch
+        {
+            "Live" => null,
+            "Reconnecting" or "Disconnected" => "HudHealthReconnecting",
+            "AccessRevoked" or "LoginRequired" => "HudHealthLoginRequired",
+            "AuthorizationUnavailable" => "HudHealthAccessUnavailable",
+            "Error" => "HudHealthError",
+            "ChannelSelectionRequired" => "HudHealthChannelRequired",
+            _ => "HudHealthConnecting",
+        };
+        Chat.ConnectionText = healthKey is null ? "" : _localization[healthKey];
         Session.RefreshLocalization();
     }
 

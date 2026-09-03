@@ -205,7 +205,9 @@ internal sealed class ApplicationHost : IDisposable
             remoteMessagePipeline,
             paths.RemoteInstallationIdFilePath,
             Logger,
-            recoveryAudit: _recoveryAudit);
+            recoveryAudit: _recoveryAudit,
+            channelPolicy: MainChannelPolicy.Apply);
+        _hudController.ChannelStepRequested += OnChannelStepRequested;
         salesViewModel.ConfigureStatusAction(
             _remoteChatCoordinator.SetSalesStatusAsync);
         _remoteChatCoordinator.MessageStateChanged += OnRemoteMessageStateChanged;
@@ -213,6 +215,7 @@ internal sealed class ApplicationHost : IDisposable
         _remoteChatCoordinator.PresenceBootstrapReady += OnRemotePresenceBootstrapReady;
         _remoteChatCoordinator.HostPresenceChanged += OnRemoteHostPresenceChanged;
         _remoteChatCoordinator.SnapshotChanged += OnRemoteSnapshotChanged;
+        _remoteChatCoordinator.ChannelSwitchCommitted += OnChannelSwitchCommitted;
         _remoteChatCoordinator.SalesBootstrapReady += OnRemoteSalesBootstrapReady;
         _remoteChatCoordinator.SalesMutationReceived += OnRemoteSalesMutationReceived;
         _remoteChatCoordinator.SalesStatusChanged += OnRemoteSalesStatusChanged;
@@ -279,7 +282,8 @@ internal sealed class ApplicationHost : IDisposable
             remoteChatSettings: remoteSettingsViewModel,
             testSalesTurnSound: () => _salesNotificationSoundService?.Play(
                 SalesTurnNotificationKind.Current,
-                _settingsStore!.Current.SalesTurnSoundVolume));
+                _settingsStore!.Current.SalesTurnSoundVolume),
+            applyAllHotkeys: settings => _hudController?.TryApplyHotkeySettings(settings) == true);
         _settingsWindowService = new SettingsWindowService(
             new UiDispatcherAdapter(_application.Dispatcher),
             () => new FoundationWindow
@@ -355,6 +359,7 @@ internal sealed class ApplicationHost : IDisposable
 
         if (_remoteChatCoordinator is not null)
         {
+            if (_hudController is not null) _hudController.ChannelStepRequested -= OnChannelStepRequested;
             _remoteChatCoordinator.MessageStateChanged -= OnRemoteMessageStateChanged;
             _remoteChatCoordinator.PresenceBootstrapReady -= OnRemotePresenceBootstrapReady;
             _remoteChatCoordinator.HostPresenceChanged -= OnRemoteHostPresenceChanged;
@@ -363,6 +368,7 @@ internal sealed class ApplicationHost : IDisposable
             _remoteChatCoordinator.SalesStatusChanged -= OnRemoteSalesStatusChanged;
             _remoteChatCoordinator.AuthenticatedUserChanged -= OnRemoteAuthenticatedUserChanged;
             _remoteChatCoordinator.SnapshotChanged -= OnRemoteSnapshotChanged;
+            _remoteChatCoordinator.ChannelSwitchCommitted -= OnChannelSwitchCommitted;
             try
             {
                 _remoteChatCoordinator.DisposeAsync().AsTask().GetAwaiter().GetResult();
@@ -446,6 +452,18 @@ internal sealed class ApplicationHost : IDisposable
 
     private void OnRemotePresenceBootstrapReady(LSOverlay.Protocol.BootstrapResponse bootstrap) =>
         DispatchToUi(() => _sessionHudViewModel?.ApplyBootstrap(bootstrap));
+
+    private void OnChannelStepRequested(int direction)
+    {
+        var coordinator = _remoteChatCoordinator;
+        if (coordinator is null) return;
+        var snapshot = coordinator.Snapshot;
+        var target = MainChannelPolicy.Step(snapshot.Channels, snapshot.SelectedChannelId, direction);
+        if (target is not null) _ = coordinator.SwitchChannelAsync(target);
+    }
+
+    private void OnChannelSwitchCommitted(string label) =>
+        DispatchToUi(() => _hudController?.NotifyCommittedChannel(label));
 
     private void OnRemoteHostPresenceChanged(LSOverlay.Protocol.HostPresenceSnapshot presence) =>
         DispatchToUi(() => _sessionHudViewModel?.ApplyPresence(presence));

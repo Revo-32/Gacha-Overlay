@@ -10,6 +10,10 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 {
     private const int LockToggleId = 0x5A01;
     private const int VisibilityToggleId = 0x5A02;
+    private const int PreviousChannelId = 0x5A03;
+    private const int NextChannelId = 0x5A04;
+    private DiscordQuickFocusHook? _quickFocus;
+    private AppSettings _lastSettings = AppSettings.CreateDefault();
     private const uint ModNoRepeat = 0x4000;
 
     private readonly WindowInteropService _interop;
@@ -29,40 +33,61 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 
     public event Action? VisibilityToggleRequested;
 
-    public bool Bind(AppSettings settings) =>
-        TryBind(settings.HudLockHotkey, settings.HudVisibilityHotkey);
+    public event Action<int>? ChannelStepRequested;
 
-    public bool TryBind(HotkeySetting lockSetting, HotkeySetting visibilitySetting)
+    public bool Bind(AppSettings settings)
     {
-        var plan = CreateRegistrationPlan(lockSetting, visibilitySetting);
-        var lockGesture = plan.LockToggle;
-        var visibilityGesture = plan.VisibilityToggle;
-        if (lockGesture == visibilityGesture)
+        if (_disposed) return false;
+        var plan = CreateRegistrationPlan(settings.HudLockHotkey, settings.HudVisibilityHotkey);
+        if (!TryOptional(settings.PreviousMainChannelHotkey, out var previous) ||
+            !TryOptional(settings.NextMainChannelHotkey, out var next)) return false;
+        var desired = new Dictionary<int, HotkeyGesture?>
         {
-            _logger.Warning("HOTKEY", "Duplicate LockToggle and VisibilityToggle gestures were rejected.");
-            return false;
-        }
-
-        var previousVisibility = _bindings.GetActiveGesture(VisibilityToggleId);
-        var previousLock = _bindings.GetActiveGesture(LockToggleId);
-        var visibilityResult = _bindings.Rebind(VisibilityToggleId, visibilityGesture);
-        if (!visibilityResult.Success)
+            [VisibilityToggleId] = plan.VisibilityToggle,
+            [LockToggleId] = plan.LockToggle,
+            [PreviousChannelId] = previous,
+            [NextChannelId] = next,
+        };
+        var assigned = desired.Values.Where(value => value.HasValue).Select(value => value!.Value).ToArray();
+        if (assigned.Distinct().Count() != assigned.Length ||
+            assigned.Any(gesture => gesture.VirtualKey == 0x54 && gesture.Modifiers == HotkeyModifiers.None)) return false;
+        var old = desired.Keys.ToDictionary(id => id, _bindings.GetActiveGesture);
+        // Release changed bindings together so swapping two configured actions is safe.
+        foreach (var pair in desired.Where(pair => old[pair.Key] != pair.Value))
         {
-            LogBindingFailure("VisibilityToggle", visibilityResult);
-            return false;
+            if (!_bindings.Unbind(pair.Key)) { RestoreAll(old); return false; }
         }
-
-        var lockResult = _bindings.Rebind(LockToggleId, lockGesture);
-        if (!lockResult.Success)
+        foreach (var pair in desired)
         {
-            RestoreBinding(VisibilityToggleId, previousVisibility);
-            LogBindingFailure("LockToggle", lockResult);
-            return false;
+            if (pair.Value is { } gesture && !_bindings.Rebind(pair.Key, gesture).Success)
+            { RestoreAll(old); return false; }
         }
-
-        _logger.Information("HOTKEY", $"Registered VisibilityToggle gesture={visibilityGesture}.");
-        _logger.Information("HOTKEY", $"Registered LockToggle gesture={lockGesture}.");
+        _lastSettings = settings;
+        if (settings.QuickDiscordFocusEnabled)
+        {
+            _quickFocus ??= new DiscordQuickFocusHook(System.Windows.Threading.Dispatcher.CurrentDispatcher, _logger);
+            _quickFocus.SetEnabled(true);
+        }
+        else { _quickFocus?.Dispose(); _quickFocus = null; }
         return true;
+    }
+
+    public bool TryBind(HotkeySetting lockSetting, HotkeySetting visibilitySetting) =>
+        Bind(_lastSettings with { HudLockHotkey = lockSetting, HudVisibilityHotkey = visibilitySetting });
+
+    private static bool TryOptional(HotkeySetting? setting, out HotkeyGesture? gesture)
+    {
+        gesture = null;
+        if (setting is null || string.IsNullOrWhiteSpace(setting.Key)) return true;
+        if (!HotkeyGesture.TryParse(setting, out var parsed)) return false;
+        gesture = parsed;
+        return true;
+    }
+
+    private void RestoreAll(IReadOnlyDictionary<int, HotkeyGesture?> previous)
+    {
+        foreach (var id in previous.Keys) _bindings.Unbind(id);
+        foreach (var pair in previous) RestoreBinding(pair.Key, pair.Value);
     }
 
     internal static HudHotkeyRegistrationPlan CreateRegistrationPlan(
@@ -126,6 +151,8 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 
         _disposed = true;
         _interop.HotkeyPressed -= OnHotkeyPressed;
+        _quickFocus?.Dispose();
+        _quickFocus = null;
         _bindings.Dispose();
     }
 
@@ -162,6 +189,9 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 
     private void OnHotkeyPressed(int id)
     {
+        if (_disposed) return;
+        if (id == PreviousChannelId) { ChannelStepRequested?.Invoke(-1); return; }
+        if (id == NextChannelId) { ChannelStepRequested?.Invoke(1); return; }
         if (id == LockToggleId)
         {
             _logger.Information("HOTKEY", "Trigger LockToggle.");

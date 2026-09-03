@@ -77,7 +77,7 @@ internal sealed class TrayIconService : IDisposable
         _contextMenu.Items.Add(_exitItem);
 
         var iconStream = System.Windows.Application.GetResourceStream(new Uri(
-            "pack://application:,,,/Assets/Branding/GachaOverlay-AppIcon.ico"))?.Stream
+            "pack://application:,,,/Assets/Branding/LSOverlay-AppIcon.ico"))?.Stream
             ?? throw new InvalidOperationException("The embedded application icon is unavailable.");
         using (iconStream)
         {

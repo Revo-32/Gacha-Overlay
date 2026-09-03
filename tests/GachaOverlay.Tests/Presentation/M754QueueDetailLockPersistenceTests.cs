@@ -153,9 +153,10 @@ public sealed class M754QueueDetailLockPersistenceTests
             "Presentation",
             "SalesQueueView.xaml")));
 
-        Assert.Contains(
-            "Visibility=\"{Binding IsQueueDetailPanelVisible, Converter={StaticResource BoolVisibility}}\"",
-            source);
+        var code = File.ReadAllText(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
+            "..", "..", "..", "..", "..", "src", "GachaOverlay.App", "Presentation", "SalesQueueView.xaml.cs")));
+        Assert.Contains("_viewModel?.IsQueueDetailPanelVisible == true", code);
+        Assert.Contains("QueueDetailPanel.Visibility", code);
         Assert.Contains("IsHitTestVisible=\"{Binding IsQueueDetailInteractive}\"", source);
         Assert.Contains("IsEnabled=\"{Binding IsQueueDetailInteractive}\"", source);
     }

@@ -1,4 +1,5 @@
 using GachaOverlay.Core.Discord.Messages;
+using System.Text.Json.Serialization;
 
 namespace GachaOverlay.Core.Sales;
 
@@ -76,7 +77,9 @@ public sealed record SaleRecord(
     DateTimeOffset? LastTrustedObservationAt,
     long LastObservationGeneration,
     DateTimeOffset? DeletedAt,
-    IReadOnlyList<SaleProduct>? Products = null)
+    IReadOnlyList<SaleProduct>? Products = null,
+    SaleParseStatus ParseStatus = SaleParseStatus.Parsed,
+    [property: JsonIgnore] string? DetailSource = null)
 {
     public bool IsProvisional => ObservationTrust == SaleObservationTrust.NeverObserved;
 
@@ -99,7 +102,9 @@ public sealed record SalesQueueEntry(
     bool IsExactGuildNickname,
     SaleProduct? Product,
     SaleObservationTrust ObservationTrust,
-    IReadOnlyList<SaleProduct>? Products = null)
+    IReadOnlyList<SaleProduct>? Products = null,
+    SaleParseStatus ParseStatus = SaleParseStatus.Parsed,
+    [property: JsonIgnore] string? DetailSource = null)
 {
     public bool IsProvisional => ObservationTrust == SaleObservationTrust.NeverObserved;
 

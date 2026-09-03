@@ -33,6 +33,12 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (eventArgs.Args.Length == 2 && eventArgs.Args[0] == "--verify-m10-ui")
+        {
+            _ = VerifyM10UiAsync(eventArgs.Args[1]);
+            return;
+        }
+
         if (!SingleInstanceGuard.TryAcquire(
                 SingleInstanceMutexName,
                 out _singleInstanceGuard,
@@ -85,6 +91,12 @@ public partial class App : System.Windows.Application
         _singleInstanceGuard?.Dispose();
         _singleInstanceGuard = null;
         base.OnExit(eventArgs);
+    }
+
+    private async Task VerifyM10UiAsync(string directory)
+    {
+        var exitCode = await M10UiVerification.RunAsync(this, directory);
+        _applicationLifetime?.RequestExit(ApplicationExitSource.ClientVerification, exitCode);
     }
 
     private async Task VerifyClientExportAsync(string directory)

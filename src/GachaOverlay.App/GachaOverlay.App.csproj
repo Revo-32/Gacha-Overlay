@@ -2,12 +2,14 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <AssemblyTitle>LS Overlay</AssemblyTitle>
+    <Product>LS Overlay</Product>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <ApplicationIcon>Assets\Branding\GachaOverlay-AppIcon.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\Branding\LSOverlay-AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\GachaOverlay.Core\GachaOverlay.Core.csproj" />
@@ -46,7 +48,7 @@
     <Content Include="Assets\Themes\ThirdPartyNotices\**\*"
              Condition="'$(PublishSingleFile)' != 'true'"
              CopyToOutputDirectory="PreserveNewest" />
-    <Resource Include="Assets\Branding\GachaOverlay-AppIcon.ico" />
-    <Resource Include="Assets\Branding\GachaOverlay-AppIcon.png" />
+    <Resource Include="Assets\Branding\LSOverlay-AppIcon.ico" />
+    <Resource Include="Assets\Branding\LSOverlay-AppIcon.png" />
   </ItemGroup>
 </Project>

@@ -119,7 +119,7 @@ public sealed class M753ProductAggregationTests
 
         var entry = Assert.Single(engine.Current.ActiveItems);
         Assert.Equal(2, entry.AllProducts.Count);
-        Assert.Equal("벙커 x2 · 나클", entry.ProductSummary);
+        Assert.Equal("벙커 · 나클", entry.ProductSummary);
         Assert.Equal("bunker", entry.Product?.ProductId);
     }
 
@@ -135,7 +135,7 @@ public sealed class M753ProductAggregationTests
             content: "changed",
             emojis: Emojis("bunker-a", "bunker-b", "nightclub")));
 
-        Assert.Equal("벙커 x2 · 나클", engine.Current.CurrentSeller!.ProductSummary);
+        Assert.Equal("벙커 · 나클", engine.Current.CurrentSeller!.ProductSummary);
     }
 
     [Fact]
@@ -178,8 +178,8 @@ public sealed class M753ProductAggregationTests
 
         viewModel.Apply(engine.Current, AppSettings.CreateDefault() with { SalesShowProduct = true });
 
-        Assert.Equal("벙커 x2 · 나클", Assert.Single(viewModel.DetailItems).ProductName);
-        Assert.Contains("벙커 x2 · 나클", viewModel.PrimaryLine + viewModel.SecondaryLine, StringComparison.Ordinal);
+        Assert.Equal("벙커 · 나클", Assert.Single(viewModel.DetailItems).ProductName);
+        Assert.Contains("벙커 · 나클", viewModel.PrimaryLine + viewModel.SecondaryLine, StringComparison.Ordinal);
         Assert.DoesNotContain("상품 벙커", viewModel.PrimaryLine + viewModel.SecondaryLine, StringComparison.Ordinal);
     }
 

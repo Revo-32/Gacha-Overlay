@@ -55,6 +55,11 @@ internal sealed class RemoteConnectionLimiter
         }
     }
 
+    internal bool HasCapacity
+    {
+        get { lock (_sync) { return _active < _globalLimit; } }
+    }
+
     private void Release(Guid installationId)
     {
         lock (_sync)

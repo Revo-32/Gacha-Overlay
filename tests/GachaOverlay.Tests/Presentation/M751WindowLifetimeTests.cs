@@ -262,6 +262,7 @@ public sealed class M751WindowLifetimeTests
             "*.cs",
             SearchOption.AllDirectories)
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
+            .Where(path => Path.GetFileName(path) != "DiscordQuickFocusHook.cs") // Dedicated non-UI hook thread owns its message loop.
             .Select(File.ReadAllText)
             .ToArray();
         var combined = string.Join(Environment.NewLine, appSources);

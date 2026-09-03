@@ -93,7 +93,7 @@ public sealed class M911RemoteOnlyRetirementTests
     }
 
     [Fact]
-    public void Schema16LocalSelection_MigratesToSchema17RemoteOnlyAndPreservesRemoteSettings()
+    public void Schema16LocalSelection_MigratesToSchema18RemoteOnlyAndPreservesRemoteSettings()
     {
         using var directory = new TemporaryDirectory();
         var path = directory.File("settings.json");
@@ -127,7 +127,7 @@ public sealed class M911RemoteOnlyRetirementTests
 
         var loaded = new JsonSettingsStore(path).Load();
 
-        Assert.Equal(17, loaded.SchemaVersion);
+        Assert.Equal(18, loaded.SchemaVersion);
         Assert.Equal(SettingsCategory.Discord, loaded.LastSettingsCategory);
         Assert.Equal("https://overlay.example", loaded.RemoteBackendBaseUrl);
         Assert.Equal("1428747924229193828", loaded.RemoteSelectedChannelId);

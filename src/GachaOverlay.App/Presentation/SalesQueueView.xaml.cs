@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Collections.ObjectModel;
+using System.Windows.Threading;
 using System.Windows;
 using System.Windows.Media.Animation;
 using GachaOverlay.Core.Sales;
@@ -13,10 +15,15 @@ public partial class SalesQueueView : System.Windows.Controls.UserControl
 {
     private SalesQueueViewModel? _viewModel;
     private bool _unloaded;
+    private readonly ObservableCollection<SalesQueueDetailItem> _displayRows = new();
+    private readonly DispatcherTimer _departureTimer = new() { Interval = SalesAnimationDurations.SoldTransition };
+    private readonly DispatcherTimer _ageTimer = new() { Interval = TimeSpan.FromMinutes(1) };
+    private bool _detailWasExpanded;
 
     public SalesQueueView()
     {
         InitializeComponent();
+        DetailRows.ItemsSource = _displayRows;
         DataContextChanged += OnDataContextChanged;
         IsVisibleChanged += OnIsVisibleChanged;
         Loaded += OnLoaded;
@@ -55,6 +62,7 @@ public partial class SalesQueueView : System.Windows.Controls.UserControl
         {
             _viewModel.AnimationRequested -= OnAnimationRequested;
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.DetailItemsRefreshed -= SyncDetailRows;
         }
 
         _viewModel = viewModel;
@@ -62,19 +70,94 @@ public partial class SalesQueueView : System.Windows.Controls.UserControl
         {
             _viewModel.AnimationRequested += OnAnimationRequested;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.DetailItemsRefreshed += SyncDetailRows;
         }
 
+        SyncDetailRows(Array.Empty<string>());
         UpdateSpinner();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
+        if (args.PropertyName == nameof(SalesQueueViewModel.IsQueueDetailPanelVisible))
+        {
+            if (_viewModel?.DetailItems.Count > 0) _detailWasExpanded = _viewModel.IsQueueDetailPanelVisible;
+            UpdateDetailPanel();
+        }
         if (args.PropertyName is nameof(SalesQueueViewModel.IsSpinnerActive) or
             nameof(SalesQueueViewModel.IsVisible))
         {
             UpdateSpinner();
         }
     }
+
+    private void OnRowLoaded(object sender, RoutedEventArgs args)
+    {
+        if (sender is System.Windows.Controls.Border { DataContext: SalesQueueDetailItem { IsDeparting: true } } row)
+        {
+            row.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0, SalesAnimationDurations.SoldTransition));
+            row.BeginAnimation(HeightProperty, new DoubleAnimation(Math.Max(0, row.ActualHeight), 0, SalesAnimationDurations.SoldTransition));
+        }
+    }
+
+    private void OnRowUnloaded(object sender, RoutedEventArgs args)
+    {
+        if (sender is System.Windows.Controls.Border row)
+        {
+            row.BeginAnimation(OpacityProperty, null);
+            row.BeginAnimation(HeightProperty, null);
+        }
+    }
+
+    private void SyncDetailRows(IReadOnlyList<string> sold)
+    {
+        _departureTimer.Stop();
+        _departureTimer.Tick -= FinishDepartures;
+        var incoming = _viewModel?.DetailItems.ToArray() ?? Array.Empty<SalesQueueDetailItem>();
+        var ids = incoming.Select(item => item.MessageId).ToHashSet(StringComparer.Ordinal);
+        var departing = sold.Count > 0 && !_unloaded && IsVisible && _detailWasExpanded && SystemParameters.ClientAreaAnimation
+            ? _displayRows.Where(item => !item.IsDeparting && sold.Contains(item.MessageId) && !ids.Contains(item.MessageId)).Take(30).ToArray()
+            : Array.Empty<SalesQueueDetailItem>();
+        _displayRows.Clear();
+        foreach (var item in incoming) _displayRows.Add(item);
+        foreach (var item in departing)
+        {
+            item.MarkDeparting();
+            _displayRows.Insert(Math.Clamp(item.Position - 1, 0, _displayRows.Count), item);
+        }
+        if (departing.Length > 0)
+        {
+            _departureTimer.Tick += FinishDepartures;
+            _departureTimer.Start();
+        }
+        UpdateDetailPanel();
+        _detailWasExpanded = _viewModel?.IsQueueDetailPanelVisible == true;
+    }
+
+    private void FinishDepartures(object? sender, EventArgs args)
+    {
+        _departureTimer.Stop();
+        _departureTimer.Tick -= FinishDepartures;
+        foreach (var item in _displayRows.Where(item => item.IsDeparting).ToArray()) _displayRows.Remove(item);
+        UpdateDetailPanel();
+    }
+
+    private void UpdateDetailPanel()
+    {
+        QueueDetailPanel.Visibility = !_unloaded &&
+            (_viewModel?.IsQueueDetailPanelVisible == true || _displayRows.Any(item => item.IsDeparting))
+            ? Visibility.Visible : Visibility.Collapsed;
+        _ageTimer.Stop();
+        _ageTimer.Tick -= UpdateAges;
+        if (!_unloaded && IsVisible && QueueDetailPanel.Visibility == Visibility.Visible)
+        {
+            _viewModel?.RefreshRelativeAges(DateTimeOffset.UtcNow);
+            _ageTimer.Tick += UpdateAges;
+            _ageTimer.Start();
+        }
+    }
+
+    private void UpdateAges(object? sender, EventArgs args) => _viewModel?.RefreshRelativeAges(DateTimeOffset.UtcNow);
 
     private void OnAnimationRequested(SalesQueueAnimationRequest request)
     {
@@ -155,13 +238,22 @@ public partial class SalesQueueView : System.Windows.Controls.UserControl
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         _unloaded = true;
+        _departureTimer.Stop();
+        _departureTimer.Tick -= FinishDepartures;
+        _ageTimer.Stop();
+        _ageTimer.Tick -= UpdateAges;
+        _displayRows.Clear();
         BindViewModel(null);
         UpdateSpinner();
         ResetPresentationAnimations();
     }
 
-    private void OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs args) =>
+    private void OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs args)
+    {
+        if (!IsVisible) FinishDepartures(null, EventArgs.Empty);
+        UpdateDetailPanel();
         UpdateSpinner();
+    }
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs args)
     {

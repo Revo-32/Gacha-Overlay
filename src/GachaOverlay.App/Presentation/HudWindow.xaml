@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:GachaOverlay.App.Presentation"
         Title="{Binding Title}"
-        Icon="/GachaOverlay.App;component/Assets/Branding/GachaOverlay-AppIcon.ico"
+        Icon="/GachaOverlay.App;component/Assets/Branding/LSOverlay-AppIcon.ico"
         Width="520"
         Height="320"
         MinWidth="240"
@@ -32,6 +32,9 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
+            <Border Grid.RowSpan="2" Panel.ZIndex="5" Margin="1" BorderThickness="1" CornerRadius="9"
+                    BorderBrush="{DynamicResource AccentPrimaryBrush}" IsHitTestVisible="False"
+                    Visibility="{Binding IsUnlocked, Converter={StaticResource BoolVisibility}}" />
             <Grid x:Name="DragSurface"
                   Grid.Row="0"
                   Margin="{DynamicResource Thickness.Hud.Header}"
@@ -91,41 +94,37 @@
                         BorderThickness="1"
                         CornerRadius="{DynamicResource CornerRadius.Medium}"
                         ClipToBounds="True">
-                    <local:ChatView x:Name="ChatContent" DataContext="{Binding Chat}" />
-                </Border>
-                <Border x:Name="SessionSurface"
-                        Grid.Row="1"
-                        Margin="0,4,0,0"
-                        Padding="6,3"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        CornerRadius="6"
-                        IsHitTestVisible="False"
-                        Visibility="{Binding Session.IsVisible, Converter={StaticResource BoolVisibility}}">
-                    <ItemsControl ItemsSource="{Binding Session.Items}">
+                    <Border.Style><Style TargetType="Border"><Style.Triggers>
+                        <MultiDataTrigger><MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Chat.Messages.Count}" Value="0"/>
+                            <Condition Binding="{Binding Chat.IsHealthVisible}" Value="False"/>
+                            <Condition Binding="{Binding Session.IsVisible}" Value="False"/>
+                        </MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Collapsed"/></MultiDataTrigger>
+                    </Style.Triggers></Style></Border.Style>
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <ItemsControl x:Name="SessionBadge" Grid.Row="0" ItemsSource="{Binding Session.Items}" HorizontalAlignment="Left"
+                                  Margin="0,0,0,5" IsHitTestVisible="False"
+                                  Visibility="{Binding Session.IsVisible, Converter={StaticResource BoolVisibility}}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid MinHeight="22" AutomationProperties.Name="{Binding AccessibleText}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock VerticalAlignment="Center"
-                                               FontSize="{DynamicResource Typography.Caption}"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Text="{Binding Label}"
-                                               TextTrimming="CharacterEllipsis"
-                                               Visibility="{Binding IsLabelVisible, Converter={StaticResource BoolVisibility}}" />
-                                    <TextBlock Grid.Column="1"
-                                               Margin="12,0,0,0"
-                                               VerticalAlignment="Center"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               Text="{Binding Value}" />
-                                </Grid>
+                                <Border Padding="9,3" CornerRadius="7" AutomationProperties.Name="{Binding AccessibleText}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsFull}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource StatusErrorBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Text="{Binding Value}" />
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <local:ChatView x:Name="ChatContent" Grid.Row="1" DataContext="{Binding Chat}" />
+                    </Grid>
                 </Border>
                 <local:SalesQueueView x:Name="SalesContent" Grid.Row="2" DataContext="{Binding Sales}" />
             </Grid>

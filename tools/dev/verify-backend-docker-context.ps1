@@ -135,6 +135,7 @@ if ($restore -lt 0 -or $publish -le $restore) { throw 'Expected Backend restore 
 $graph = Get-ProjectClosure $root $entry
 $projectDirs = @($graph.Projects | ForEach-Object { ($_ -replace '/[^/]+$', '') + '/' })
 $metadata = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$publicAssets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 foreach ($project in $graph.Projects) {
     $directory = ($project -replace '/[^/]+$', '') + '/'
     $projectCopy = @($copies | Where-Object {
@@ -150,6 +151,14 @@ foreach ($project in $graph.Projects) {
 }
 foreach ($copy in $copies) {
     if ($graph.Projects -ccontains $copy.Source -or $projectDirs -ccontains $copy.Source) { continue }
+    # One exact immutable branding source is embedded for the public documents.
+    # Never admit the whole assets directory, icon or large banner.
+    if ($copy.Source -ceq 'assets/branding/LS_Overlay_logo.png' -and
+        $copy.Destination -ceq 'assets/branding/' -and $copy.Line -gt $restore -and $copy.Line -lt $publish -and
+        $graph.Inputs -ccontains $copy.Source) {
+        if (-not $publicAssets.Add($copy.Source)) { throw 'Duplicate public asset COPY.' }
+        continue
+    }
     if ($copy.Source.Contains('/') -or $copy.Source.Contains('\') -or $copy.Destination -cne './' -or
         $copy.Line -ge $restore -or $copy.Source -notmatch '^(global\.json|Directory\.(Build\.(props|targets)|Packages\.props)|[Nn]u[Gg]et\.[Cc]onfig)$') {
         throw "Unexpected Docker build input: $($copy.Source)"
@@ -170,13 +179,16 @@ $gitFiles = (Invoke-Captured git $gitArgs) -split '\r?\n' | Where-Object {
 $eligible = [Collections.Generic.HashSet[string]]::new([string[]]$gitFiles, [StringComparer]::Ordinal)
 $rules = @(Read-DockerRules (Join-Path $root '.dockerignore'))
 $required = @($graph.Inputs) + @($metadata) + @('Dockerfile', '.dockerignore')
+foreach ($inputPath in $graph.Inputs | Where-Object { $_.StartsWith('assets/', [StringComparison]::Ordinal) }) {
+    if (-not $publicAssets.Contains($inputPath)) { throw "Public asset COPY missing: $inputPath" }
+}
 foreach ($path in $required) {
     if (-not $eligible.Contains($path)) { throw "Required source is absent from Git candidates (ignored/untracked): $path" }
     if (-not (Test-DockerIncluded $path $rules)) { throw "Required source excluded by .dockerignore: $path" }
 }
 $selected = @($eligible | Where-Object { Test-DockerIncluded $_ $rules } | Sort-Object)
 foreach ($path in $selected) {
-    $expected = $metadata.Contains($path) -or $path -cin @('Dockerfile', '.dockerignore')
+    $expected = $metadata.Contains($path) -or $publicAssets.Contains($path) -or $path -cin @('Dockerfile', '.dockerignore')
     foreach ($directory in $projectDirs) { $expected = $expected -or $path.StartsWith($directory, [StringComparison]::Ordinal) }
     if (-not $expected) { throw "Docker context includes a file outside Backend closure: $path" }
     if ($path -match '(^|/)(bin|obj|state|data|logs|tmp|publish|TestResults|\.git)/|(^|/)\.env|\.(dat|log|csv|zip|bak|pfx|pem|key)$') {

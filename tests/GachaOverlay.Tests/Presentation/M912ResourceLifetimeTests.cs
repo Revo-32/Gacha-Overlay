@@ -7,8 +7,10 @@ using GachaOverlay.App.Presentation;
 using GachaOverlay.App.Services;
 using GachaOverlay.Core.Caching;
 using GachaOverlay.Core.Chat;
+using GachaOverlay.Core.Discord.Messages;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Sales;
+using GachaOverlay.Core.Settings;
 using GachaOverlay.Infrastructure.Localization;
 using LSOverlay.Backend.Chat;
 using LSOverlay.Backend.Security;
@@ -123,11 +125,26 @@ public sealed class M912ResourceLifetimeTests
     {
         var viewModel = new SalesQueueViewModel(new ResourceLocalizationService(SupportedLocales.English));
         viewModel.ConfigureStatusAction((_, _, _) => Task.FromResult<SalesStatusActionResponse?>(null));
-        await viewModel.ExecuteStatusActionAsync("42", SalesStatus.Clear);
+        viewModel.ApplyRemoteStatusContext(new Dictionary<string, SalesCompletionObservation>(), EffectiveSalesSource.RemotePrimary);
+        var entry = new SalesQueueEntry("42", "guild", "self", DateTimeOffset.UtcNow,
+            "Self", DiscordDisplayNameSource.GuildNickname, true, null, SaleObservationTrust.Trusted);
+        viewModel.Apply(SalesQueueSnapshot.Empty with
+        {
+            ActiveItems = new[] { entry },
+            CurrentSeller = entry,
+            ActiveCount = 1,
+            AuthenticatedUserId = "self",
+            CurrentSellerIsSelf = true,
+            ObservationStatus = SalesObservationStatus.Live,
+            IsObservationSourceAvailable = true,
+        }, AppSettings.CreateDefault() with { SalesTrackingEnabled = true });
+        await viewModel.ExecuteStatusActionAsync("42", SalesStatus.Completed);
         Assert.Equal(1, CollectionCount(viewModel, "_failedStatusActions"));
         viewModel.ApplyRemoteStatusContext(new Dictionary<string, SalesCompletionObservation>(), EffectiveSalesSource.RemotePrimary);
         Assert.Equal(0, CollectionCount(viewModel, "_failedStatusActions"));
         Assert.Equal(0, CollectionCount(viewModel, "_pendingStatusActions"));
+        viewModel.Apply(SalesQueueSnapshot.Empty, AppSettings.CreateDefault());
+        Assert.Null(viewModel.OwnCompletionItem);
     }
 
     [Fact]

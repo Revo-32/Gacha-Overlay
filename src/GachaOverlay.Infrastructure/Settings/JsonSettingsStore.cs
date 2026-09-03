@@ -295,6 +295,22 @@ public sealed class JsonSettingsStore : ISettingsStore
                 "Known legacy default HUD hotkeys were migrated to F9/F10 without modifiers.");
         }
 
+        // Optional navigation bindings must never prevent F9/F10 from registering.
+        var usedGestures = new HashSet<HotkeyGesture>();
+        HotkeyGesture.TryParse(lockHotkey, out var normalizedLock);
+        HotkeyGesture.TryParse(visibilityHotkey, out var normalizedVisibility);
+        usedGestures.Add(normalizedLock);
+        usedGestures.Add(normalizedVisibility);
+        HotkeySetting Optional(HotkeySetting? candidate)
+        {
+            if (candidate is null || !HotkeyGesture.TryParse(candidate, out var value) ||
+                (value.VirtualKey == 0x54 && value.Modifiers == HotkeyModifiers.None) ||
+                !usedGestures.Add(value)) return new HotkeySetting { Key = "" };
+            return value.ToSetting();
+        }
+        var previousChannelHotkey = Optional(settings.PreviousMainChannelHotkey);
+        var nextChannelHotkey = Optional(settings.NextMainChannelHotkey);
+
         var geometry = settings.HudWindowGeometry;
         if (geometry is not null && !geometry.Rectangle.IsFiniteAndPositive)
         {
@@ -353,6 +369,7 @@ public sealed class JsonSettingsStore : ISettingsStore
         return settings with
         {
             SchemaVersion = schemaVersion,
+            MinimalHudMode = sourceSchemaVersion < 18 || settings.MinimalHudMode,
             Language = language,
             ColorTheme = colorTheme,
             LastSettingsCategory = settings.LastSettingsCategory == SettingsCategory.Server
@@ -378,6 +395,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 settings.HudModifierDragModifier),
             HudLockHotkey = lockHotkey,
             HudVisibilityHotkey = visibilityHotkey,
+            PreviousMainChannelHotkey = previousChannelHotkey,
+            NextMainChannelHotkey = nextChannelHotkey,
             HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
             HotkeysCustomized = hotkeysCustomized,
             HudVisibilityMode = visibilityMode,

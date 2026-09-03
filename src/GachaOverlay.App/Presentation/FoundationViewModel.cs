@@ -20,6 +20,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private readonly ChatTypographyResolver _typographyResolver;
     private readonly Action<AppSettings> _applyHudSettings;
     private readonly Func<HotkeySetting, HotkeySetting, bool> _applyHotkeys;
+    private readonly Func<AppSettings, bool> _applyAllHotkeys;
+    private string _previousChannelHotkeyText = string.Empty;
+    private string _nextChannelHotkeyText = string.Empty;
     private readonly Func<SalesFeatureHealthSnapshot> _getSalesHealthSnapshot;
     private readonly Func<ManualSalesResyncResult> _manualSalesResync;
     private readonly Action _clearMediaCache;
@@ -122,7 +125,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         Action? rerunOnboarding = null,
         Func<Task<string>>? createDiagnosticBundle = null,
         RemoteChatSettingsViewModel? remoteChatSettings = null,
-        Action? testSalesTurnSound = null)
+        Action? testSalesTurnSound = null,
+        Func<AppSettings, bool>? applyAllHotkeys = null)
     {
         _settingsStore = settingsStore;
         Localization = localization;
@@ -130,6 +134,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _typographyResolver = typographyResolver;
         _applyHudSettings = applyHudSettings;
         _applyHotkeys = applyHotkeys ?? ((_, _) => true);
+        _applyAllHotkeys = applyAllHotkeys ?? (value => _applyHotkeys(value.HudLockHotkey, value.HudVisibilityHotkey));
         _getSalesHealthSnapshot = getSalesHealthSnapshot ?? (() => SalesFeatureHealthSnapshot.Disabled);
         _manualSalesResync = manualSalesResync ?? (() => ManualSalesResyncResult.TrackingDisabled);
         _clearMediaCache = clearMediaCache ?? (() => { });
@@ -158,6 +163,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _hudModifierDragEnabled = settings.HudModifierDragEnabled;
         _selectedVisibilityMode = settings.HudVisibilityMode;
         _lockHotkeyText = FormatHotkey(settings.HudLockHotkey, HotkeySetting.DefaultLockToggle);
+        _previousChannelHotkeyText = FormatOptionalHotkey(settings.PreviousMainChannelHotkey);
+        _nextChannelHotkeyText = FormatOptionalHotkey(settings.NextMainChannelHotkey);
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
@@ -340,6 +347,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _hudModifierDragEnabled = settings.HudModifierDragEnabled;
         _selectedVisibilityMode = settings.HudVisibilityMode;
         _lockHotkeyText = FormatHotkey(settings.HudLockHotkey, HotkeySetting.DefaultLockToggle);
+        _previousChannelHotkeyText = FormatOptionalHotkey(settings.PreviousMainChannelHotkey);
+        _nextChannelHotkeyText = FormatOptionalHotkey(settings.NextMainChannelHotkey);
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
@@ -684,6 +693,31 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged();
         }
     }
+
+    public string PreviousChannelHotkeyText
+    {
+        get => _previousChannelHotkeyText;
+        set { _previousChannelHotkeyText = value; OnPropertyChanged(); }
+    }
+
+    public string NextChannelHotkeyText
+    {
+        get => _nextChannelHotkeyText;
+        set { _nextChannelHotkeyText = value; OnPropertyChanged(); }
+    }
+
+    public bool QuickDiscordFocusEnabled
+    {
+        get => _settingsStore.Current.QuickDiscordFocusEnabled;
+        set
+        {
+            if (_settingsStore.Update(settings => settings with { QuickDiscordFocusEnabled = value }))
+            { _applyHudSettings(_settingsStore.Current); OnPropertyChanged(); }
+        }
+    }
+
+    private static string FormatOptionalHotkey(HotkeySetting? setting) =>
+        setting is not null && HotkeyGesture.TryParse(setting, out var gesture) ? gesture.ToString() : string.Empty;
 
     public string LockHotkeyText
     {
@@ -1181,70 +1215,78 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private void ApplyHotkeys()
     {
         if (!HotkeyGesture.TryParseDisplayText(LockHotkeyText, out var lockGesture) ||
-            !HotkeyGesture.TryParseDisplayText(VisibilityHotkeyText, out var visibilityGesture))
-        {
-            HotkeyValidationMessage = Localization["SettingsHotkeyInvalid"];
-            return;
-        }
+            !HotkeyGesture.TryParseDisplayText(VisibilityHotkeyText, out var visibilityGesture) ||
+            !TryOptionalHotkey(PreviousChannelHotkeyText, out var previousChannel) ||
+            !TryOptionalHotkey(NextChannelHotkeyText, out var nextChannel))
+        { HotkeyValidationMessage = Localization["SettingsHotkeyInvalid"]; return; }
 
-        if (lockGesture == visibilityGesture)
-        {
-            HotkeyValidationMessage = Localization["SettingsHotkeyDuplicate"];
-            return;
-        }
+        var assigned = new HotkeyGesture?[] { lockGesture, visibilityGesture, previousChannel, nextChannel }
+            .Where(value => value.HasValue).Select(value => value!.Value).ToArray();
+        if (assigned.Distinct().Count() != assigned.Length ||
+            assigned.Any(value => value.VirtualKey == 0x54 && value.Modifiers == HotkeyModifiers.None))
+        { HotkeyValidationMessage = Localization["SettingsHotkeyDuplicate"]; return; }
 
-        LockHotkeyText = lockGesture.ToString();
-        VisibilityHotkeyText = visibilityGesture.ToString();
-        ApplyAndPersistHotkeys(lockGesture, visibilityGesture, customized: true);
+        ApplyAndPersistHotkeys(_settingsStore.Current with
+        {
+            HudLockHotkey = lockGesture.ToSetting(),
+            HudVisibilityHotkey = visibilityGesture.ToSetting(),
+            PreviousMainChannelHotkey = previousChannel?.ToSetting() ?? new HotkeySetting { Key = "" },
+            NextMainChannelHotkey = nextChannel?.ToSetting() ?? new HotkeySetting { Key = "" },
+            HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
+            HotkeysCustomized = true,
+        });
     }
 
-    private void ResetHotkeys()
+    private static bool TryOptionalHotkey(string text, out HotkeyGesture? gesture)
     {
-        HotkeyGesture.TryParse(HotkeySetting.DefaultLockToggle, out var lockGesture);
-        HotkeyGesture.TryParse(HotkeySetting.DefaultVisibilityToggle, out var visibilityGesture);
-        LockHotkeyText = lockGesture.ToString();
-        VisibilityHotkeyText = visibilityGesture.ToString();
-        ApplyAndPersistHotkeys(lockGesture, visibilityGesture, customized: false);
+        gesture = null;
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        if (!HotkeyGesture.TryParseDisplayText(text, out var parsed)) return false;
+        gesture = parsed;
+        return true;
     }
 
-    private void ApplyAndPersistHotkeys(
-        HotkeyGesture lockGesture,
-        HotkeyGesture visibilityGesture,
-        bool customized)
+    private void ResetHotkeys() => ApplyAndPersistHotkeys(_settingsStore.Current with
+    {
+        HudLockHotkey = HotkeySetting.DefaultLockToggle,
+        HudVisibilityHotkey = HotkeySetting.DefaultVisibilityToggle,
+        PreviousMainChannelHotkey = new HotkeySetting { Key = "" },
+        NextMainChannelHotkey = new HotkeySetting { Key = "" },
+        HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
+        HotkeysCustomized = false,
+    });
+
+    private void ApplyAndPersistHotkeys(AppSettings desired)
     {
         var previous = _settingsStore.Current;
-        var lockSetting = lockGesture.ToSetting();
-        var visibilitySetting = visibilityGesture.ToSetting();
-        if (!_applyHotkeys(lockSetting, visibilitySetting))
-        {
-            LockHotkeyText = FormatHotkey(previous.HudLockHotkey, HotkeySetting.DefaultLockToggle);
-            VisibilityHotkeyText = FormatHotkey(
-                previous.HudVisibilityHotkey,
-                HotkeySetting.DefaultVisibilityToggle);
-            HotkeyValidationMessage = Localization["SettingsHotkeyRegistrationFailed"];
-            return;
-        }
-
+        if (!_applyAllHotkeys(desired))
+        { RefreshHotkeyText(previous); HotkeyValidationMessage = Localization["SettingsHotkeyRegistrationFailed"]; return; }
         if (!_settingsStore.Update(settings => settings with
         {
-            HudLockHotkey = lockSetting,
-            HudVisibilityHotkey = visibilitySetting,
-            HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
-            HotkeysCustomized = customized,
+            HudLockHotkey = desired.HudLockHotkey,
+            HudVisibilityHotkey = desired.HudVisibilityHotkey,
+            PreviousMainChannelHotkey = desired.PreviousMainChannelHotkey,
+            NextMainChannelHotkey = desired.NextMainChannelHotkey,
+            HotkeySettingsVersion = desired.HotkeySettingsVersion,
+            HotkeysCustomized = desired.HotkeysCustomized,
         }))
         {
-            _applyHotkeys(previous.HudLockHotkey, previous.HudVisibilityHotkey);
-            LockHotkeyText = FormatHotkey(previous.HudLockHotkey, HotkeySetting.DefaultLockToggle);
-            VisibilityHotkeyText = FormatHotkey(
-                previous.HudVisibilityHotkey,
-                HotkeySetting.DefaultVisibilityToggle);
+            _applyAllHotkeys(previous);
+            RefreshHotkeyText(previous);
             HotkeyValidationMessage = Localization["SettingsHotkeySaveFailed"];
             return;
         }
-
+        RefreshHotkeyText(_settingsStore.Current);
         _applyHudSettings(_settingsStore.Current);
-        HotkeyValidationMessage = Localization[
-            customized ? "SettingsHotkeyApplied" : "SettingsHotkeyDefaultsRestored"];
+        HotkeyValidationMessage = Localization[desired.HotkeysCustomized ? "SettingsHotkeyApplied" : "SettingsHotkeyDefaultsRestored"];
+    }
+
+    private void RefreshHotkeyText(AppSettings settings)
+    {
+        LockHotkeyText = FormatHotkey(settings.HudLockHotkey, HotkeySetting.DefaultLockToggle);
+        VisibilityHotkeyText = FormatHotkey(settings.HudVisibilityHotkey, HotkeySetting.DefaultVisibilityToggle);
+        PreviousChannelHotkeyText = FormatOptionalHotkey(settings.PreviousMainChannelHotkey);
+        NextChannelHotkeyText = FormatOptionalHotkey(settings.NextMainChannelHotkey);
     }
 
     private void RequestManualSalesResync()

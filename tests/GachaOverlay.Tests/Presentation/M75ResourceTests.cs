@@ -34,8 +34,8 @@ public sealed class M75ResourceTests
     [Fact]
     public void BrandingAssets_AreValidAndApplicationIconPointsToBundledIco()
     {
-        var iconPath = Source("Assets", "Branding", "GachaOverlay-AppIcon.ico");
-        var pngPath = Source("Assets", "Branding", "GachaOverlay-AppIcon.png");
+        var iconPath = Source("Assets", "Branding", "LSOverlay-AppIcon.ico");
+        var pngPath = Source("Assets", "Branding", "LSOverlay-AppIcon.png");
         using var icon = new System.Drawing.Icon(iconPath);
         var decoder = BitmapDecoder.Create(
             new Uri(pngPath),
@@ -45,8 +45,8 @@ public sealed class M75ResourceTests
 
         Assert.True(icon.Width > 0 && icon.Height > 0);
         Assert.NotEmpty(decoder.Frames);
-        Assert.Contains("<ApplicationIcon>Assets\\Branding\\GachaOverlay-AppIcon.ico</ApplicationIcon>", project);
-        Assert.Contains("<Resource Include=\"Assets\\Branding\\GachaOverlay-AppIcon.png\" />", project);
+        Assert.Contains("<ApplicationIcon>Assets\\Branding\\LSOverlay-AppIcon.ico</ApplicationIcon>", project);
+        Assert.Contains("<Resource Include=\"Assets\\Branding\\LSOverlay-AppIcon.png\" />", project);
     }
 
     [Fact]

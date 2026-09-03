@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LSOverlay.Backend.WebAuth;
+using LSOverlay.Backend.PublicWeb;
 
 namespace LSOverlay.Backend;
 
@@ -104,6 +105,7 @@ internal static class Program
         builder.Services.AddSingleton(new BackendEventJournal(
             DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
         builder.Services.AddSingleton<BackendConnectionHealth>();
+        builder.Services.AddSingleton<PublicStatusService>();
         builder.Services.AddSingleton<BackendMetrics>();
         builder.Services.AddSingleton<GtaPresenceNormalizer>();
         builder.Services.AddSingleton<ClientCredentialRegistry>();
@@ -152,6 +154,7 @@ internal static class Program
             configuration.Deployment?.IsRailway == true ? "Railway PORT / internal HTTP" : "Configured local endpoint",
             configuration.SessionHostIds.Count);
         app.MapTransportApi();
+        app.MapPublicServicePages();
         return app;
     }
 }

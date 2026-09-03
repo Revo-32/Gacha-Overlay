@@ -146,39 +146,14 @@ internal sealed class SessionHudViewModel : INotifyPropertyChanged
             return;
         }
 
-        var compact = IsCompactDisplay;
         var selectedSlot = _settings.SelectedSessionHost == SessionHostSelection.Host2 ? 2 : 1;
         _hosts.TryGetValue(selectedSlot, out var selectedHost);
-        IReadOnlyList<SessionHudItemViewModel> next;
-        if (_remoteState == SessionRemoteState.Reconnecting)
-        {
-            next = BuildTransientItems(selectedSlot, "SessionReconnecting", compact);
-        }
-        else if (_remoteState == SessionRemoteState.Unavailable)
-        {
-            next = BuildTransientItems(selectedSlot, "SessionUnavailable", compact);
-        }
-        else if (selectedHost is null)
-        {
-            next = compact
-                ? Array.Empty<SessionHudItemViewModel>()
-                : new[]
-                {
-                    BuildStatusItem(
-                        selectedSlot,
-                        _hasCanonicalBootstrap
-                            ? "SessionHostNotConfigured"
-                            : "SessionAwaiting"),
-                };
-        }
-        else
-        {
-            var item = BuildHostItem(selectedHost, compact);
-            next = compact && !item.IsAvailable
-                ? Array.Empty<SessionHudItemViewModel>()
-                : new[] { item };
-        }
-
+        var item = _remoteState == SessionRemoteState.Live && _hasCanonicalBootstrap && selectedHost is not null
+            ? BuildHostItem(selectedHost, true)
+            : null;
+        IReadOnlyList<SessionHudItemViewModel> next = item is { IsAvailable: true }
+            ? new[] { item }
+            : Array.Empty<SessionHudItemViewModel>();
         ReplaceItems(next);
     }
 
@@ -207,18 +182,19 @@ internal sealed class SessionHudViewModel : INotifyPropertyChanged
             var occupancy = string.Format(
                 System.Globalization.CultureInfo.CurrentUICulture,
                 _localization["SessionOccupancyFormat"],
-                current,
-                maximum);
+                Math.Min(current, 30),
+                30);
             var label = compact
                 ? string.Empty
                 : FormatHostLabel(host.HostSlot);
             return new SessionHudItemViewModel(
                 host.HostSlot,
                 label,
-                occupancy,
+                current >= 30 ? _localization["SessionFull"] : occupancy,
                 $"{_localization["SessionGtaOnline"]} {occupancy}",
                 true,
-                !compact);
+                false,
+                current >= 30);
         }
 
         var statusKey = host.State switch
@@ -300,4 +276,5 @@ internal sealed record SessionHudItemViewModel(
     string Value,
     string AccessibleText,
     bool IsAvailable,
-    bool IsLabelVisible);
+    bool IsLabelVisible,
+    bool IsFull = false);

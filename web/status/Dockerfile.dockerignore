@@ -1,0 +1,8 @@
+**
+!web/status/Dockerfile
+!web/status/Dockerfile.dockerignore
+!web/status/entrypoint.sh
+!web/status/public/index.html
+!web/status/public/styles.css
+!web/status/public/status.js
+!assets/branding/LS_Overlay_logo.png

@@ -60,8 +60,23 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event Action<SalesQueueAnimationRequest>? AnimationRequested;
+    public event Action<IReadOnlyList<string>>? DetailItemsRefreshed;
+    private IReadOnlyList<string> _trustedSoldIds = Array.Empty<string>();
 
     public ObservableCollection<SalesQueueDetailItem> DetailItems { get; } = new();
+
+    // Complete only the first own active post, never the current seller's post
+    // when it belongs to someone else. The tooltip identifies this queue entry.
+    public SalesQueueDetailItem? OwnCompletionItem { get; private set; }
+
+    public bool IsOwnCompletionVisible => IsVisible && _isHudVisible && OwnCompletionItem is not null;
+
+    public bool IsCompletionFeedbackVisible => IsOwnCompletionVisible &&
+        !string.IsNullOrWhiteSpace(OwnCompletionItem?.StatusText);
+
+    public string OwnCompletionHint => OwnCompletionItem is { } item
+        ? string.Format(CultureInfo.CurrentCulture, _localization["SalesCompleteOwnPostHint"], item.Position, item.ProductName)
+        : string.Empty;
 
     public RelayCommand ToggleDetailCommand { get; }
 
@@ -266,6 +281,9 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(health);
         ArgumentNullException.ThrowIfNull(change);
+        _trustedSoldIds = change.Reason == SalesQueueChangeReason.TrustedSold
+            ? change.ConfirmedSoldMessageIds ?? (change.PreviousCurrentSellerMessageId is { } id ? new[] { id } : Array.Empty<string>())
+            : Array.Empty<string>();
         _snapshot = snapshot;
         _settings = settings;
         DetailMaxHeight = ChatSettings.NormalizeQueueDetailMaxHeight(
@@ -342,7 +360,7 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
                     _settings.SalesShowNextWaitingUser),
                 strings,
                 _salesChannelName,
-                Math.Max(0, _availableWidth - 48d),
+                Math.Max(0, _availableWidth - 48d - (HasOwnActivePost() ? 88d : 0d)),
                 measurements,
                 _presentation,
                 allowAnimation ? change : SalesQueueChangeContext.None,
@@ -387,12 +405,7 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
         for (var index = 0; index < _snapshot.ActiveItems.Count; index++)
         {
             var entry = _snapshot.ActiveItems[index];
-            var isSelf = string.Equals(
-                    entry.AuthorId,
-                    _snapshot.AuthenticatedUserId,
-                    StringComparison.Ordinal) ||
-                (index == 0 && _snapshot.CurrentSellerIsSelf) ||
-                (index == 1 && _snapshot.NextSellerIsSelf);
+            var isSelf = IsOwnActivePost(entry, index);
             _remoteEvidence.TryGetValue(entry.MessageId, out var evidence);
             var isPending = _pendingStatusActions.TryGetValue(
                 entry.MessageId,
@@ -405,12 +418,13 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
                 _health.State == SalesFeatureHealthState.Live &&
                 _snapshot.ObservationStatus == SalesObservationStatus.Live &&
                 _isHudUnlocked &&
+                evidence?.BotCompletedMarkerPresent != true &&
                 !isPending;
             DetailItems.Add(new SalesQueueDetailItem(
                 index + 1,
                 entry.MessageId,
                 entry.DisplayName,
-                SalesProductSummaryFormatter.Format(entry.AllProducts),
+                entry.AllProducts.Count == 0 ? _localization["SalesDetailRequired"] : SalesProductSummaryFormatter.Format(entry.AllProducts),
                 index == 0,
                 isSelf,
                 entry.IsExactGuildNickname,
@@ -419,50 +433,16 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
                 actionEnabled,
                 StatusText(evidence, isPending ? pending!.DesiredStatus : null,
                     _failedStatusActions.GetValueOrDefault(entry.MessageId)),
-                _localization["SalesStatusSelling"],
-                _localization["SalesStatusNegotiating"],
                 _localization["SalesStatusCompleted"],
-                _localization["SalesStatusClear"],
-                status => ExecuteStatusActionAsync(entry.MessageId, status)));
+                status => ExecuteStatusActionAsync(entry.MessageId, status),
+                entry.CreatedAt, entry.DetailSource, index == 1 && isSelf));
         }
 
-        var activeIds = _snapshot.ActiveItems
-            .Select(entry => entry.MessageId)
-            .ToHashSet(StringComparer.Ordinal);
-        foreach (var target in _statusActionTargets.Where(target =>
-                     !activeIds.Contains(target.MessageId)))
-        {
-            _remoteEvidence.TryGetValue(target.MessageId, out var evidence);
-            var isPending = _pendingStatusActions.TryGetValue(
-                target.MessageId,
-                out var pending);
-            var actionEnabled = ulong.TryParse(target.MessageId, out _) &&
-                _statusAction is not null &&
-                _settings.SalesTrackingEnabled &&
-                _effectiveSalesSource == EffectiveSalesSource.RemotePrimary &&
-                _health.State == SalesFeatureHealthState.Live &&
-                _snapshot.ObservationStatus == SalesObservationStatus.Live &&
-                _isHudUnlocked &&
-                !isPending;
-            DetailItems.Add(new SalesQueueDetailItem(
-                DetailItems.Count + 1,
-                target.MessageId,
-                target.DisplayName,
-                target.ProductName,
-                false,
-                true,
-                target.IsExactGuildNickname,
-                _localization["SalesDetailCurrent"],
-                _localization["SalesDetailSelf"],
-                actionEnabled,
-                StatusText(evidence, isPending ? pending!.DesiredStatus : null,
-                    _failedStatusActions.GetValueOrDefault(target.MessageId)),
-                _localization["SalesStatusSelling"],
-                _localization["SalesStatusNegotiating"],
-                _localization["SalesStatusCompleted"],
-                _localization["SalesStatusClear"],
-                status => ExecuteStatusActionAsync(target.MessageId, status)));
-        }
+        OwnCompletionItem = DetailItems.FirstOrDefault(item => item.IsSelf);
+        OnPropertyChanged(nameof(OwnCompletionItem));
+        OnPropertyChanged(nameof(IsOwnCompletionVisible));
+        OnPropertyChanged(nameof(IsCompletionFeedbackVisible));
+        OnPropertyChanged(nameof(OwnCompletionHint));
 
         IsQueueDetailAvailable = IsVisible && _isHudVisible &&
             !_isUltraCompact && DetailItems.Count > 0;
@@ -471,12 +451,34 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
         {
             IsQueueDetailExpanded = false;
         }
+        RefreshRelativeAges(DateTimeOffset.UtcNow);
+        DetailItemsRefreshed?.Invoke(_animationsEnabled ? _trustedSoldIds : Array.Empty<string>());
+        _trustedSoldIds = Array.Empty<string>();
     }
+
+    public void RefreshRelativeAges(DateTimeOffset now)
+    {
+        foreach (var item in DetailItems) item.RefreshAge(now, _localization);
+    }
+
+    private bool HasOwnActivePost() => _snapshot.ActiveItems
+        .Where((entry, index) => IsOwnActivePost(entry, index)).Any();
+
+    private bool IsOwnActivePost(SalesQueueEntry entry, int index) =>
+        !string.IsNullOrWhiteSpace(_snapshot.AuthenticatedUserId)
+            ? string.Equals(entry.AuthorId, _snapshot.AuthenticatedUserId, StringComparison.Ordinal)
+            : (index == 0 && _snapshot.CurrentSellerIsSelf) ||
+              (index == 1 && _snapshot.NextSellerIsSelf);
 
     internal async Task ExecuteStatusActionAsync(string messageId, SalesStatus status)
     {
-        if (_statusAction is null ||
+        // The product UI supports completion only. Keep legacy protocol states
+        // compatible on the wire, but never dispatch them from this client UI.
+        if (status != SalesStatus.Completed ||
+            _statusAction is null ||
             !ulong.TryParse(messageId, out var parsedMessageId) ||
+            DetailItems.FirstOrDefault(item => item.MessageId == messageId)
+                is not { IsSelf: true, IsStatusActionEnabled: true } ||
             _pendingStatusActions.ContainsKey(messageId))
         {
             return;
@@ -585,17 +587,7 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
             return _localization["SalesStatusCompleted"];
         }
 
-        if (evidence?.BotNegotiatingMarkerPresent == true)
-        {
-            return _localization["SalesStatusNegotiating"];
-        }
-
-        if (evidence?.BotSellingMarkerPresent == true)
-        {
-            return _localization["SalesStatusSelling"];
-        }
-
-        return _localization["SalesStatusBotNone"];
+        return string.Empty;
     }
 
     private SalesQueuePresentationStrings CreateStrings() => new(
@@ -619,7 +611,8 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
         _localization["SalesNextTurnSelf"],
         _localization["SalesCurrentTurnSelf"],
         _localization["SalesHealthRemoteUnavailable"],
-        _localization["SalesHealthRemoteAccessRevoked"]);
+        _localization["SalesHealthRemoteAccessRevoked"],
+        _localization["SalesDetailRequired"]);
 
     private static SalesFeatureHealthSnapshot CreateLegacyHealth(
         SalesQueueSnapshot snapshot)
@@ -702,7 +695,7 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-internal sealed class SalesQueueDetailItem
+internal sealed class SalesQueueDetailItem : INotifyPropertyChanged
 {
     private readonly Func<SalesStatus, Task> _action;
 
@@ -718,12 +711,13 @@ internal sealed class SalesQueueDetailItem
         string selfLabel,
         bool isStatusActionEnabled,
         string statusText,
-        string sellingLabel,
-        string negotiatingLabel,
         string completedLabel,
-        string clearLabel,
-        Func<SalesStatus, Task> action)
+        Func<SalesStatus, Task> action,
+        DateTimeOffset? createdAt = null, string? detailSource = null, bool isNextSelf = false)
     {
+        CreatedAt = createdAt;
+        DetailSource = detailSource;
+        IsNextSelf = isNextSelf;
         Position = position;
         MessageId = messageId;
         DisplayName = displayName;
@@ -733,19 +727,38 @@ internal sealed class SalesQueueDetailItem
         IsExactGuildNickname = isExactGuildNickname;
         CurrentLabel = currentLabel;
         SelfLabel = selfLabel;
-        IsStatusActionEnabled = isStatusActionEnabled;
+        _isStatusActionEnabled = isStatusActionEnabled;
         StatusText = statusText;
-        SellingLabel = sellingLabel;
-        NegotiatingLabel = negotiatingLabel;
         CompletedLabel = completedLabel;
-        ClearLabel = clearLabel;
         _action = action;
-        SetSellingCommand = Command(SalesStatus.Selling);
-        SetNegotiatingCommand = Command(SalesStatus.Negotiating);
         SetCompletedCommand = Command(SalesStatus.Completed);
-        ClearStatusCommand = Command(SalesStatus.Clear);
     }
 
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public DateTimeOffset? CreatedAt { get; }
+    public string? DetailSource { get; }
+    public bool HasDetailSource => !string.IsNullOrWhiteSpace(DetailSource);
+    public bool IsNextSelf { get; }
+    public bool IsCurrentSelf => IsSelf && IsCurrent;
+    public string RelativeAge { get; private set; } = "";
+    private readonly bool _isStatusActionEnabled;
+    public bool IsDeparting { get; private set; }
+    public void MarkDeparting()
+    {
+        IsDeparting = true;
+        foreach (var name in new[] { nameof(IsDeparting), nameof(IsStatusActionEnabled), nameof(IsStatusActionVisible) })
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+    public void RefreshAge(DateTimeOffset now, ILocalizationService localization)
+    {
+        var minutes = CreatedAt.HasValue ? Math.Max(0, (now - CreatedAt.Value).TotalMinutes) : -1;
+        var label = minutes < 0 ? "" : minutes < 1 ? localization["SalesAgeJustNow"] :
+            string.Format(CultureInfo.CurrentUICulture, localization[minutes < 60 ? "SalesAgeMinutes" : "SalesAgeHours"],
+                (int)(minutes < 60 ? minutes : minutes / 60));
+        if (RelativeAge == label) return;
+        RelativeAge = label;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RelativeAge)));
+    }
     public int Position { get; }
     public string MessageId { get; }
     public string DisplayName { get; }
@@ -755,17 +768,11 @@ internal sealed class SalesQueueDetailItem
     public bool IsExactGuildNickname { get; }
     public string CurrentLabel { get; }
     public string SelfLabel { get; }
-    public bool IsStatusActionVisible => IsSelf;
-    public bool IsStatusActionEnabled { get; }
+    public bool IsStatusActionVisible => IsSelf && !IsDeparting;
+    public bool IsStatusActionEnabled => _isStatusActionEnabled && !IsDeparting;
     public string StatusText { get; }
-    public string SellingLabel { get; }
-    public string NegotiatingLabel { get; }
     public string CompletedLabel { get; }
-    public string ClearLabel { get; }
-    public AsyncRelayCommand SetSellingCommand { get; }
-    public AsyncRelayCommand SetNegotiatingCommand { get; }
     public AsyncRelayCommand SetCompletedCommand { get; }
-    public AsyncRelayCommand ClearStatusCommand { get; }
 
     private AsyncRelayCommand Command(SalesStatus status) =>
         new(() => _action(status), () => IsStatusActionEnabled);

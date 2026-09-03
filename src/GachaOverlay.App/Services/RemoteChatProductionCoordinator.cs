@@ -50,6 +50,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
     private long _publishedSalesBootstrapSequence = -1;
     private bool _salesBootstrapPublicationRequired;
     private string? _pendingChannelId;
+    private readonly Func<IEnumerable<RemoteChannelOption>, RemoteChannelOption[]>? _channelPolicy;
     private RemoteChatSnapshot _snapshot;
     private bool _lastSalesTrackingEnabled;
     private int _salesRecoveryRestarting;
@@ -63,7 +64,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         IAppLogger logger,
         Func<Uri, ILSOverlayRemoteClient>? clientFactory = null,
         RemoteRecoveryAudit? recoveryAudit = null,
-        Action<Uri>? openBrowser = null)
+        Action<Uri>? openBrowser = null,
+        Func<IEnumerable<RemoteChannelOption>, RemoteChannelOption[]>? channelPolicy = null)
     {
         _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
         _credentialStore = credentialStore ?? throw new ArgumentNullException(nameof(credentialStore));
@@ -72,6 +74,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         _installationIdPath = installationIdPath;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _recoveryAudit = recoveryAudit;
+        _channelPolicy = channelPolicy;
         _clientFactory = clientFactory ?? (uri => new LSOverlayRemoteClient(uri));
         _openBrowser = openBrowser ?? (uri => System.Diagnostics.Process.Start(
             new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true })?.Dispose());
@@ -89,6 +92,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
     }
 
     public event Action<RemoteChatSnapshot>? SnapshotChanged;
+
+    public event Action<string>? ChannelSwitchCommitted;
 
     public event Action<DiscordMessageState>? MessageStateChanged;
 
@@ -653,14 +658,15 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                         channel.Position,
                         channel.IsAnnouncement))
                     .ToArray();
+                if (_channelPolicy is not null) channels = _channelPolicy(channels);
                 var selectedId = _settingsStore.Current.RemoteSelectedChannelId;
-                if (selectedId is not null &&
-                    !channels.Any(channel => channel.ChannelId == selectedId))
+                if (!channels.Any(channel => channel.ChannelId == selectedId) &&
+                    (selectedId is not null || _channelPolicy is not null))
                 {
-                    selectedId = null;
+                    selectedId = _channelPolicy is null ? null : channels.FirstOrDefault()?.ChannelId;
                     _settingsStore.Update(settings => settings with
                     {
-                        RemoteSelectedChannelId = null,
+                        RemoteSelectedChannelId = selectedId,
                     });
                     _logger.Warning("REMOTE", "Stale remote channel selection was cleared.");
                 }
@@ -1077,6 +1083,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
             Health = RemoteChatHealthState.Live,
             Detail = "Live",
         });
+        if (pending == channelId) ChannelSwitchCommitted?.Invoke(bootstrap.Channel.Name);
     }
 
     private void OnChatStreamStatusChanged(ulong channelId, string status)

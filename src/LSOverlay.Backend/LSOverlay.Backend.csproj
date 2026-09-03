@@ -16,4 +16,10 @@
     <ProjectReference Include="..\LSOverlay.Protocol\LSOverlay.Protocol.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Remove="PublicWeb\Content\**" />
+    <EmbeddedResource Include="PublicWeb\Content\*" LogicalName="LSOverlay.PublicWeb.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\assets\branding\LS_Overlay_logo.png" LogicalName="LSOverlay.PublicWeb.logo.png" />
+  </ItemGroup>
+
 </Project>

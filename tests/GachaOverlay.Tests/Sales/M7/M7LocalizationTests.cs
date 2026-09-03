@@ -63,7 +63,7 @@ public sealed class M7LocalizationTests
         Assert.Equal("판매 상태 일부만 확인됨", localization["SalesHealthDegraded"]);
         Assert.Equal("Discord 연결 끊김", localization["SalesHealthDisconnected"]);
         Assert.Equal(
-            "Remote 판매를 사용할 수 없습니다",
+            "판매 정보를 불러오지 못했습니다. 설정에서 다시 시도하세요.",
             localization["SalesHealthRemoteError"]);
     }
 }

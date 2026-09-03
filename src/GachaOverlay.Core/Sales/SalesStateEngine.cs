@@ -200,8 +200,9 @@ public sealed class SalesStateEngine
                     continue;
                 }
 
-                var products = MapProducts(pair.Value.GuildId, message);
-                if (products.SequenceEqual(pair.Value.AllProducts))
+                var parsed = MapPost(pair.Value.GuildId, message);
+                var products = parsed.Products;
+                if (products.SequenceEqual(pair.Value.AllProducts) && parsed.Status == pair.Value.ParseStatus && parsed.DetailSource == pair.Value.DetailSource)
                 {
                     continue;
                 }
@@ -210,6 +211,8 @@ public sealed class SalesStateEngine
                 {
                     Product = products.FirstOrDefault(),
                     Products = products,
+                    ParseStatus = parsed.Status,
+                    DetailSource = parsed.DetailSource,
                 };
                 changed = true;
             }
@@ -534,7 +537,8 @@ public sealed class SalesStateEngine
                 message.AuthorGuildNickname,
                 message.AuthorGuildNicknameObservationSource,
                 currentMessageHasExactGuildNickname);
-            var products = MapProducts(existing.GuildId, message);
+            var parsed = MapPost(existing.GuildId, message);
+            var products = parsed.Products;
             var updated = existing with
             {
                 SourceRevision = ++_sourceRevision,
@@ -547,6 +551,8 @@ public sealed class SalesStateEngine
                 DisplayName = resolution,
                 Product = products.FirstOrDefault(),
                 Products = products,
+                ParseStatus = parsed.Status,
+                DetailSource = parsed.DetailSource,
                 DomainState = existing.DomainState == SaleDomainState.Deleted
                     ? SaleDomainState.Pending
                     : existing.DomainState,
@@ -577,7 +583,8 @@ public sealed class SalesStateEngine
             message.AuthorGuildNickname,
             message.AuthorGuildNicknameObservationSource,
             message.AuthorDisplayNameSource == DiscordDisplayNameSource.GuildNickname);
-        var createdProducts = MapProducts(message.GuildId, message);
+        var created = MapPost(message.GuildId, message);
+        var createdProducts = created.Products;
         var record = new SaleRecord(
             message.MessageId,
             message.GuildId,
@@ -597,7 +604,9 @@ public sealed class SalesStateEngine
             null,
             0,
             null,
-            createdProducts);
+            createdProducts,
+            created.Status,
+            created.DetailSource);
         _records.Add(message.MessageId, record);
         _unknownTombstones.Remove(message.MessageId);
         _logger.Information(
@@ -630,6 +639,7 @@ public sealed class SalesStateEngine
             SourceRevision = revision,
             DomainState = SaleDomainState.Deleted,
             DeletedAt = _clock(),
+            DetailSource = null,
         };
         _logger.Information("SALES", $"Source deleted message={Sanitize(messageId)}.");
         return true;
@@ -684,26 +694,8 @@ public sealed class SalesStateEngine
         return true;
     }
 
-    private IReadOnlyList<SaleProduct> MapProducts(
-        string guildId,
-        NormalizedDiscordMessage message)
-    {
-        var products = _productCatalog.MapAll(guildId, message.CustomEmojis, _locale);
-        if (products.Count > 0)
-        {
-            _logger.Information(
-                "PRODUCT",
-                $"Mapped message={Sanitize(message.MessageId)} products={products.Count} summary={Sanitize(SalesProductSummaryFormatter.Format(products))}.");
-        }
-        else if (message.CustomEmojis.Count > 0)
-        {
-            _logger.Information(
-                "PRODUCT",
-                $"Mapping missing message={Sanitize(message.MessageId)} emoji={Sanitize(message.CustomEmojis[0].EmojiId)}.");
-        }
-
-        return products;
-    }
+    private NormalizedSalePost MapPost(string guildId, NormalizedDiscordMessage message) =>
+        SalesPostNormalizer.Parse(guildId, message.Content, message.CustomEmojis, _productCatalog, _locale);
 
     private GuildDisplayNameResolution ResolveDisplayName(
         string guildId,
@@ -780,7 +772,9 @@ public sealed class SalesStateEngine
         record.DisplayName.IsExactGuildNickname,
         record.Product,
         record.ObservationTrust,
-        record.AllProducts);
+        record.AllProducts,
+        record.ParseStatus,
+        record.DetailSource);
 
     private void TrimTombstones()
     {

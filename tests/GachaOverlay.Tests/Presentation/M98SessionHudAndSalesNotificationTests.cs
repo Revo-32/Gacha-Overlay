@@ -30,8 +30,8 @@ public sealed class M98SessionHudAndSalesNotificationTests
 
         Assert.True(viewModel.IsVisible);
         var item = Assert.Single(viewModel.Items);
-        Assert.Equal("Host 1", item.Label);
-        Assert.Equal("11 / 32", item.Value);
+        Assert.Empty(item.Label);
+        Assert.Equal("11 / 30", item.Value);
         Assert.DoesNotContain("132987", item.AccessibleText, StringComparison.Ordinal);
     }
 
@@ -48,7 +48,7 @@ public sealed class M98SessionHudAndSalesNotificationTests
 
         var item = Assert.Single(viewModel.Items);
         Assert.Equal(1, item.HostSlot);
-        Assert.Equal("Host 1", item.Label);
+        Assert.Empty(item.Label);
     }
 
     [Theory]
@@ -61,10 +61,8 @@ public sealed class M98SessionHudAndSalesNotificationTests
         viewModel.ApplyBootstrap(Bootstrap(
             Host(1, HostPresenceState.GtaOnline, current, maximum)));
 
-        var item = Assert.Single(viewModel.Items);
-        Assert.False(item.IsAvailable);
-        Assert.Equal("Session unavailable", item.Value);
-        Assert.DoesNotContain("32 / 32", item.Value, StringComparison.Ordinal);
+        Assert.Empty(viewModel.Items);
+        Assert.False(viewModel.IsVisible);
     }
 
     [Fact]
@@ -75,9 +73,8 @@ public sealed class M98SessionHudAndSalesNotificationTests
 
         viewModel.ApplyPresence(Host(1, HostPresenceState.Offline, null, null));
 
-        var item = Assert.Single(viewModel.Items);
-        Assert.Equal("Offline", item.Value);
-        Assert.DoesNotContain("11", item.Value, StringComparison.Ordinal);
+        Assert.Empty(viewModel.Items);
+        Assert.False(viewModel.IsVisible);
     }
 
     [Fact]
@@ -88,7 +85,7 @@ public sealed class M98SessionHudAndSalesNotificationTests
 
         var item = Assert.Single(viewModel.Items);
         Assert.True(item.IsAvailable);
-        Assert.Equal("0 / 32", item.Value);
+        Assert.Equal("0 / 30", item.Value);
     }
 
     [Fact]
@@ -103,10 +100,8 @@ public sealed class M98SessionHudAndSalesNotificationTests
             null,
             null));
 
-        var item = Assert.Single(viewModel.Items);
-        Assert.False(item.IsAvailable);
-        Assert.Equal("Session unavailable", item.Value);
-        Assert.DoesNotContain("11", item.Value, StringComparison.Ordinal);
+        Assert.Empty(viewModel.Items);
+        Assert.False(viewModel.IsVisible);
     }
 
     [Fact]
@@ -120,7 +115,7 @@ public sealed class M98SessionHudAndSalesNotificationTests
         viewModel.ApplyPresence(Host(1, HostPresenceState.GtaOnline, 12, 32));
 
         Assert.Equal(1, changes);
-        Assert.Equal("12 / 32", Assert.Single(viewModel.Items).Value);
+        Assert.Equal("12 / 30", Assert.Single(viewModel.Items).Value);
     }
 
     [Fact]
@@ -130,11 +125,12 @@ public sealed class M98SessionHudAndSalesNotificationTests
         viewModel.ApplyBootstrap(Bootstrap(Host(1, HostPresenceState.GtaOnline, 11, 32)));
 
         viewModel.UpdateRemoteState(true, SessionRemoteState.Reconnecting);
-        Assert.Equal("Reconnecting", Assert.Single(viewModel.Items).Value);
+        Assert.Empty(viewModel.Items);
+        Assert.False(viewModel.IsVisible);
 
         viewModel.ApplyBootstrap(Bootstrap(Host(1, HostPresenceState.GtaOnline, 12, 32)));
         viewModel.UpdateRemoteState(true, SessionRemoteState.Live);
-        Assert.Equal("12 / 32", Assert.Single(viewModel.Items).Value);
+        Assert.Equal("12 / 30", Assert.Single(viewModel.Items).Value);
     }
 
     [Fact]
@@ -147,9 +143,8 @@ public sealed class M98SessionHudAndSalesNotificationTests
         viewModel.ApplyBootstrap(Bootstrap(Host(1, HostPresenceState.Offline, null, null)));
         viewModel.UpdateRemoteState(true, SessionRemoteState.Live);
 
-        var item = Assert.Single(viewModel.Items);
-        Assert.Equal("Offline", item.Value);
-        Assert.DoesNotContain("11", item.Value, StringComparison.Ordinal);
+        Assert.Empty(viewModel.Items);
+        Assert.False(viewModel.IsVisible);
     }
 
     [Fact]
@@ -162,11 +157,8 @@ public sealed class M98SessionHudAndSalesNotificationTests
 
         viewModel.ApplyBootstrap(Bootstrap(Host(2, HostPresenceState.Offline, null, null)));
 
-        var item = Assert.Single(viewModel.Items);
-        Assert.Equal(1, item.HostSlot);
-        Assert.Equal("Host not configured", item.Value);
-        Assert.DoesNotContain(viewModel.Items, candidate =>
-            candidate.Value.Contains("11", StringComparison.Ordinal));
+        Assert.Empty(viewModel.Items);
+        Assert.False(viewModel.IsVisible);
     }
 
     [Fact]
@@ -182,8 +174,8 @@ public sealed class M98SessionHudAndSalesNotificationTests
 
         var item = Assert.Single(viewModel.Items);
         Assert.Equal(2, item.HostSlot);
-        Assert.Equal("Host 2", item.Label);
-        Assert.Equal("20 / 32", item.Value);
+        Assert.Empty(item.Label);
+        Assert.Equal("20 / 30", item.Value);
     }
 
     [Fact]
@@ -194,10 +186,8 @@ public sealed class M98SessionHudAndSalesNotificationTests
             Host(1, HostPresenceState.Offline, null, null),
             Host(2, HostPresenceState.GtaOnline, 20, 32)));
 
-        var item = Assert.Single(viewModel.Items);
-        Assert.Equal(1, item.HostSlot);
-        Assert.Equal("Offline", item.Value);
-        Assert.DoesNotContain("20", item.Value, StringComparison.Ordinal);
+        Assert.Empty(viewModel.Items);
+        Assert.False(viewModel.IsVisible);
     }
 
     [Fact]
@@ -215,7 +205,7 @@ public sealed class M98SessionHudAndSalesNotificationTests
 
         var item = Assert.Single(viewModel.Items);
         Assert.Equal(2, item.HostSlot);
-        Assert.Equal("20 / 32", item.Value);
+        Assert.Equal("20 / 30", item.Value);
     }
 
     [Fact]
@@ -269,7 +259,7 @@ public sealed class M98SessionHudAndSalesNotificationTests
                 new[] { SessionHostSelection.Host1, SessionHostSelection.Host2 },
                 viewModel.SessionHostOptions.Select(option => option.Value).ToArray());
             Assert.Equal(
-                new[] { "Host 1", "Host 2" },
+                new[] { "DE-SSANTA", "-TheFirstStar-" },
                 viewModel.SessionHostOptions.Select(option => option.DisplayText).ToArray());
             viewModel.SelectedSessionHost = SessionHostSelection.Host2;
 
@@ -292,7 +282,7 @@ public sealed class M98SessionHudAndSalesNotificationTests
             Host(2, HostPresenceState.Offline, null, null)));
 
         var item = Assert.Single(viewModel.Items);
-        Assert.Equal("11 / 32", item.Value);
+        Assert.Equal("11 / 30", item.Value);
         Assert.False(item.IsLabelVisible);
 
         viewModel.ApplyPresence(Host(1, HostPresenceState.Offline, null, null));
@@ -331,16 +321,16 @@ public sealed class M98SessionHudAndSalesNotificationTests
     }
 
     [Theory]
-    [InlineData("en", "Reconnecting")]
-    [InlineData("ko", "다시 연결 중")]
-    [InlineData("ja", "再接続中")]
-    public void SessionStatus_IsLocalized(string locale, string expected)
+    [InlineData("en", "Full Session")]
+    [InlineData("ko", "풀세션")]
+    [InlineData("ja", "満員")]
+    public void FullSessionStatus_IsLocalized(string locale, string expected)
     {
         var viewModel = new SessionHudViewModel(
             new ResourceLocalizationService(locale),
             AppSettings.CreateDefault());
-        viewModel.UpdateRemoteState(true, SessionRemoteState.Reconnecting);
-
+        viewModel.UpdateRemoteState(true, SessionRemoteState.Live);
+        viewModel.ApplyBootstrap(Bootstrap(Host(1, HostPresenceState.GtaOnline, 31, 32)));
         Assert.Equal(expected, Assert.Single(viewModel.Items).Value);
     }
 
@@ -358,9 +348,9 @@ public sealed class M98SessionHudAndSalesNotificationTests
         viewModel.ApplyBootstrap(Bootstrap(Host(1, HostPresenceState.GtaOnline, 11, 32)));
 
         var item = Assert.Single(viewModel.Items);
-        Assert.Equal("11 / 32", item.Value);
-        Assert.Equal(ultraCompact, viewModel.IsCompactDisplay);
-        Assert.Equal(!ultraCompact, item.IsLabelVisible);
+        Assert.Equal("11 / 30", item.Value);
+        Assert.True(viewModel.IsCompactDisplay);
+        Assert.False(item.IsLabelVisible);
     }
 
     [Fact]
@@ -372,19 +362,18 @@ public sealed class M98SessionHudAndSalesNotificationTests
             "GachaOverlay.App",
             "Presentation",
             "HudWindow.xaml"));
-        var sessionStart = xaml.IndexOf("x:Name=\"SessionSurface\"", StringComparison.Ordinal);
+        var sessionStart = xaml.IndexOf("x:Name=\"SessionBadge\"", StringComparison.Ordinal);
         var sessionEnd = xaml.IndexOf("</Border>", sessionStart, StringComparison.Ordinal);
         var sessionMarkup = xaml[sessionStart..sessionEnd];
 
         Assert.Contains("IsHitTestVisible=\"False\"", sessionMarkup, StringComparison.Ordinal);
-        Assert.Contains("{DynamicResource TextSecondaryBrush}", sessionMarkup, StringComparison.Ordinal);
         Assert.Contains("{DynamicResource TextPrimaryBrush}", sessionMarkup, StringComparison.Ordinal);
 
         foreach (var theme in ColorThemeCatalog.All)
         {
             var viewModel = Session(AppSettings.CreateDefault() with { ColorTheme = theme.Id });
             viewModel.ApplyBootstrap(Bootstrap(Host(1, HostPresenceState.GtaOnline, 11, 32)));
-            Assert.Equal("11 / 32", Assert.Single(viewModel.Items).Value);
+            Assert.Equal("11 / 30", Assert.Single(viewModel.Items).Value);
         }
     }
 

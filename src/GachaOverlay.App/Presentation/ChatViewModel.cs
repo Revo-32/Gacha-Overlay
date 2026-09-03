@@ -9,7 +9,21 @@ namespace GachaOverlay.App.Presentation;
 
 internal sealed class ChatViewModel : INotifyPropertyChanged
 {
+    public GachaOverlay.Core.Chat.ChatScrollState ScrollState { get; } = new();
+    public event Action? BeforeMessagesChanged;
+    public event Action? AfterMessagesChanged;
+    public event Action<string>? ChannelFeedbackRequested;
+    public void BeginMessageUpdate() => BeforeMessagesChanged?.Invoke();
+    public void EndMessageUpdate() => AfterMessagesChanged?.Invoke();
+    public void NotifyNewMessage() { ScrollState.ReceiveNewMessage(); NotifyScrollState(); }
+    public void ObserveUserScroll(double offset, double height) { ScrollState.ObserveUserOffset(offset, height); NotifyScrollState(); }
+    public void JumpToLatest() { ScrollState.FollowLatest(); NotifyScrollState(); ScrollToLatestRequested?.Invoke(); }
+    public void NotifyCommittedChannel(string label) { JumpToLatest(); ChannelFeedbackRequested?.Invoke("#" + label.TrimStart('#')); }
+    public bool IsJumpVisible => IsHudUnlocked && !ScrollState.IsFollowingLatest && ScrollState.UnreadCount > 0;
+    public string UnreadLabel => "↓ " + ScrollState.UnreadCount;
+    private void NotifyScrollState() { OnPropertyChanged(nameof(IsJumpVisible)); OnPropertyChanged(nameof(UnreadLabel)); }
     private ImageSource? _previewImage;
+    private bool _isHudUnlocked;
     private string _connectionText = string.Empty;
     private Thickness _paintViewportPadding;
 
@@ -25,6 +39,12 @@ internal sealed class ChatViewModel : INotifyPropertyChanged
     public event Action? MentionPulseRequested;
 
     public ObservableCollection<ChatMessageViewModel> Messages { get; } = new();
+
+    public bool IsHudUnlocked
+    {
+        get => _isHudUnlocked;
+        set { if (_isHudUnlocked == value) return; _isHudUnlocked = value; OnPropertyChanged(); NotifyScrollState(); }
+    }
 
     public ICommand ClosePreviewCommand { get; }
 
@@ -58,8 +78,11 @@ internal sealed class ChatViewModel : INotifyPropertyChanged
 
             _connectionText = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsHealthVisible));
         }
     }
+
+    public bool IsHealthVisible => !string.IsNullOrWhiteSpace(ConnectionText);
 
     public Thickness PaintViewportPadding
     {
@@ -76,7 +99,7 @@ internal sealed class ChatViewModel : INotifyPropertyChanged
         }
     }
 
-    public void RequestScrollToLatest() => ScrollToLatestRequested?.Invoke();
+    public void RequestScrollToLatest() { if (ScrollState.IsFollowingLatest) ScrollToLatestRequested?.Invoke(); }
 
     public void RequestMentionPulse() => MentionPulseRequested?.Invoke();
 

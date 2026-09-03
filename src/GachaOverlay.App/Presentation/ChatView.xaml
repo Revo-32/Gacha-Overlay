@@ -6,13 +6,13 @@
     <UserControl.Resources>
         <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
     </UserControl.Resources>
-    <Grid>
-        <ScrollViewer x:Name="MessageScroller"
+    <Grid Background="Transparent" PreviewMouseWheel="OnChatMouseWheel">
+        <ScrollViewer x:Name="MessageScroller" Background="Transparent" ScrollChanged="OnScrollChanged"
                       HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Hidden"
                       CanContentScroll="False">
             <Border Padding="{Binding PaintViewportPadding}">
-            <ItemsControl ItemsSource="{Binding Messages}">
+            <ItemsControl x:Name="MessageItems" ItemsSource="{Binding Messages}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <local:ChatMessageView />
@@ -40,6 +40,19 @@
             </Button>
         </Border>
 
+        <Button HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,8" Padding="12,4"
+                Focusable="False" Content="{Binding UnreadLabel}" Click="OnJumpToLatest"
+                Visibility="{Binding IsJumpVisible, Converter={StaticResource BoolVisibility}}" />
+        <Border x:Name="ChannelFeedback" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8"
+                Padding="10,4" CornerRadius="8" Background="{DynamicResource SurfaceElevatedBrush}"
+                IsHitTestVisible="False" Opacity="0">
+            <TextBlock x:Name="ChannelFeedbackText" FontSize="12" />
+        </Border>
+        <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,5" Padding="9,4"
+                Background="{DynamicResource SurfaceElevatedBrush}" CornerRadius="7" IsHitTestVisible="False"
+                Visibility="{Binding IsHealthVisible, Converter={StaticResource BoolVisibility}}">
+            <TextBlock Foreground="{DynamicResource StatusWarningBrush}" FontSize="12" Text="{Binding ConnectionText}" TextWrapping="Wrap"/>
+        </Border>
         <Border x:Name="MentionNotificationBorder"
                 BorderBrush="{DynamicResource ChatSelfMentionBrush}"
                 BorderThickness="2"

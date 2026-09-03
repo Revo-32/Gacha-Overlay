@@ -48,9 +48,14 @@
                     Opacity="0" />
 
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="34" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
@@ -69,8 +74,19 @@
                                TextTrimming="CharacterEllipsis"
                                Visibility="{Binding IsSecondLineVisible, Converter={StaticResource BoolVisibility}}" />
                 </StackPanel>
-                <Button x:Name="QueueDetailToggle"
+                <Button x:Name="CompleteOwnSaleButton"
                         Grid.Column="2"
+                        Margin="8,0,0,0"
+                        Padding="8,3"
+                        VerticalAlignment="Center"
+                        Command="{Binding OwnCompletionItem.SetCompletedCommand}"
+                        Content="{Binding OwnCompletionItem.CompletedLabel}"
+                        IsEnabled="{Binding OwnCompletionItem.IsStatusActionEnabled}"
+                        ToolTip="{Binding OwnCompletionHint}"
+                        AutomationProperties.HelpText="{Binding OwnCompletionHint}"
+                        Visibility="{Binding IsOwnCompletionVisible, Converter={StaticResource BoolVisibility}}" />
+                <Button x:Name="QueueDetailToggle"
+                        Grid.Column="3"
                         Width="28"
                         Height="28"
                         Margin="6,0,0,0"
@@ -91,6 +107,16 @@
                         </Path.RenderTransform>
                     </Path>
                 </Button>
+                <TextBlock x:Name="CompletionFeedback"
+                           Grid.Row="1"
+                           Grid.Column="1"
+                           Grid.ColumnSpan="3"
+                           Margin="0,4,0,0"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Text="{Binding OwnCompletionItem.StatusText}"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding IsCompletionFeedbackVisible, Converter={StaticResource BoolVisibility}}" />
             </Grid>
         </Grid>
     </Border>
@@ -104,17 +130,33 @@
                 BorderThickness="1"
                 CornerRadius="{DynamicResource CornerRadius.Sales}"
                 IsHitTestVisible="{Binding IsQueueDetailInteractive}"
-                Visibility="{Binding IsQueueDetailPanelVisible, Converter={StaticResource BoolVisibility}}">
+                Visibility="Collapsed">
             <ScrollViewer x:Name="QueueDetailScroller"
                           MaxHeight="{Binding DetailMaxHeight}"
                           IsEnabled="{Binding IsQueueDetailInteractive}"
                           IsHitTestVisible="{Binding IsQueueDetailInteractive}"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
-                <ItemsControl ItemsSource="{Binding DetailItems}">
+                <ItemsControl x:Name="DetailRows">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="4,5">
+                            <Border Padding="4,5" BorderThickness="2,0,0,0" ClipToBounds="True" Loaded="OnRowLoaded" Unloaded="OnRowUnloaded">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelf}" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding IsNextSelf}" Value="True"><Setter Property="Background" Value="{DynamicResource SalesNextSurfaceEffectiveBrush}"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding IsCurrentSelf}" Value="True"><Setter Property="Background" Value="{DynamicResource SalesCurrentSurfaceEffectiveBrush}"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding IsDeparting}" Value="True">
+                                                <Setter Property="IsHitTestVisible" Value="False"/>
+
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
@@ -125,45 +167,21 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Position}" />
-                                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Margin="8,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ProductName}" TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
+                                <Grid Grid.Column="1">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" MaxWidth="145"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="1" Margin="8,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ProductName}" TextTrimming="CharacterEllipsis"/>
+                                </Grid>
                                 <StackPanel Grid.Column="2" Margin="8,0,0,0" Orientation="Horizontal">
                                     <TextBlock Margin="0,0,6,0" Foreground="{DynamicResource StatusLiveBrush}" Text="{Binding CurrentLabel}" Visibility="{Binding IsCurrent, Converter={StaticResource BoolVisibility}}" />
                                     <TextBlock Foreground="{DynamicResource ChatSelfMentionBrush}" Text="{Binding SelfLabel}" Visibility="{Binding IsSelf, Converter={StaticResource BoolVisibility}}" />
                                 </StackPanel>
-                                <WrapPanel Grid.Row="1"
-                                           Grid.Column="1"
-                                           Grid.ColumnSpan="2"
-                                           Margin="0,6,0,0"
-                                           Orientation="Horizontal"
-                                           Visibility="{Binding IsStatusActionVisible, Converter={StaticResource BoolVisibility}}">
-                                    <Button Margin="0,0,4,0"
-                                            Padding="6,2"
-                                            Command="{Binding SetNegotiatingCommand}"
-                                            Content="{Binding NegotiatingLabel}"
-                                            IsEnabled="{Binding IsStatusActionEnabled}" />
-                                    <Button Margin="0,0,4,0"
-                                            Padding="6,2"
-                                            Command="{Binding SetSellingCommand}"
-                                            Content="{Binding SellingLabel}"
-                                            IsEnabled="{Binding IsStatusActionEnabled}" />
-                                    <Button Margin="0,0,4,0"
-                                            Padding="6,2"
-                                            Command="{Binding SetCompletedCommand}"
-                                            Content="{Binding CompletedLabel}"
-                                            IsEnabled="{Binding IsStatusActionEnabled}" />
-                                    <Button Margin="0,0,8,0"
-                                            Padding="6,2"
-                                            Command="{Binding ClearStatusCommand}"
-                                            Content="{Binding ClearLabel}"
-                                            IsEnabled="{Binding IsStatusActionEnabled}" />
-                                    <TextBlock VerticalAlignment="Center"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               Text="{Binding StatusText}" />
-                                </WrapPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0">
+                                    <TextBlock FontSize="10" Opacity="0.7" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding RelativeAge}"/>
+                                    <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding DetailSource}" TextWrapping="Wrap" MaxHeight="80" TextTrimming="CharacterEllipsis" Visibility="{Binding HasDetailSource, Converter={StaticResource BoolVisibility}}"/>
+                                </StackPanel>
                             </Grid>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

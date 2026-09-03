@@ -178,6 +178,13 @@ internal sealed class DiscordWebAuthService
     }
 
     internal int Count { get { lock (_sync) { Sweep(); return _entries.Count; } } }
+
+    // Read-only aggregate readiness. Unlike Count this does not sweep/mutate
+    // sessions merely because an anonymous status page was requested.
+    internal bool HasCapacity
+    {
+        get { lock (_sync) { return _entries.Values.Count(entry => entry.Expires > _clock()) < MaximumSessions; } }
+    }
 }
 
 internal sealed class WebAuthExpiryWorker(DiscordWebAuthService sessions) : BackgroundService

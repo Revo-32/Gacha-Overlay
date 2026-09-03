@@ -1,0 +1,83 @@
+{
+  "milestone": "M10.0",
+  "completedLocal": "2026-09-03T12:02:34+09:00",
+  "baseCommit": "a1b8bb1",
+  "baselineTests": 1404,
+  "addedTests": 82,
+  "totalTests": 1486,
+  "restore": "PASS",
+  "debug": {
+    "build": "PASS",
+    "warnings": 0,
+    "errors": 0,
+    "tests": {
+      "passed": 1486,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "release": {
+    "build": "PASS",
+    "warnings": 0,
+    "errors": 0,
+    "tests": {
+      "passed": 1486,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "format": "PASS",
+  "diffCheck": "PASS",
+  "backendLinuxX64Publish": "PASS",
+  "wpfWinX64SelfContainedSingleFilePublish": "PASS",
+  "wpfExeBytes": 78479219,
+  "wpfExeSHA256": "12F5CADBF9691B4BF425C95940A56BC2A4EDB8409E20541FED6A78CB979589E0",
+  "isolatedBackend": {
+    "sourceClosure": "PASS",
+    "requiredInputs": 137,
+    "contextFiles": 137,
+    "restore": "PASS",
+    "publish": "PASS",
+    "projectCount": 3,
+    "dockerImageBuild": "NOT RUN: Docker CLI unavailable"
+  },
+  "publishedOfflineClient": {
+    "status": "PASS",
+    "singleExeOnly": true,
+    "diagnosticExports": 2,
+    "validJsonEntries": 6,
+    "gearRoute": "PASS",
+    "temporaryFiles": 0,
+    "userProfileRead": false,
+    "networkStarted": false
+  },
+  "publishedSyntheticUi": {
+    "status": "PASS",
+    "themes": 5,
+    "images": 11,
+    "userProfileRead": false,
+    "networkStarted": false,
+    "physicalInput": "NOT RUN"
+  },
+  "realUserValidation": {
+    "Branding": "NOT RUN",
+    "MinimalHUD": "NOT RUN",
+    "SessionBadge": "NOT RUN",
+    "ChatScrollUnread": "NOT RUN",
+    "EmptySpaceScroll": "NOT RUN",
+    "ChannelAllowlist": "NOT RUN",
+    "ChannelFeedback": "NOT RUN",
+    "TDiscordFocus": "NOT RUN",
+    "SalesParser": "NOT RUN",
+    "SoldRowRemoval": "NOT RUN",
+    "QueueDetail": "NOT RUN",
+    "OAuthRegression": "NOT RUN"
+  },
+  "notes": [
+    "M9.15 user-confirmed production results remain the previous baseline; they are not M10 actual-user PASS.",
+    "Session automated tests PASS; actual live-host check NOT RUN.",
+    "SMALL-SIZE ICON VARIANT RECOMMENDED: 16px artwork is small; approved source was not redrawn or cropped.",
+    "Only the 3 approved source PNGs were staged to satisfy Git tracking. No commit, push, PR, tag, release, Railway, DNS or Discord Portal mutation."
+  ],
+  "finalStatus": "M10.0 UI / UX + BRANDING OVERHAUL READY FOR USER POLISH"
+}

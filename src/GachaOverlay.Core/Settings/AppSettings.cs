@@ -13,7 +13,7 @@ public sealed record AppSettings
 {
     private static readonly Dictionary<string, double> EmptyScrollPositions =
         new(StringComparer.OrdinalIgnoreCase);
-    public const int CurrentSchemaVersion = 17;
+    public const int CurrentSchemaVersion = 18;
 
     public const int CurrentOnboardingVersion = 2;
 
@@ -49,7 +49,7 @@ public sealed record AppSettings
 
     public double QueueDetailSurfaceOpacity { get; init; } = 1;
 
-    public bool MinimalHudMode { get; init; }
+    public bool MinimalHudMode { get; init; } = true;
 
     public bool ShowGtaSession { get; init; } = true;
 
@@ -63,6 +63,10 @@ public sealed record AppSettings
     public HotkeySetting HudLockHotkey { get; init; } = HotkeySetting.DefaultLockToggle;
 
     public HotkeySetting HudVisibilityHotkey { get; init; } = HotkeySetting.DefaultVisibilityToggle;
+
+    public HotkeySetting PreviousMainChannelHotkey { get; init; } = new() { Key = "" };
+    public HotkeySetting NextMainChannelHotkey { get; init; } = new() { Key = "" };
+    public bool QuickDiscordFocusEnabled { get; init; } = true;
 
     public int HotkeySettingsVersion { get; init; } = CurrentHotkeySettingsVersion;
 

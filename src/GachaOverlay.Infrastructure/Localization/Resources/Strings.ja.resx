@@ -4,7 +4,7 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
-  <data name="AppName" xml:space="preserve"><value>Gacha Overlay</value></data>
+  <data name="AppName" xml:space="preserve"><value>LS Overlay</value></data>
   <data name="FoundationReady" xml:space="preserve"><value>基盤の準備完了</value></data>
   <data name="FoundationDescription" xml:space="preserve"><value>M2～M8 の機能を拡張するためのアプリ基盤が整いました。</value></data>
   <data name="Language" xml:space="preserve"><value>言語</value></data>
@@ -35,7 +35,7 @@
   <data name="SettingsHotkeyInvalid" xml:space="preserve"><value>有効な修飾キーホットキーを2つ入力してください。</value></data>
   <data name="SettingsHotkeyDuplicate" xml:space="preserve"><value>2つのホットキーは別々にしてください。</value></data>
   <data name="SettingsHotkeyApplied" xml:space="preserve"><value>保存しました。登録競合はログで確認できます。</value></data>
-  <data name="HudShellTitle" xml:space="preserve"><value>Gacha Overlay · メインチャット</value></data>
+  <data name="HudShellTitle" xml:space="preserve"><value>LS Overlay</value></data>
   <data name="HudLockedHint" xml:space="preserve"><value>マウス入力を透過中 · 編集にはロックホットキーを使用</value></data>
   <data name="HudUnlockedHint" xml:space="preserve"><value>このヘッダーをドラッグするか、端でサイズを変更</value></data>
   <data name="HudLocked" xml:space="preserve"><value>ロック中</value></data>
@@ -136,16 +136,16 @@
   <data name="SalesHealthLiveAccessible" xml:space="preserve"><value>販売キューは最新で完全に同期されています</value></data>
   <data name="SalesHealthConnecting" xml:space="preserve"><value>Discord に接続中</value></data>
   <data name="SalesHealthResyncing" xml:space="preserve"><value>販売状態を再同期中</value></data>
-  <data name="SalesHealthRemoteConnecting" xml:space="preserve"><value>Remote Sales に接続中</value></data>
-  <data name="SalesHealthRemoteSynchronizing" xml:space="preserve"><value>Remote Sales を同期中</value></data>
-  <data name="SalesHealthRemoteResyncing" xml:space="preserve"><value>Remote Sales を再同期中</value></data>
-  <data name="SalesHealthRemoteReconnecting" xml:space="preserve"><value>Remote Sales に再接続中</value></data>
-  <data name="SalesHealthPaused" xml:space="preserve"><value>Remote 販売を一時停止中</value></data>
-  <data name="SalesHealthRemoteUnavailable" xml:space="preserve"><value>Remote 販売を利用できません</value></data>
-  <data name="SalesHealthRemoteAccessRevoked" xml:space="preserve"><value>Remote 販売へのアクセスが取り消されました</value></data>
+  <data name="SalesHealthRemoteConnecting" xml:space="preserve"><value>販売情報に接続中…</value></data>
+  <data name="SalesHealthRemoteSynchronizing" xml:space="preserve"><value>販売一覧を読み込み中…</value></data>
+  <data name="SalesHealthRemoteResyncing" xml:space="preserve"><value>販売一覧を更新中…</value></data>
+  <data name="SalesHealthRemoteReconnecting" xml:space="preserve"><value>販売情報に再接続中…</value></data>
+  <data name="SalesHealthPaused" xml:space="preserve"><value>販売情報の更新を一時停止</value></data>
+  <data name="SalesHealthRemoteUnavailable" xml:space="preserve"><value>販売情報を利用できません。設定を確認してください。</value></data>
+  <data name="SalesHealthRemoteAccessRevoked" xml:space="preserve"><value>販売情報へのアクセスが拒否されました。サーバーの権限を確認してください。</value></data>
   <data name="SalesHealthDegraded" xml:space="preserve"><value>販売状態の一部のみ確認できました</value></data>
   <data name="SalesHealthDisconnected" xml:space="preserve"><value>Discord の接続が切れました</value></data>
-  <data name="SalesHealthRemoteError" xml:space="preserve"><value>Remote 販売を利用できません</value></data>
+  <data name="SalesHealthRemoteError" xml:space="preserve"><value>販売情報を読み込めません。設定で再試行してください。</value></data>
   <data name="SalesHealthDisabled" xml:space="preserve"><value>販売状況の追跡はオフです</value></data>
   <data name="SalesNextTurnSelf" xml:space="preserve"><value>次は自分の番</value></data>
   <data name="SalesCurrentTurnSelf" xml:space="preserve"><value>販売の順番です！販売を始めてください</value></data>
@@ -292,7 +292,7 @@
   <data name="SettingsDeveloperApplicationInfo" xml:space="preserve"><value>アプリケーション情報</value></data>
   <data name="SettingsDeveloperCredits" xml:space="preserve"><value>クレジット</value></data>
   <data name="SettingsDeveloperLicenses" xml:space="preserve"><value>オープンソースライセンス / 通知</value></data>
-  <data name="SettingsDeveloperCreditsContent" xml:space="preserve"><value>Gacha Overlay アプリケーション&#10;&#10;同梱フォント: Pretendard, KIMM, Wanted Sans, Cafe24 PRO Slim&#10;カラーテーマ: GitHub Dark, One Dark Pro, Nord, Tokyo Night, Monokai&#10;サードパーティのライブラリとリソースは同梱の通知ファイルに記載されています。</value></data>
+  <data name="SettingsDeveloperCreditsContent" xml:space="preserve"><value>LS Overlay アプリケーション&#10;&#10;同梱フォント: Pretendard, KIMM, Wanted Sans, Cafe24 PRO Slim&#10;カラーテーマ: GitHub Dark, One Dark Pro, Nord, Tokyo Night, Monokai&#10;サードパーティのライブラリとリソースは同梱の通知ファイルに記載されています。</value></data>
   <data name="SettingsProductSourceBuiltIn" xml:space="preserve"><value>既定値</value></data>
   <data name="SettingsProductSourceModified" xml:space="preserve"><value>変更済み</value></data>
   <data name="SettingsProductSourceCustom" xml:space="preserve"><value>ユーザー追加</value></data>
@@ -302,7 +302,7 @@
   <data name="SettingsCategoryServer" xml:space="preserve"><value>サーバー</value></data>
   <data name="SettingsServerTitle" xml:space="preserve"><value>サーバー設定</value></data>
   <data name="SettingsServerCurrent" xml:space="preserve"><value>現在のサーバー</value></data>
-  <data name="SettingsServerFixedHint" xml:space="preserve"><value>このサーバーは Gacha Overlay v1.0 で固定されています。</value></data>
+  <data name="SettingsServerFixedHint" xml:space="preserve"><value>このサーバーは LS Overlay v1.0 で固定されています。</value></data>
   <data name="SettingsServerMainChannel" xml:space="preserve"><value>メインチャンネル</value></data>
   <data name="SettingsServerMainHint" xml:space="preserve"><value>ゲームHUDに表示するチャットチャンネルを1つ選択します。</value></data>
   <data name="SettingsServerRefresh" xml:space="preserve"><value>チャンネル一覧を更新</value></data>
@@ -323,12 +323,12 @@
   <data name="SettingsServerSwitchSuperseded" xml:space="preserve"><value>より新しいチャンネル選択でこの要求を取り消しました。</value></data>
   <data name="SettingsServerSwitchSaveFailed" xml:space="preserve"><value>保存できなかったため以前のチャンネルに戻しました。</value></data>
   <data name="SettingsServerSwitchFailed" xml:space="preserve"><value>切り替えに失敗しました。以前のメインチャンネルは維持されます。</value></data>
-  <data name="SettingsWindowsAutoStart" xml:space="preserve"><value>Windows 起動時に Gacha Overlay を実行</value></data>
+  <data name="SettingsWindowsAutoStart" xml:space="preserve"><value>Windows 起動時に LS Overlay を実行</value></data>
   <data name="SettingsWindowsAutoStartHint" xml:space="preserve"><value>ユーザー別の起動項目を使用し、現在の実行ファイル位置を反映します。</value></data>
   <data name="SettingsAutoStartFailed" xml:space="preserve"><value>Windows 自動起動の登録に失敗しました。アプリは引き続き使用できます。</value></data>
   <data name="SettingsRerunOnboarding" xml:space="preserve"><value>初期設定をもう一度実行</value></data>
   <data name="SettingsRerunOnboardingHint" xml:space="preserve"><value>資格情報や現在の設定を削除せずにガイドを再表示します。</value></data>
-  <data name="OnboardingTitle" xml:space="preserve"><value>Gacha Overlay 初期設定</value></data>
+  <data name="OnboardingTitle" xml:space="preserve"><value>LS Overlay 初期設定</value></data>
   <data name="OnboardingProgress" xml:space="preserve"><value>ステップ {0} / {1}</value></data>
   <data name="OnboardingLanguageTitle" xml:space="preserve"><value>言語を選択</value></data>
   <data name="OnboardingLanguageHint" xml:space="preserve"><value>既定は English です。一般設定で後から変更できます。</value></data>
@@ -343,8 +343,8 @@
   <data name="OnboardingFinish" xml:space="preserve"><value>完了</value></data>
   <data name="OnboardingDiscordRequired" xml:space="preserve"><value>ログインを完了し、準備済みのメインチャンネルを選択してください。</value></data>
   <data name="OnboardingSaveFailed" xml:space="preserve"><value>初期設定の完了状態を保存できませんでした。再試行してください。</value></data>
-  <data name="SettingsRemoteTitle" xml:space="preserve"><value>リモート Discord 接続</value></data>
-  <data name="SettingsRemoteDescription" xml:space="preserve"><value>認証済みリモートバックエンドが、チャット、販売、セッション、状態変更の唯一の運用ソースです。Discord Desktop は不要です。</value></data>
+  <data name="SettingsRemoteTitle" xml:space="preserve"><value>Discord 接続</value></data>
+  <data name="SettingsRemoteDescription" xml:space="preserve"><value>Discord にログインするとチャット・販売・セッション情報を表示できます。Discord デスクトップは不要です。</value></data>
   <data name="SettingsRemoteEndpoint" xml:space="preserve"><value>リモートバックエンドのアドレス（HTTPS、この PC 内のみ HTTP）</value></data>
   <data name="SettingsRemoteApply" xml:space="preserve"><value>アドレスを適用</value></data>
   <data name="SettingsRemoteRefresh" xml:space="preserve"><value>再接続 / 更新</value></data>
@@ -399,6 +399,7 @@
   <data name="SalesStatusSelling" xml:space="preserve"><value>販売中</value></data>
   <data name="SalesStatusNegotiating" xml:space="preserve"><value>交渉中</value></data>
   <data name="SalesStatusCompleted" xml:space="preserve"><value>販売完了</value></data>
+  <data name="SalesCompleteOwnPostHint" xml:space="preserve"><value>自分の販売を完了 · 待機列 {0}番 · {1}</value></data>
   <data name="SalesStatusClear" xml:space="preserve"><value>Bot状態を解除</value></data>
   <data name="SalesStatusActionPending" xml:space="preserve"><value>Discordへの反映を確認中…</value></data>
   <data name="SalesStatusActionFailed" xml:space="preserve"><value>状態の変更に失敗しました</value></data>
@@ -413,14 +414,14 @@
   <data name="SessionReconnecting" xml:space="preserve"><value>再接続中</value></data>
   <data name="SessionUnavailable" xml:space="preserve"><value>セッション情報なし</value></data>
   <data name="SessionHostNotConfigured" xml:space="preserve"><value>ホストが設定されていません</value></data>
-  <data name="SessionHost1" xml:space="preserve"><value>ホスト 1</value></data>
-  <data name="SessionHost2" xml:space="preserve"><value>ホスト 2</value></data>
+  <data name="SessionHost1" xml:space="preserve"><value>DE-SSANTA</value></data>
+  <data name="SessionHost2" xml:space="preserve"><value>-TheFirstStar-</value></data>
   <data name="SessionOccupancyFormat" xml:space="preserve"><value>{0} / {1}</value></data>
   <data name="SettingsShowGtaSession" xml:space="preserve"><value>GTAセッション人数を表示</value></data>
   <data name="SettingsShowGtaSessionHint" xml:space="preserve"><value>設定済みのRemoteサービスから届く正規化されたGTAオンライン人数を表示します。</value></data>
   <data name="SettingsSessionHost" xml:space="preserve"><value>セッションホスト</value></data>
-  <data name="SettingsSessionHost1" xml:space="preserve"><value>ホスト 1</value></data>
-  <data name="SettingsSessionHost2" xml:space="preserve"><value>ホスト 2</value></data>
+  <data name="SettingsSessionHost1" xml:space="preserve"><value>DE-SSANTA</value></data>
+  <data name="SettingsSessionHost2" xml:space="preserve"><value>-TheFirstStar-</value></data>
   <data name="SettingsSalesTurnSound" xml:space="preserve"><value>販売順番の通知音</value></data>
   <data name="SettingsSalesTurnSoundHint" xml:space="preserve"><value>信頼できるキュー位置が新しく変わったとき、ローカル通知音を1回再生します。起動時やプロバイダー復旧時は再生しません。</value></data>
   <data name="SettingsNotifySalesNext" xml:space="preserve"><value>自分が次の順番になったとき通知</value></data>
@@ -436,4 +437,21 @@
   <data name="WebAuthTemporaryFailure" xml:space="preserve"><value>Discordアカウントを確認できません。再試行してください。</value></data>
   <data name="WebAuthInvalidRequest" xml:space="preserve"><value>無効または使用済みの認証リクエストです。再試行してください。</value></data>
   <data name="WebAuthUnavailable" xml:space="preserve"><value>このサーバーではブラウザーログインがまだ有効ではありません。後でもう一度お試しください。</value></data>
+  <data name="SessionFull" xml:space="preserve"><value>満員</value></data>
+  <data name="SettingsAdvancedConnection" xml:space="preserve"><value>詳細な接続 / 互換設定</value></data>
+  <data name="SettingsPreviousChannel" xml:space="preserve"><value>前のチャットチャンネル</value></data>
+  <data name="SettingsNextChannel" xml:space="preserve"><value>次のチャットチャンネル</value></data>
+  <data name="SettingsChannelHotkeyHint" xml:space="preserve"><value>空欄は未割り当てです。利用可能なチャンネルを表示順に循環します。T は Discord 切替専用です。</value></data>
+  <data name="SettingsQuickDiscordFocus" xml:space="preserve"><value>T: GTA5 Enhanced から Discord に切替</value></data>
+  <data name="SettingsQuickDiscordFocusHint" xml:space="preserve"><value>GTA5 Enhanced が最前面の場合のみ動作します。起動中の Discord ウィンドウを表示し、アプリ起動やマウス移動はしません。</value></data>
+  <data name="SalesDetailRequired" xml:space="preserve"><value>詳細を確認</value></data>
+  <data name="SalesAgeJustNow" xml:space="preserve"><value>たった今</value></data>
+  <data name="SalesAgeMinutes" xml:space="preserve"><value>{0}分前</value></data>
+  <data name="SalesAgeHours" xml:space="preserve"><value>{0}時間前</value></data>
+  <data name="HudHealthReconnecting" xml:space="preserve"><value>再接続中…</value></data>
+  <data name="HudHealthLoginRequired" xml:space="preserve"><value>設定で Discord にログインしてください</value></data>
+  <data name="HudHealthAccessUnavailable" xml:space="preserve"><value>アクセス権を確認中です。しばらくしてから再試行してください。</value></data>
+  <data name="HudHealthError" xml:space="preserve"><value>接続できません。設定を確認してください。</value></data>
+  <data name="HudHealthChannelRequired" xml:space="preserve"><value>設定で利用可能なチャンネルを選択してください</value></data>
+  <data name="HudHealthConnecting" xml:space="preserve"><value>接続中…</value></data>
 </root>

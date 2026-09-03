@@ -13,7 +13,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AppName" xml:space="preserve">
-    <value>Gacha Overlay</value>
+    <value>LS Overlay</value>
   </data>
   <data name="FoundationReady" xml:space="preserve">
     <value>Foundation Ready</value>
@@ -70,7 +70,7 @@
   <data name="SettingsHotkeyInvalid" xml:space="preserve"><value>Enter two valid modifier hotkeys.</value></data>
   <data name="SettingsHotkeyDuplicate" xml:space="preserve"><value>The two hotkeys must be different.</value></data>
   <data name="SettingsHotkeyApplied" xml:space="preserve"><value>Saved. Check the log if registration conflicts.</value></data>
-  <data name="HudShellTitle" xml:space="preserve"><value>Gacha Overlay · Main Chat</value></data>
+  <data name="HudShellTitle" xml:space="preserve"><value>LS Overlay</value></data>
   <data name="HudLockedHint" xml:space="preserve"><value>Mouse input passes through · use the lock hotkey to edit</value></data>
   <data name="HudUnlockedHint" xml:space="preserve"><value>Drag this header or resize any edge</value></data>
   <data name="HudLocked" xml:space="preserve"><value>LOCKED</value></data>
@@ -171,16 +171,16 @@
   <data name="SalesHealthLiveAccessible" xml:space="preserve"><value>Sales queue live and fully synchronized</value></data>
   <data name="SalesHealthConnecting" xml:space="preserve"><value>Connecting to Discord</value></data>
   <data name="SalesHealthResyncing" xml:space="preserve"><value>Resyncing sales status</value></data>
-  <data name="SalesHealthRemoteConnecting" xml:space="preserve"><value>Remote Sales connecting</value></data>
-  <data name="SalesHealthRemoteSynchronizing" xml:space="preserve"><value>Remote Sales synchronizing</value></data>
-  <data name="SalesHealthRemoteResyncing" xml:space="preserve"><value>Remote Sales resynchronizing</value></data>
-  <data name="SalesHealthRemoteReconnecting" xml:space="preserve"><value>Remote Sales reconnecting</value></data>
-  <data name="SalesHealthPaused" xml:space="preserve"><value>Remote Sales paused</value></data>
-  <data name="SalesHealthRemoteUnavailable" xml:space="preserve"><value>Remote Sales unavailable</value></data>
-  <data name="SalesHealthRemoteAccessRevoked" xml:space="preserve"><value>Remote Sales access revoked</value></data>
+  <data name="SalesHealthRemoteConnecting" xml:space="preserve"><value>Connecting sales…</value></data>
+  <data name="SalesHealthRemoteSynchronizing" xml:space="preserve"><value>Loading sales…</value></data>
+  <data name="SalesHealthRemoteResyncing" xml:space="preserve"><value>Updating sales…</value></data>
+  <data name="SalesHealthRemoteReconnecting" xml:space="preserve"><value>Reconnecting sales…</value></data>
+  <data name="SalesHealthPaused" xml:space="preserve"><value>Sales updates paused</value></data>
+  <data name="SalesHealthRemoteUnavailable" xml:space="preserve"><value>Sales unavailable. Check Settings.</value></data>
+  <data name="SalesHealthRemoteAccessRevoked" xml:space="preserve"><value>Sales access denied. Check your server access.</value></data>
   <data name="SalesHealthDegraded" xml:space="preserve"><value>Only part of the sales status is available</value></data>
   <data name="SalesHealthDisconnected" xml:space="preserve"><value>Discord disconnected</value></data>
-  <data name="SalesHealthRemoteError" xml:space="preserve"><value>Remote Sales unavailable</value></data>
+  <data name="SalesHealthRemoteError" xml:space="preserve"><value>Unable to load sales. Try again in Settings.</value></data>
   <data name="SalesHealthDisabled" xml:space="preserve"><value>Sales tracking disabled</value></data>
   <data name="SalesNextTurnSelf" xml:space="preserve"><value>I'm next</value></data>
   <data name="SalesCurrentTurnSelf" xml:space="preserve"><value>It's your turn to sell! Start selling</value></data>
@@ -327,7 +327,7 @@
   <data name="SettingsDeveloperApplicationInfo" xml:space="preserve"><value>Application information</value></data>
   <data name="SettingsDeveloperCredits" xml:space="preserve"><value>Credits</value></data>
   <data name="SettingsDeveloperLicenses" xml:space="preserve"><value>Open-source licenses / notices</value></data>
-  <data name="SettingsDeveloperCreditsContent" xml:space="preserve"><value>Gacha Overlay application&#10;&#10;Bundled fonts: Pretendard, KIMM, Wanted Sans, Cafe24 PRO Slim&#10;Color themes: GitHub Dark, One Dark Pro, Nord, Tokyo Night, Monokai&#10;Third-party libraries and resources are documented in the bundled notice files.</value></data>
+  <data name="SettingsDeveloperCreditsContent" xml:space="preserve"><value>LS Overlay application&#10;&#10;Bundled fonts: Pretendard, KIMM, Wanted Sans, Cafe24 PRO Slim&#10;Color themes: GitHub Dark, One Dark Pro, Nord, Tokyo Night, Monokai&#10;Third-party libraries and resources are documented in the bundled notice files.</value></data>
   <data name="SettingsProductSourceBuiltIn" xml:space="preserve"><value>Default</value></data>
   <data name="SettingsProductSourceModified" xml:space="preserve"><value>Modified</value></data>
   <data name="SettingsProductSourceCustom" xml:space="preserve"><value>User added</value></data>
@@ -337,7 +337,7 @@
   <data name="SettingsCategoryServer" xml:space="preserve"><value>Server</value></data>
   <data name="SettingsServerTitle" xml:space="preserve"><value>Server Settings</value></data>
   <data name="SettingsServerCurrent" xml:space="preserve"><value>Current server</value></data>
-  <data name="SettingsServerFixedHint" xml:space="preserve"><value>This server is fixed for Gacha Overlay v1.0.</value></data>
+  <data name="SettingsServerFixedHint" xml:space="preserve"><value>This server is fixed for LS Overlay v1.0.</value></data>
   <data name="SettingsServerMainChannel" xml:space="preserve"><value>Main channel</value></data>
   <data name="SettingsServerMainHint" xml:space="preserve"><value>Select the one chat channel shown in the game HUD.</value></data>
   <data name="SettingsServerRefresh" xml:space="preserve"><value>Refresh channel list</value></data>
@@ -358,12 +358,12 @@
   <data name="SettingsServerSwitchSuperseded" xml:space="preserve"><value>A newer channel selection replaced this request.</value></data>
   <data name="SettingsServerSwitchSaveFailed" xml:space="preserve"><value>Could not save the new channel; the previous channel was restored.</value></data>
   <data name="SettingsServerSwitchFailed" xml:space="preserve"><value>Could not switch channels. The previous main channel remains active.</value></data>
-  <data name="SettingsWindowsAutoStart" xml:space="preserve"><value>Run Gacha Overlay when Windows starts</value></data>
+  <data name="SettingsWindowsAutoStart" xml:space="preserve"><value>Run LS Overlay when Windows starts</value></data>
   <data name="SettingsWindowsAutoStartHint" xml:space="preserve"><value>Uses a per-user startup entry and follows the current executable location.</value></data>
   <data name="SettingsAutoStartFailed" xml:space="preserve"><value>Windows startup registration failed. The app can still be used normally.</value></data>
   <data name="SettingsRerunOnboarding" xml:space="preserve"><value>Run initial setup again</value></data>
   <data name="SettingsRerunOnboardingHint" xml:space="preserve"><value>Reopens the guided setup without deleting credentials or current settings.</value></data>
-  <data name="OnboardingTitle" xml:space="preserve"><value>Gacha Overlay Initial Setup</value></data>
+  <data name="OnboardingTitle" xml:space="preserve"><value>LS Overlay Initial Setup</value></data>
   <data name="OnboardingProgress" xml:space="preserve"><value>Step {0} of {1}</value></data>
   <data name="OnboardingLanguageTitle" xml:space="preserve"><value>Choose a language</value></data>
   <data name="OnboardingLanguageHint" xml:space="preserve"><value>The default is English. You can change this later in General settings.</value></data>
@@ -378,8 +378,8 @@
   <data name="OnboardingFinish" xml:space="preserve"><value>Finish</value></data>
   <data name="OnboardingDiscordRequired" xml:space="preserve"><value>Log in and select a ready main channel before continuing.</value></data>
   <data name="OnboardingSaveFailed" xml:space="preserve"><value>Initial setup completion could not be saved. Try again.</value></data>
-  <data name="SettingsRemoteTitle" xml:space="preserve"><value>Remote Discord connection</value></data>
-  <data name="SettingsRemoteDescription" xml:space="preserve"><value>The authenticated Remote backend is the sole production source for Chat, Sales, Presence, and write-back. Discord Desktop is not required.</value></data>
+  <data name="SettingsRemoteTitle" xml:space="preserve"><value>Discord connection</value></data>
+  <data name="SettingsRemoteDescription" xml:space="preserve"><value>Sign in with Discord to see chat, sales and session information. Discord Desktop is not required.</value></data>
   <data name="SettingsRemoteEndpoint" xml:space="preserve"><value>Remote backend address (HTTPS; HTTP only for this PC)</value></data>
   <data name="SettingsRemoteApply" xml:space="preserve"><value>Apply address</value></data>
   <data name="SettingsRemoteRefresh" xml:space="preserve"><value>Reconnect / refresh</value></data>
@@ -434,6 +434,7 @@
   <data name="SalesStatusSelling" xml:space="preserve"><value>Selling</value></data>
   <data name="SalesStatusNegotiating" xml:space="preserve"><value>Negotiating</value></data>
   <data name="SalesStatusCompleted" xml:space="preserve"><value>Sold</value></data>
+  <data name="SalesCompleteOwnPostHint" xml:space="preserve"><value>Complete my sale · Queue #{0} · {1}</value></data>
   <data name="SalesStatusClear" xml:space="preserve"><value>Clear Bot status</value></data>
   <data name="SalesStatusActionPending" xml:space="preserve"><value>Confirming with Discord…</value></data>
   <data name="SalesStatusActionFailed" xml:space="preserve"><value>Status update failed</value></data>
@@ -448,14 +449,14 @@
   <data name="SessionReconnecting" xml:space="preserve"><value>Reconnecting</value></data>
   <data name="SessionUnavailable" xml:space="preserve"><value>Session unavailable</value></data>
   <data name="SessionHostNotConfigured" xml:space="preserve"><value>Host not configured</value></data>
-  <data name="SessionHost1" xml:space="preserve"><value>Host 1</value></data>
-  <data name="SessionHost2" xml:space="preserve"><value>Host 2</value></data>
+  <data name="SessionHost1" xml:space="preserve"><value>DE-SSANTA</value></data>
+  <data name="SessionHost2" xml:space="preserve"><value>-TheFirstStar-</value></data>
   <data name="SessionOccupancyFormat" xml:space="preserve"><value>{0} / {1}</value></data>
   <data name="SettingsShowGtaSession" xml:space="preserve"><value>Show GTA session occupancy</value></data>
   <data name="SettingsShowGtaSessionHint" xml:space="preserve"><value>Shows normalized GTA Online player counts supplied by the configured Remote service.</value></data>
   <data name="SettingsSessionHost" xml:space="preserve"><value>Session Host</value></data>
-  <data name="SettingsSessionHost1" xml:space="preserve"><value>Host 1</value></data>
-  <data name="SettingsSessionHost2" xml:space="preserve"><value>Host 2</value></data>
+  <data name="SettingsSessionHost1" xml:space="preserve"><value>DE-SSANTA</value></data>
+  <data name="SettingsSessionHost2" xml:space="preserve"><value>-TheFirstStar-</value></data>
   <data name="SettingsSalesTurnSound" xml:space="preserve"><value>Sales turn sound</value></data>
   <data name="SettingsSalesTurnSoundHint" xml:space="preserve"><value>Plays one local notification for a new trusted queue-position transition. Startup and provider recovery remain silent.</value></data>
   <data name="SettingsNotifySalesNext" xml:space="preserve"><value>Notify when I am next</value></data>
@@ -471,4 +472,21 @@
   <data name="WebAuthTemporaryFailure" xml:space="preserve"><value>Could not verify your Discord account. Please retry.</value></data>
   <data name="WebAuthInvalidRequest" xml:space="preserve"><value>Invalid or already used login request. Please retry.</value></data>
   <data name="WebAuthUnavailable" xml:space="preserve"><value>Browser login is not yet enabled on this server. Please try again later.</value></data>
+  <data name="SessionFull" xml:space="preserve"><value>Full Session</value></data>
+  <data name="SettingsAdvancedConnection" xml:space="preserve"><value>Advanced connection / compatibility</value></data>
+  <data name="SettingsPreviousChannel" xml:space="preserve"><value>Previous chat channel</value></data>
+  <data name="SettingsNextChannel" xml:space="preserve"><value>Next chat channel</value></data>
+  <data name="SettingsChannelHotkeyHint" xml:space="preserve"><value>Leave blank to leave unassigned. Accessible channels wrap in the displayed order. T is reserved for Discord focus.</value></data>
+  <data name="SettingsQuickDiscordFocus" xml:space="preserve"><value>T: switch from GTA5 Enhanced to Discord</value></data>
+  <data name="SettingsQuickDiscordFocusHint" xml:space="preserve"><value>Only while GTA5 Enhanced is in the foreground. Opens an already running Discord window; does not launch Discord or move the mouse.</value></data>
+  <data name="SalesDetailRequired" xml:space="preserve"><value>View details</value></data>
+  <data name="SalesAgeJustNow" xml:space="preserve"><value>Just now</value></data>
+  <data name="SalesAgeMinutes" xml:space="preserve"><value>{0}m ago</value></data>
+  <data name="SalesAgeHours" xml:space="preserve"><value>{0}h ago</value></data>
+  <data name="HudHealthReconnecting" xml:space="preserve"><value>Reconnecting…</value></data>
+  <data name="HudHealthLoginRequired" xml:space="preserve"><value>Sign in to Discord in Settings</value></data>
+  <data name="HudHealthAccessUnavailable" xml:space="preserve"><value>Checking access. Please try again shortly.</value></data>
+  <data name="HudHealthError" xml:space="preserve"><value>Connection unavailable. Check Settings.</value></data>
+  <data name="HudHealthChannelRequired" xml:space="preserve"><value>Select an available chat channel in Settings</value></data>
+  <data name="HudHealthConnecting" xml:space="preserve"><value>Connecting…</value></data>
 </root>

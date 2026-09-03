@@ -29,6 +29,7 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
     private readonly TransportMetrics? _transportMetrics;
     private readonly RemoteChatService? _remoteChat;
     private readonly RemoteSalesService? _remoteSales;
+    private readonly BotCustomStatus _customStatus;
     private int _started;
     private int _stopping;
     private int _hasCompletedReady;
@@ -47,7 +48,8 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         IRemotePresencePublisher? remotePublisher = null,
         TransportMetrics? transportMetrics = null,
         RemoteChatService? remoteChat = null,
-        RemoteSalesService? remoteSales = null)
+        RemoteSalesService? remoteSales = null,
+        BotCustomStatus? customStatus = null)
     {
         _client = client;
         _configuration = configuration;
@@ -62,6 +64,9 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         _transportMetrics = transportMetrics;
         _remoteChat = remoteChat;
         _remoteSales = remoteSales;
+        _customStatus = customStatus ?? new BotCustomStatus(
+            _client.SetCustomStatusAsync,
+            () => _logger.LogWarning("Bot custom status could not be applied; next attempt is at Gateway Ready."));
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -217,7 +222,13 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         return Task.CompletedTask;
     }
 
-    private Task OnReadyAsync() => HandleSafelyAsync("Ready", () =>
+    private Task OnReadyAsync() => HandleSafelyAsync("Ready", async () =>
+    {
+        ProcessReady();
+        await _customStatus.ApplyAfterReadyAsync().ConfigureAwait(false);
+    });
+
+    private void ProcessReady()
     {
         _metrics.Increment(BackendMetric.DiscordReady);
         Volatile.Write(ref _hasCompletedReady, 1);
@@ -262,7 +273,7 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         }
 
         PublishInitialPresence(guild);
-    });
+    }
 
     private Task OnGuildAvailableAsync(SocketGuild guild) =>
         HandleSafelyAsync("GuildAvailable", () =>

@@ -403,15 +403,20 @@ internal sealed class SalesPresentationCoordinator : IDisposable
                     observation.MessageId,
                     previous.CurrentSeller.MessageId,
                     StringComparison.Ordinal));
+        var confirmedSoldIds = batch.IsTrusted ? batch.Observations
+            .Where(observation => observation.HasTrustedEvidence && observation.Outcome == SaleReactionOutcome.Sold &&
+                previous.ActiveItems.Any(entry => entry.MessageId == observation.MessageId))
+            .Select(observation => observation.MessageId).Distinct(StringComparer.Ordinal).ToArray() : Array.Empty<string>();
         lock (_sync)
         {
-            _publishingChange = trustedSoldCurrent
+            _publishingChange = confirmedSoldIds.Length > 0
                 ? new SalesQueueChangeContext(
-                    true,
+                    trustedSoldCurrent,
                     previous.CurrentSeller?.MessageId,
                     null,
                     SalesQueueChangeReason.TrustedSold,
-                    previous.Revision + 1)
+                    previous.Revision + 1,
+                    confirmedSoldIds)
                 : SalesQueueChangeContext.None;
         }
 
@@ -538,31 +543,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         var presentationSnapshot = effectiveSource == EffectiveSalesSource.AccessRevoked
             ? RedactForAccessRevocation(snapshot)
             : snapshot;
-        var activeIds = presentationSnapshot.ActiveItems
-            .Select(entry => entry.MessageId)
-            .ToHashSet(StringComparer.Ordinal);
-        var statusActionTargets = effectiveSource != EffectiveSalesSource.RemotePrimary ||
-            string.IsNullOrWhiteSpace(presentationSnapshot.AuthenticatedUserId)
-                ? Array.Empty<SalesStatusActionTarget>()
-                : _engine.Records
-                    .Where(record =>
-                        record.DomainState != SaleDomainState.Deleted &&
-                        string.Equals(
-                            record.AuthorId,
-                            presentationSnapshot.AuthenticatedUserId,
-                            StringComparison.Ordinal) &&
-                        !activeIds.Contains(record.MessageId) &&
-                        evidence.TryGetValue(record.MessageId, out var observation) &&
-                        observation.Coverage == SalesEvidenceCoverage.Complete &&
-                        observation.HasAnyBotStatus)
-                    .Select(record => new SalesStatusActionTarget(
-                        record.MessageId,
-                        record.DisplayName.DisplayName,
-                        SalesProductSummaryFormatter.Format(record.AllProducts),
-                        record.DisplayName.IsExactGuildNickname))
-                    .ToArray();
-
-        _viewModel.ApplyRemoteStatusContext(evidence, effectiveSource, statusActionTargets);
+        _viewModel.ApplyRemoteStatusContext(evidence, effectiveSource);
         _viewModel.Apply(
             presentationSnapshot,
             _settings,

@@ -6,13 +6,14 @@ using GachaOverlay.Core.Sales;
 using GachaOverlay.Core.Settings;
 using GachaOverlay.Infrastructure.Localization;
 using LSOverlay.Protocol;
+using System.Xml.Linq;
 
 namespace GachaOverlay.Tests.Presentation;
 
 public sealed class M97SalesStatusUiTests
 {
     [Fact]
-    public void Buttons_AreOrderedNegotiatingSellingCompletedClear()
+    public void Controls_ExposeOnlyCompletionAfterRetiredEmojiRemoval()
     {
         var repositoryRoot = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
@@ -23,15 +24,21 @@ public sealed class M97SalesStatusUiTests
             "GachaOverlay.App",
             "Presentation",
             "SalesQueueView.xaml"));
-        var negotiating = xaml.IndexOf("SetNegotiatingCommand", StringComparison.Ordinal);
-        var selling = xaml.IndexOf("SetSellingCommand", StringComparison.Ordinal);
-        var completed = xaml.IndexOf("SetCompletedCommand", StringComparison.Ordinal);
-        var clear = xaml.IndexOf("ClearStatusCommand", StringComparison.Ordinal);
-
-        Assert.True(negotiating >= 0);
-        Assert.True(negotiating < selling);
-        Assert.True(selling < completed);
-        Assert.True(completed < clear);
+        Assert.Contains("SetCompletedCommand", xaml, StringComparison.Ordinal);
+        foreach (var retired in new[] { "SetNegotiatingCommand", "SetSellingCommand", "ClearStatusCommand" })
+        {
+            Assert.DoesNotContain(retired, xaml, StringComparison.Ordinal);
+            Assert.Null(typeof(SalesQueueDetailItem).GetProperty(retired));
+        }
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        XNamespace markup = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var document = XDocument.Parse(xaml);
+        Assert.Empty(document.Descendants(presentation + "DataTemplate").Single()
+            .Descendants(presentation + "Button"));
+        var bar = document.Descendants(presentation + "Border")
+            .Single(element => (string?)element.Attribute(markup + "Name") == "QueueBar");
+        Assert.Single(bar.Descendants(presentation + "Button")
+            .Where(element => (string?)element.Attribute(markup + "Name") == "CompleteOwnSaleButton"));
     }
 
     [Fact]
@@ -43,10 +50,14 @@ public sealed class M97SalesStatusUiTests
         Assert.True(viewModel.DetailItems[0].IsStatusActionEnabled);
         Assert.False(viewModel.DetailItems[1].IsStatusActionVisible);
         Assert.False(viewModel.DetailItems[1].IsStatusActionEnabled);
+        Assert.True(viewModel.IsOwnCompletionVisible);
+        Assert.Same(viewModel.DetailItems[0], viewModel.OwnCompletionItem);
+        Assert.False(viewModel.IsQueueDetailExpanded);
 
         viewModel.UpdateHudContext(true, false, true, isHudUnlocked: false);
 
         Assert.False(viewModel.DetailItems[0].IsStatusActionEnabled);
+        Assert.True(viewModel.IsOwnCompletionVisible);
 
         viewModel.UpdateHudContext(true, false, true, isHudUnlocked: true);
         viewModel.ApplyRemoteStatusContext(
@@ -69,7 +80,7 @@ public sealed class M97SalesStatusUiTests
             EffectiveSalesSource.RemotePrimary);
         Apply(viewModel, snapshot);
 
-        Assert.Equal("No Bot status", viewModel.DetailItems[0].StatusText);
+        Assert.Empty(viewModel.DetailItems[0].StatusText);
     }
 
     [Fact]
@@ -81,13 +92,16 @@ public sealed class M97SalesStatusUiTests
         viewModel.ConfigureStatusAction((messageId, status, cancellationToken) =>
         {
             Assert.Equal(30UL, messageId);
-            Assert.Equal(SalesStatus.Selling, status);
+            Assert.Equal(SalesStatus.Completed, status);
             return response.Task;
         });
         Apply(viewModel, snapshot);
 
-        var action = viewModel.ExecuteStatusActionAsync("30", SalesStatus.Selling);
+        var action = viewModel.ExecuteStatusActionAsync("30", SalesStatus.Completed);
         Assert.Equal("Confirming with Discord…", viewModel.DetailItems[0].StatusText);
+        Assert.False(viewModel.DetailItems[0].SetCompletedCommand.CanExecute(null));
+        Assert.True(viewModel.IsCompletionFeedbackVisible);
+        Assert.Equal("Confirming with Discord…", viewModel.OwnCompletionItem!.StatusText);
         response.SetResult(new SalesStatusActionResponse(
             OverlayTransportProtocol.Version,
             Guid.NewGuid(),
@@ -101,18 +115,161 @@ public sealed class M97SalesStatusUiTests
         viewModel.ApplyRemoteStatusContext(
             new Dictionary<string, SalesCompletionObservation>
             {
-                ["30"] = Observation(botSelling: true),
+                ["30"] = Observation(sold: true, botCompleted: true),
             },
             EffectiveSalesSource.RemotePrimary);
         Apply(viewModel, snapshot);
         await action;
 
-        Assert.Equal("Selling", viewModel.DetailItems[0].StatusText);
+        Assert.Equal("Sold", viewModel.DetailItems[0].StatusText);
+        Assert.False(viewModel.OwnCompletionItem!.SetCompletedCommand.CanExecute(null));
         Assert.Equal("30", snapshot.ActiveItems[0].MessageId);
     }
 
     [Fact]
-    public void BotCompletedOwnMessage_RemainsAvailableForBotStatusClear()
+    public async Task MainBarCompletion_TargetsFirstOwnPostEvenWhenAnotherSellerIsCurrent()
+    {
+        var viewModel = CreateViewModel(out var original);
+        var own = original.ActiveItems[0];
+        var other = original.ActiveItems[1];
+        var anotherOwn = Entry("32", "10", "Self");
+        var snapshot = original with
+        {
+            ActiveItems = new[] { other, own, anotherOwn },
+            CurrentSeller = other,
+            NextWaitingEntry = own,
+            CurrentSellerIsSelf = false,
+            NextSellerIsSelf = true,
+            ActiveCount = 3,
+            WaitingCount = 2,
+        };
+        ulong? requested = null;
+        viewModel.ConfigureStatusAction((id, status, _) =>
+        {
+            requested = id;
+            Assert.Equal(SalesStatus.Completed, status);
+            return Task.FromResult<SalesStatusActionResponse?>(null);
+        });
+        Apply(viewModel, snapshot);
+
+        Assert.False(viewModel.IsQueueDetailExpanded);
+        Assert.Equal("30", viewModel.OwnCompletionItem!.MessageId);
+        Assert.Contains("#2", viewModel.OwnCompletionHint, StringComparison.Ordinal);
+        viewModel.OwnCompletionItem.SetCompletedCommand.Execute(null);
+        Assert.Equal(30UL, requested);
+        await viewModel.ExecuteStatusActionAsync("31", SalesStatus.Completed);
+        Assert.Equal(30UL, requested);
+        Assert.Equal(new[] { "31", "30", "32" }, viewModel.DetailItems.Select(item => item.MessageId));
+    }
+
+    [Fact]
+    public void NoOwnPost_HidesMainBarActionAndStaleCommandCannotSend()
+    {
+        var viewModel = CreateViewModel(out var original);
+        var staleCommand = viewModel.OwnCompletionItem!.SetCompletedCommand;
+        var calls = 0;
+        viewModel.ConfigureStatusAction((_, _, _) =>
+        {
+            calls++;
+            return Task.FromResult<SalesStatusActionResponse?>(null);
+        });
+        var other = original.ActiveItems[1];
+        Apply(viewModel, original with
+        {
+            ActiveItems = new[] { other },
+            CurrentSeller = other,
+            NextWaitingEntry = null,
+            CurrentSellerIsSelf = false,
+            ActiveCount = 1,
+            WaitingCount = 0,
+        });
+
+        Assert.Null(viewModel.OwnCompletionItem);
+        Assert.False(viewModel.IsOwnCompletionVisible);
+        Assert.False(viewModel.IsCompletionFeedbackVisible);
+        staleCommand.Execute(null);
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public void UltraCompactDoesNotRequireDetailExpansionForCompletion()
+    {
+        var viewModel = CreateViewModel(out _);
+        viewModel.UpdateHudContext(true, true, true, true);
+
+        Assert.False(viewModel.IsQueueDetailAvailable);
+        Assert.True(viewModel.IsOwnCompletionVisible);
+        Assert.True(viewModel.OwnCompletionItem!.SetCompletedCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void IdentityMismatchDoesNotTrustStaleSelfPositionFlags()
+    {
+        var viewModel = CreateViewModel(out var snapshot);
+        Apply(viewModel, snapshot with { AuthenticatedUserId = "someone-else" });
+
+        Assert.False(viewModel.IsOwnCompletionVisible);
+        Assert.All(viewModel.DetailItems, item => Assert.False(item.IsSelf));
+    }
+
+    [Theory]
+    [InlineData(SalesStatus.Selling)]
+    [InlineData(SalesStatus.Negotiating)]
+    [InlineData(SalesStatus.Clear)]
+    public async Task RetiredUiActions_DoNotDispatchOrChangeQueue(SalesStatus status)
+    {
+        var viewModel = CreateViewModel(out var snapshot);
+        var calls = 0;
+        viewModel.ConfigureStatusAction((_, _, _) =>
+        {
+            calls++;
+            return Task.FromResult<SalesStatusActionResponse?>(null);
+        });
+
+        await viewModel.ExecuteStatusActionAsync("30", status);
+
+        Assert.Equal(0, calls);
+        Assert.Equal(snapshot.ActiveItems.Select(item => item.MessageId),
+            viewModel.DetailItems.Select(item => item.MessageId));
+        Assert.Empty(viewModel.DetailItems[0].StatusText);
+        Assert.True(viewModel.DetailItems[0].SetCompletedCommand.CanExecute(null));
+    }
+
+    [Theory]
+    [InlineData(SalesStatusActionDisposition.RejectedUnavailable)]
+    [InlineData(SalesStatusActionDisposition.Failed)]
+    public async Task FailedCompletion_KeepsRowAndAllowsRetry(SalesStatusActionDisposition disposition)
+    {
+        var viewModel = CreateViewModel(out var snapshot);
+        viewModel.ConfigureStatusAction((_, status, _) =>
+        {
+            Assert.Equal(SalesStatus.Completed, status);
+            return Task.FromResult<SalesStatusActionResponse?>(new(
+                OverlayTransportProtocol.Version, Guid.NewGuid(), disposition, false));
+        });
+
+        await viewModel.ExecuteStatusActionAsync("30", SalesStatus.Completed);
+
+        Assert.Equal(snapshot.ActiveItems.Select(item => item.MessageId),
+            viewModel.DetailItems.Select(item => item.MessageId));
+        Assert.False(string.IsNullOrEmpty(viewModel.DetailItems[0].StatusText));
+        Assert.True(viewModel.DetailItems[0].SetCompletedCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void LegacyBotStatus_DoesNotAddRetiredStatusText()
+    {
+        var viewModel = CreateViewModel(out var snapshot);
+        viewModel.ApplyRemoteStatusContext(
+            new Dictionary<string, SalesCompletionObservation> { ["30"] = Observation(botSelling: true) },
+            EffectiveSalesSource.RemotePrimary);
+        Apply(viewModel, snapshot);
+
+        Assert.Empty(viewModel.DetailItems[0].StatusText);
+    }
+
+    [Fact]
+    public void BotCompletedOwnMessage_IsRemovedFromActiveQueueAfterCanonicalReadback()
     {
         var viewModel = CreateViewModel(out var original);
         var other = original.ActiveItems[1];
@@ -145,11 +302,10 @@ public sealed class M97SalesStatusUiTests
             });
         Apply(viewModel, afterCompleted);
 
-        var completed = Assert.Single(
-            viewModel.DetailItems.Where(item => item.MessageId == "30"));
-        Assert.True(completed.IsStatusActionVisible);
-        Assert.True(completed.IsStatusActionEnabled);
-        Assert.Equal("Sold", completed.StatusText);
+        Assert.DoesNotContain(viewModel.DetailItems, item => item.MessageId == "30");
+        Assert.Single(viewModel.DetailItems);
+        Assert.Equal(other.MessageId, viewModel.DetailItems[0].MessageId);
+        Assert.False(viewModel.IsOwnCompletionVisible);
     }
 
     private static SalesQueueViewModel CreateViewModel(out SalesQueueSnapshot snapshot)
@@ -222,7 +378,8 @@ public sealed class M97SalesStatusUiTests
 
     private static SalesCompletionObservation Observation(
         bool sold = false,
-        bool botSelling = false) => new(
+        bool botSelling = false,
+        bool botCompleted = false) => new(
             30,
             sold,
             false,
@@ -230,5 +387,5 @@ public sealed class M97SalesStatusUiTests
             DateTimeOffset.UtcNow,
             botSelling,
             false,
-            false);
+            botCompleted);
 }

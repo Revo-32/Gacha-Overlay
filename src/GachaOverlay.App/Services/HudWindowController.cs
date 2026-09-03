@@ -74,6 +74,8 @@ internal sealed class HudWindowController : IDisposable
     }
 
     public event Action<HudSessionState>? StateApplied;
+    public event Action<int>? ChannelStepRequested;
+    private void OnChannelStep(int direction) => ChannelStepRequested?.Invoke(direction);
 
     public HudSessionState State => _stateService.Current;
 
@@ -93,6 +95,7 @@ internal sealed class HudWindowController : IDisposable
         _window.ChatAvailableSizeChanged += OnChatAvailableSizeChanged;
         _hotkeys.LockToggleRequested += OnLockToggleRequested;
         _hotkeys.VisibilityToggleRequested += OnVisibilityToggleRequested;
+        _hotkeys.ChannelStepRequested += OnChannelStep;
         _gameMonitor.ForegroundChanged += OnGameForegroundChanged;
         _modifierDrag.DragCompleted += OnModifierDragCompleted;
         _localization.LanguageChanged += OnLanguageChanged;
@@ -124,7 +127,12 @@ internal sealed class HudWindowController : IDisposable
 
     public void CenterOnCurrentDisplay() => RunOnUi(_placement.CenterOnCurrentDisplay);
 
+    public void NotifyCommittedChannel(string label) => RunOnUi(() => _viewModel.Chat.NotifyCommittedChannel(label));
+
     public void ClearMediaCache() => RunOnUi(_chat.ClearMediaCache);
+
+    public bool TryApplyHotkeySettings(AppSettings settings) => !_disposed &&
+        (_window.Dispatcher.CheckAccess() ? _hotkeys.Bind(settings) : _window.Dispatcher.Invoke(() => _hotkeys.Bind(settings)));
 
     public bool TryApplyHotkeys(HotkeySetting lockSetting, HotkeySetting visibilitySetting)
     {
@@ -192,7 +200,10 @@ internal sealed class HudWindowController : IDisposable
             _chat.ApplySettings(settings);
 
             if (old.HudLockHotkey != settings.HudLockHotkey ||
-                old.HudVisibilityHotkey != settings.HudVisibilityHotkey)
+                old.HudVisibilityHotkey != settings.HudVisibilityHotkey ||
+                old.PreviousMainChannelHotkey != settings.PreviousMainChannelHotkey ||
+                old.NextMainChannelHotkey != settings.NextMainChannelHotkey ||
+                old.QuickDiscordFocusEnabled != settings.QuickDiscordFocusEnabled)
             {
                 _hotkeys.Bind(settings);
             }
@@ -224,6 +235,7 @@ internal sealed class HudWindowController : IDisposable
         _window.ChatAvailableSizeChanged -= OnChatAvailableSizeChanged;
         _hotkeys.LockToggleRequested -= OnLockToggleRequested;
         _hotkeys.VisibilityToggleRequested -= OnVisibilityToggleRequested;
+        _hotkeys.ChannelStepRequested -= OnChannelStep;
         _gameMonitor.ForegroundChanged -= OnGameForegroundChanged;
         _modifierDrag.DragCompleted -= OnModifierDragCompleted;
         _localization.LanguageChanged -= OnLanguageChanged;
