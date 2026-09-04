@@ -4,7 +4,7 @@
 
 GTA Online을 보면서 Discord 채팅과 판매 순서를 함께 확인하는 Windows HUD 도구입니다.
 
-현재 준비 버전은 **2.0.0-rc.2**입니다. 정식 안정판이 아닌 사전 배포 시험판이며, 공개 전 사용자 검토 단계입니다.
+현재 배포 버전은 **2.0.0**입니다. LS Overlay 2.0의 첫 정식 안정 버전입니다.
 
 ## 주요 기능
 
@@ -25,10 +25,10 @@ Windows x64, 인터넷 연결, GTA V Enhanced / GTA Online, 지원 Discord 서�
 
 ## 다운로드
 
-RC2는 현재 로컬 준비 단계입니다. 공개된 뒤 [GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.0.0-rc.2-win-x64.zip**을 받으세요.
+[GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.0.0-win-x64.zip**을 받으세요.
 GitHub가 자동 생성하는 **Source code** 파일은 실행용이 아닙니다.
 
-현재 공개 후보는 T 기능을 제거한 빌드입니다. [RC2 릴리즈 안내](docs/releases/LS-Overlay-2.0.0-rc.2-github-release.md)에서 주요 변경을 확인할 수 있습니다. 아직 업로드하거나 공개하지 않았습니다.
+2.0.0은 T 빠른 전환 기능을 제거한 버전입니다. [2.0.0 릴리즈 안내](docs/releases/LS-Overlay-2.0.0-github-release.md)에서 주요 기능을 확인할 수 있습니다.
 
 ZIP에는 **LSOverlay.exe**, 빠른 시작 README, 한국어 안내서 PDF, LICENSE와 구성요소 라이선스만 포함됩니다.
 별도 .NET 설치는 필요 없습니다. 자동 업데이트와 실행 파일 코드 서명은 제공하지 않습니다.
@@ -71,9 +71,9 @@ LS Overlay는 독립 도구이며 Rockstar Games·Take-Two·Discord의 공식 �
 이용 문의·개인정보 관련 문의·데이터 삭제 요청:
 [revo.32.39.41@gmail.com](mailto:revo.32.39.41@gmail.com)
 
-## RC 검증과 개발
+## 릴리즈와 개발
 
-[RC2 변경 안내](docs/releases/LS-Overlay-2.0.0-rc.2-github-release.md) · [패키징 안내](tools/release/README.md)
+[2.0.0 릴리즈 안내](docs/releases/LS-Overlay-2.0.0-github-release.md) · [패키징 안내](tools/release/README.md)
 
 개발 빌드는 Windows와 .NET 8 SDK가 필요합니다.
 `dotnet build GachaOverlay.sln`, `dotnet test GachaOverlay.sln`으로 확인할 수 있습니다.

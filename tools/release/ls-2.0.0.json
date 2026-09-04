@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "product": "LS Overlay",
+  "title": "LS Overlay 2.0.0",
+  "tag": "v2.0.0",
+  "prerelease": false,
+  "published": false,
+  "runtimeIdentifier": "win-x64",
+  "assemblyName": "GachaOverlay.App",
+  "executableName": "LSOverlay.exe",
+  "zipName": "LS-Overlay-2.0.0-win-x64.zip",
+  "guideName": "LS-Overlay-2.0-User-Guide-ko.pdf",
+  "contactEmail": "revo.32.39.41@gmail.com",
+  "contactReadiness": "PUBLIC CONTACT VERIFIED"
+}

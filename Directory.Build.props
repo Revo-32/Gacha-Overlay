@@ -4,7 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <GachaReleaseVersion>2.0.0-rc.2</GachaReleaseVersion>
+    <GachaReleaseVersion>2.0.0</GachaReleaseVersion>
     <Version>$(GachaReleaseVersion)</Version>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.0.0</FileVersion>
