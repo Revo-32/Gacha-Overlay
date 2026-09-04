@@ -63,3 +63,8 @@ public interface ILSOverlayRemoteSalesClient
         ChannelReader<SalesBootstrapResponse> salesResyncs,
         CancellationToken cancellationToken = default);
 }
+
+public interface ILSOverlayGtaCompanionClient
+{
+    event Action<GtaCompanionSnapshot>? GtaCompanionSnapshotReceived;
+}

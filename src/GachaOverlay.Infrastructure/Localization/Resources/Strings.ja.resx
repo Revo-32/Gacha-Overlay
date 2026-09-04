@@ -480,4 +480,14 @@
   <data name="SettingsSalesHistoryResetConfirm" xml:space="preserve"><value>保存された最近の販売時刻をすべて消去しますか？</value></data>
   <data name="SettingsSalesHistoryResetConfirmButton" xml:space="preserve"><value>消去</value></data>
   <data name="CommonCancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="SettingsGtaCompanionTitle" xml:space="preserve"><value>GTA コンパニオン</value></data>
+  <data name="SettingsGtaCompanionDescription" xml:space="preserve"><value>デイリーチャレンジと週間イベント情報を別のフローティングHUDで確認します。</value></data>
+  <data name="SettingsGtaCompanionMaster" xml:space="preserve"><value>GTA コンパニオンを使用</value></data>
+  <data name="SettingsGtaCompanionSections" xml:space="preserve"><value>表示する情報</value></data>
+  <data name="SettingsGtaCompanionDaily" xml:space="preserve"><value>デイリーチャレンジ</value></data>
+  <data name="SettingsGtaCompanionWeekly" xml:space="preserve"><value>週間チャレンジ</value></data>
+  <data name="SettingsGtaCompanionEvents" xml:space="preserve"><value>週間ボーナス・割引・イベント</value></data>
+  <data name="SettingsGtaCompanionCompactHint" xml:space="preserve"><value>週間イベントを無効にすると、同じHUDが小さいチャレンジ専用表示になります。</value></data>
+  <data name="SettingsGtaCompanionHotkey" xml:space="preserve"><value>コンパニオン表示ホットキー</value></data>
+  <data name="SettingsGtaCompanionHotkeyHint" xml:space="preserve"><value>既定では未割り当てです。F10ロックは既存HUDと共有されます。</value></data>
 </root>

@@ -23,11 +23,12 @@ public sealed class M757FinalPassTests
     public void SettingsEnum_PreservesLegacyOrderAndIncludesTimerAndSalesHistory()
     {
         var values = Enum.GetValues<SettingsCategory>();
-        Assert.Equal(12, values.Length);
+        Assert.Equal(13, values.Length);
         Assert.Equal(SettingsCategory.Server, values[2]);
         Assert.Equal(9, (int)SettingsCategory.Developer);
-        Assert.Equal(SettingsCategory.Timers, values[^2]);
-        Assert.Equal(SettingsCategory.SalesHistory, values[^1]);
+        Assert.Equal(SettingsCategory.Timers, values[^3]);
+        Assert.Equal(SettingsCategory.SalesHistory, values[^2]);
+        Assert.Equal(SettingsCategory.GtaCompanion, values[^1]);
     }
 
     [Theory]
@@ -122,7 +123,7 @@ public sealed class M757FinalPassTests
         Assert.DoesNotContain("MessageOutlineBlurRadius", view);
         Assert.DoesNotContain("NicknameOutlineBlurRadius", view);
         Assert.DoesNotContain("DropShadowEffect", view);
-        Assert.Equal(7, view.Split("<local:CrispOutlinedText", StringSplitOptions.None).Length - 1);
+        Assert.Equal(10, view.Split("<local:CrispOutlinedText", StringSplitOptions.None).Length - 1);
     }
 
     [Theory]

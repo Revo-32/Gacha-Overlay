@@ -16,6 +16,7 @@ cache/
 logs/
 captures/
 raw-captures/
+gta-event-corpus-private/
 
 # Gacha Overlay local/runtime data must never enter the source repository.
 settings.json
@@ -25,6 +26,8 @@ sales-products.json
 sales-products.override.json
 guild-display-names.json
 crash-summary.json
+gta-companion-state.json
+gta-companion-events.json
 # Runtime output at the repository root, not project Diagnostics source trees.
 /diagnostics/
 DiagnosticBundles/

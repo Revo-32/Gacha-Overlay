@@ -313,12 +313,20 @@ public sealed class JsonSettingsStore : ISettingsStore
         var generalTimerHotkey = Optional(settings.GeneralTimerHotkey);
         var bunkerTimerHotkey = Optional(settings.BunkerTimerHotkey);
         var lsdTimerHotkey = Optional(settings.LsdTimerHotkey);
+        var gtaCompanionVisibilityHotkey = Optional(settings.GtaCompanionVisibilityHotkey);
 
         var geometry = settings.HudWindowGeometry;
         if (geometry is not null && !geometry.Rectangle.IsFiniteAndPositive)
         {
             geometry = null;
             _logger.Warning("SETTINGS", "Invalid HUD geometry was discarded.");
+        }
+
+        var gtaCompanionGeometry = settings.GtaCompanionWindowGeometry;
+        if (gtaCompanionGeometry is not null && !gtaCompanionGeometry.Rectangle.IsFiniteAndPositive)
+        {
+            gtaCompanionGeometry = null;
+            _logger.Warning("SETTINGS", "Invalid GTA Companion geometry was discarded.");
         }
 
         var fontPreset = settings.ChatFontPreset == ChatFontPreset.KoPubWorldDotum
@@ -413,6 +421,16 @@ public sealed class JsonSettingsStore : ISettingsStore
             HotkeysCustomized = hotkeysCustomized,
             HudVisibilityMode = visibilityMode,
             HudWindowGeometry = geometry,
+            GtaCompanionEnabled = sourceSchemaVersion < 21
+                ? false
+                : settings.GtaCompanionEnabled,
+            GtaCompanionDailyEnabled = sourceSchemaVersion < 21 || settings.GtaCompanionDailyEnabled,
+            GtaCompanionWeeklyEnabled = sourceSchemaVersion < 21 || settings.GtaCompanionWeeklyEnabled,
+            GtaCompanionWeeklyEventsEnabled = sourceSchemaVersion < 21 || settings.GtaCompanionWeeklyEventsEnabled,
+            GtaCompanionSurfaceOpacity = HudSettingsDefaults.NormalizeSurfaceOpacity(
+                settings.GtaCompanionSurfaceOpacity),
+            GtaCompanionVisibilityHotkey = gtaCompanionVisibilityHotkey,
+            GtaCompanionWindowGeometry = gtaCompanionGeometry,
             SelectedSessionHost = Enum.IsDefined(settings.SelectedSessionHost)
                 ? settings.SelectedSessionHost
                 : SessionHostSelection.Host1,
@@ -513,6 +531,9 @@ public sealed class JsonSettingsStore : ISettingsStore
         source.GeneralTimerHotkey != normalized.GeneralTimerHotkey ||
         source.BunkerTimerHotkey != normalized.BunkerTimerHotkey ||
         source.LsdTimerHotkey != normalized.LsdTimerHotkey ||
+        source.GtaCompanionVisibilityHotkey != normalized.GtaCompanionVisibilityHotkey ||
+        source.GtaCompanionWindowGeometry != normalized.GtaCompanionWindowGeometry ||
+        Math.Abs(source.GtaCompanionSurfaceOpacity - normalized.GtaCompanionSurfaceOpacity) > 0.001 ||
         source.GeneralTimerMinutes != normalized.GeneralTimerMinutes ||
         source.BunkerTimerMinutes != normalized.BunkerTimerMinutes ||
         source.LsdTimerMinutes != normalized.LsdTimerMinutes ||

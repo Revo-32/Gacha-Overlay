@@ -5,6 +5,7 @@ using System.Threading.Channels;
 using LSOverlay.Backend.Chat;
 using LSOverlay.Backend.Security;
 using LSOverlay.Backend.Sales;
+using LSOverlay.Backend.Gta;
 using LSOverlay.Protocol;
 
 namespace LSOverlay.Backend.Transport;
@@ -18,17 +19,20 @@ internal sealed class BackendWebSocketSession
     private readonly TransportMetrics _metrics;
     private readonly RemoteChatService? _chat;
     private readonly RemoteSalesService? _sales;
+    private readonly GtaEventService? _gtaEvents;
 
     public BackendWebSocketSession(
         RemotePublicationHub publication,
         TransportMetrics metrics,
         RemoteChatService? chat = null,
-        RemoteSalesService? sales = null)
+        RemoteSalesService? sales = null,
+        GtaEventService? gtaEvents = null)
     {
         _publication = publication;
         _metrics = metrics;
         _chat = chat;
         _sales = sales;
+        _gtaEvents = gtaEvents;
     }
 
     public async Task RunAsync(
@@ -116,6 +120,10 @@ internal sealed class BackendWebSocketSession
         await using var salesState = new SalesConnectionState(
             _sales,
             identity,
+            outbound.Writer);
+        using var gtaState = new GtaCompanionConnectionState(
+            _gtaEvents,
+            SupportsGtaCompanion(resume),
             outbound.Writer);
         var forward = ForwardEventsAsync(subscription, outbound.Writer, linked.Token);
         var heartbeat = ProduceHeartbeatsAsync(
@@ -347,6 +355,11 @@ internal sealed class BackendWebSocketSession
         envelope.Sequence,
         envelope);
 
+    internal static bool SupportsGtaCompanion(StreamClientMessage resume) =>
+        resume.Capabilities?.Contains(
+            OverlayTransportProtocol.GtaCompanionV1Capability,
+            StringComparer.Ordinal) == true;
+
     private static async Task IgnoreCancellationAsync(params Task[] tasks)
     {
         foreach (var task in tasks)
@@ -369,6 +382,49 @@ internal sealed class BackendWebSocketSession
     {
         public DateTimeOffset LastAcknowledgement { get; set; } = DateTimeOffset.UtcNow;
         public string? ExpectedId { get; set; }
+    }
+
+    private sealed class GtaCompanionConnectionState : IDisposable
+    {
+        private readonly GtaEventService? _service;
+        private readonly ChannelWriter<StreamServerMessage> _writer;
+
+        public GtaCompanionConnectionState(
+            GtaEventService? service,
+            bool enabled,
+            ChannelWriter<StreamServerMessage> writer)
+        {
+            _service = enabled ? service : null;
+            _writer = writer;
+            if (_service is null)
+            {
+                return;
+            }
+
+            _service.SnapshotChanged += OnSnapshotChanged;
+            Write(_service.CaptureSnapshot());
+        }
+
+        public void Dispose()
+        {
+            if (_service is not null)
+            {
+                _service.SnapshotChanged -= OnSnapshotChanged;
+            }
+        }
+
+        private void OnSnapshotChanged(GtaCompanionSnapshot snapshot) => Write(snapshot);
+
+        private void Write(GtaCompanionSnapshot snapshot)
+        {
+            if (!_writer.TryWrite(new StreamServerMessage(
+                    OverlayTransportProtocol.Version,
+                    OverlayTransportProtocol.GtaCompanionSnapshot,
+                    GtaCompanion: snapshot)))
+            {
+                throw new InvalidOperationException("Slow client outbound queue is full.");
+            }
+        }
     }
 
     private sealed class SalesConnectionState : IAsyncDisposable

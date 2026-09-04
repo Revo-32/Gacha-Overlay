@@ -77,8 +77,10 @@ internal sealed class HudWindowController : IDisposable
     public event Action<HudSessionState>? StateApplied;
     public event Action<int>? ChannelStepRequested;
     public event Action<GtaoTimerSlot>? TimerStartRequested;
+    public event Action? GtaCompanionVisibilityToggleRequested;
     private void OnChannelStep(int direction) => ChannelStepRequested?.Invoke(direction);
     private void OnTimerStart(GtaoTimerSlot slot) => TimerStartRequested?.Invoke(slot);
+    private void OnGtaCompanionVisibilityToggle() => GtaCompanionVisibilityToggleRequested?.Invoke();
 
     public HudSessionState State => _stateService.Current;
 
@@ -100,6 +102,7 @@ internal sealed class HudWindowController : IDisposable
         _hotkeys.VisibilityToggleRequested += OnVisibilityToggleRequested;
         _hotkeys.ChannelStepRequested += OnChannelStep;
         _hotkeys.TimerStartRequested += OnTimerStart;
+        _hotkeys.GtaCompanionVisibilityToggleRequested += OnGtaCompanionVisibilityToggle;
         _gameMonitor.ForegroundChanged += OnGameForegroundChanged;
         _modifierDrag.DragCompleted += OnModifierDragCompleted;
         _localization.LanguageChanged += OnLanguageChanged;
@@ -209,7 +212,8 @@ internal sealed class HudWindowController : IDisposable
                 old.NextMainChannelHotkey != settings.NextMainChannelHotkey ||
                 old.GeneralTimerHotkey != settings.GeneralTimerHotkey ||
                 old.BunkerTimerHotkey != settings.BunkerTimerHotkey ||
-                old.LsdTimerHotkey != settings.LsdTimerHotkey)
+                old.LsdTimerHotkey != settings.LsdTimerHotkey ||
+                old.GtaCompanionVisibilityHotkey != settings.GtaCompanionVisibilityHotkey)
             {
                 _hotkeys.Bind(settings);
             }
@@ -243,6 +247,7 @@ internal sealed class HudWindowController : IDisposable
         _hotkeys.VisibilityToggleRequested -= OnVisibilityToggleRequested;
         _hotkeys.ChannelStepRequested -= OnChannelStep;
         _hotkeys.TimerStartRequested -= OnTimerStart;
+        _hotkeys.GtaCompanionVisibilityToggleRequested -= OnGtaCompanionVisibilityToggle;
         _gameMonitor.ForegroundChanged -= OnGameForegroundChanged;
         _modifierDrag.DragCompleted -= OnModifierDragCompleted;
         _localization.LanguageChanged -= OnLanguageChanged;

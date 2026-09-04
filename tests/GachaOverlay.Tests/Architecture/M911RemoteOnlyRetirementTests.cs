@@ -127,7 +127,7 @@ public sealed class M911RemoteOnlyRetirementTests
 
         var loaded = new JsonSettingsStore(path).Load();
 
-        Assert.Equal(20, loaded.SchemaVersion);
+        Assert.Equal(21, loaded.SchemaVersion);
         Assert.Equal(SettingsCategory.Discord, loaded.LastSettingsCategory);
         Assert.Equal("https://overlay.example", loaded.RemoteBackendBaseUrl);
         Assert.Equal("1428747924229193828", loaded.RemoteSelectedChannelId);

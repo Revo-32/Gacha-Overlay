@@ -32,4 +32,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Fixtures\Gta\weekly-golden.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

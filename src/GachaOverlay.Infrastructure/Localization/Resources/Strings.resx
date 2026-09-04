@@ -515,4 +515,14 @@
   <data name="SettingsSalesHistoryResetConfirm" xml:space="preserve"><value>Clear every saved recent sales time?</value></data>
   <data name="SettingsSalesHistoryResetConfirmButton" xml:space="preserve"><value>Clear</value></data>
   <data name="CommonCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SettingsGtaCompanionTitle" xml:space="preserve"><value>GTA Companion</value></data>
+  <data name="SettingsGtaCompanionDescription" xml:space="preserve"><value>View Daily Challenges and weekly event information in a separate floating HUD.</value></data>
+  <data name="SettingsGtaCompanionMaster" xml:space="preserve"><value>Enable GTA Companion</value></data>
+  <data name="SettingsGtaCompanionSections" xml:space="preserve"><value>Visible information</value></data>
+  <data name="SettingsGtaCompanionDaily" xml:space="preserve"><value>Daily Challenges</value></data>
+  <data name="SettingsGtaCompanionWeekly" xml:space="preserve"><value>Weekly Challenge</value></data>
+  <data name="SettingsGtaCompanionEvents" xml:space="preserve"><value>Weekly bonuses, discounts and events</value></data>
+  <data name="SettingsGtaCompanionCompactHint" xml:space="preserve"><value>Disabling weekly events makes the same HUD use a smaller challenge-only layout.</value></data>
+  <data name="SettingsGtaCompanionHotkey" xml:space="preserve"><value>Companion visibility hotkey</value></data>
+  <data name="SettingsGtaCompanionHotkeyHint" xml:space="preserve"><value>Unassigned by default. F10 lock is shared with the existing HUD.</value></data>
 </root>

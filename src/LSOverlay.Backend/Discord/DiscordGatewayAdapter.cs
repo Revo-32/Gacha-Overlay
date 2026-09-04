@@ -8,6 +8,7 @@ using LSOverlay.Backend.Presence;
 using LSOverlay.Backend.Runtime;
 using LSOverlay.Backend.Sales;
 using LSOverlay.Backend.Transport;
+using LSOverlay.Backend.Gta;
 using Microsoft.Extensions.Logging;
 
 namespace LSOverlay.Backend.Discord;
@@ -30,6 +31,7 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
     private readonly RemoteChatService? _remoteChat;
     private readonly RemoteSalesService? _remoteSales;
     private readonly BotCustomStatus _customStatus;
+    private readonly GtaEventService? _gtaEvents;
     private int _started;
     private int _stopping;
     private int _hasCompletedReady;
@@ -49,7 +51,8 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         TransportMetrics? transportMetrics = null,
         RemoteChatService? remoteChat = null,
         RemoteSalesService? remoteSales = null,
-        BotCustomStatus? customStatus = null)
+        BotCustomStatus? customStatus = null,
+        GtaEventService? gtaEvents = null)
     {
         _client = client;
         _configuration = configuration;
@@ -64,6 +67,7 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         _transportMetrics = transportMetrics;
         _remoteChat = remoteChat;
         _remoteSales = remoteSales;
+        _gtaEvents = gtaEvents;
         _customStatus = customStatus ?? new BotCustomStatus(
             _client.SetCustomStatusAsync,
             () => _logger.LogWarning("Bot custom status could not be applied; next attempt is at Gateway Ready."));
@@ -226,6 +230,11 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
     {
         ProcessReady();
         await _customStatus.ApplyAfterReadyAsync().ConfigureAwait(false);
+        if (_gtaEvents is not null)
+        {
+            await _gtaEvents.HydrateAsync(force: false, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
     });
 
     private void ProcessReady()
@@ -276,7 +285,7 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
     }
 
     private Task OnGuildAvailableAsync(SocketGuild guild) =>
-        HandleSafelyAsync("GuildAvailable", () =>
+        HandleSafelyAsync("GuildAvailable", async () =>
         {
             if (Volatile.Read(ref _hasCompletedReady) == 0 ||
                 !_guildFilter.Accepts(guild.Id))
@@ -289,6 +298,11 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
                 BackendConnectionHealthReason.GatewayReady,
                 "Discord: Ready; target Guild available");
             PublishInitialPresence(guild);
+            if (_gtaEvents is not null)
+            {
+                await _gtaEvents.HydrateAsync(force: false, CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
         });
 
     private Task OnGuildUnavailableAsync(SocketGuild guild) =>
@@ -341,13 +355,22 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         HandleSafelyAsync("MessageReceived", async () =>
         {
             PublishMessage(BackendMessageOperation.Create, message);
-            if (_remoteChat is not null && message.Channel is SocketGuildChannel guildChannel)
+            if (message.Channel is SocketGuildChannel guildChannel)
             {
-                await _remoteChat.ReceiveCreateAsync(guildChannel.Guild.Id, message)
-                    .ConfigureAwait(false);
+                if (_remoteChat is not null)
+                {
+                    await _remoteChat.ReceiveCreateAsync(guildChannel.Guild.Id, message)
+                        .ConfigureAwait(false);
+                }
                 if (_remoteSales is not null)
                 {
                     await _remoteSales.ReceiveCreateAsync(guildChannel.Guild.Id, message)
+                        .ConfigureAwait(false);
+                }
+
+                if (_gtaEvents is not null)
+                {
+                    await _gtaEvents.ReceiveCreateAsync(guildChannel.Guild.Id, message)
                         .ConfigureAwait(false);
                 }
             }
@@ -374,6 +397,15 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
                         after.Id)
                     .ConfigureAwait(false);
             }
+
+            if (_gtaEvents is not null && channel is SocketGuildChannel eventGuildChannel)
+            {
+                await _gtaEvents.ReceiveUpdateAsync(
+                        eventGuildChannel.Guild.Id,
+                        channel.Id,
+                        after.Id)
+                    .ConfigureAwait(false);
+            }
         });
 
     private Task OnMessageDeletedAsync(
@@ -386,6 +418,11 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
             if (_remoteSales is not null && TryResolveTargetGuild(channel, out var guildId))
             {
                 _remoteSales.ReceiveDelete(guildId, channel.Id, message.Id);
+                _gtaEvents?.ReceiveDelete(guildId, channel.Id, message.Id);
+            }
+            else if (_gtaEvents is not null && TryResolveTargetGuild(channel, out guildId))
+            {
+                _gtaEvents.ReceiveDelete(guildId, channel.Id, message.Id);
             }
         });
 
@@ -401,6 +438,11 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
                 if (_remoteSales is not null && TryResolveTargetGuild(channel, out var guildId))
                 {
                     _remoteSales.ReceiveDelete(guildId, channel.Id, message.Id);
+                    _gtaEvents?.ReceiveDelete(guildId, channel.Id, message.Id);
+                }
+                else if (_gtaEvents is not null && TryResolveTargetGuild(channel, out guildId))
+                {
+                    _gtaEvents.ReceiveDelete(guildId, channel.Id, message.Id);
                 }
             }
         });

@@ -18,6 +18,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using LSOverlay.Backend.WebAuth;
 using LSOverlay.Backend.PublicWeb;
+using GachaOverlay.Core.Gta;
+using LSOverlay.Backend.Gta;
 
 namespace LSOverlay.Backend;
 
@@ -108,6 +110,15 @@ internal static class Program
         builder.Services.AddSingleton<PublicStatusService>();
         builder.Services.AddSingleton<BackendMetrics>();
         builder.Services.AddSingleton<GtaPresenceNormalizer>();
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddSingleton<KstResetSchedule>();
+        builder.Services.AddSingleton<CanonicalEventDocumentBuilder>();
+        builder.Services.AddSingleton<GtaEventVocabulary>();
+        builder.Services.AddSingleton<GtaUnknownVocabularyReport>();
+        builder.Services.AddSingleton<GtaEventClassifier>();
+        builder.Services.AddSingleton<GtaEventParser>();
+        builder.Services.AddSingleton<GtaEventResolver>();
+        builder.Services.AddSingleton<GtaKoreanFormatter>();
         builder.Services.AddSingleton<ClientCredentialRegistry>();
         builder.Services.AddSingleton<TransportMetrics>();
         builder.Services.AddSingleton<RemotePublicationHub>();
@@ -131,7 +142,11 @@ internal static class Program
         builder.Services.AddSingleton<ISalesStatusDiscordSource,
             DiscordNetSalesStatusSource>();
         builder.Services.AddSingleton<RemoteSalesActionService>();
+        builder.Services.AddSingleton<IGtaEventDiscordSource, DiscordNetGtaEventSource>();
+        builder.Services.AddSingleton<IGtaEventStore, JsonGtaEventStore>();
+        builder.Services.AddSingleton<GtaEventService>();
         builder.Services.AddHostedService<ActiveChatStreamEvictionWorker>();
+        builder.Services.AddHostedService<GtaEventResetWorker>();
         builder.Services.AddHostedService<SlashPairingRetirementWorker>();
         builder.Services.AddSingleton<DiscordGatewayAdapter>();
         builder.Services.AddSingleton<IDiscordGatewayLifecycle>(services =>

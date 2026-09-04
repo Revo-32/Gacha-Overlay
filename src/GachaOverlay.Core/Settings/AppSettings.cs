@@ -14,7 +14,7 @@ public sealed record AppSettings
 {
     private static readonly Dictionary<string, double> EmptyScrollPositions =
         new(StringComparer.OrdinalIgnoreCase);
-    public const int CurrentSchemaVersion = 20;
+    public const int CurrentSchemaVersion = 21;
 
     public const int CurrentOnboardingVersion = 2;
 
@@ -89,6 +89,20 @@ public sealed record AppSettings
     public HudVisibilityMode HudVisibilityMode { get; init; } = HudVisibilityMode.Always;
 
     public HudWindowGeometry? HudWindowGeometry { get; init; }
+
+    public bool GtaCompanionEnabled { get; init; }
+
+    public bool GtaCompanionDailyEnabled { get; init; } = true;
+
+    public bool GtaCompanionWeeklyEnabled { get; init; } = true;
+
+    public bool GtaCompanionWeeklyEventsEnabled { get; init; } = true;
+
+    public double GtaCompanionSurfaceOpacity { get; init; } = HudSettingsDefaults.SurfaceOpacity;
+
+    public HotkeySetting GtaCompanionVisibilityHotkey { get; init; } = new() { Key = "" };
+
+    public FloatingHudGeometry? GtaCompanionWindowGeometry { get; init; }
 
     public ChatLayoutMode ChatLayoutMode { get; init; } = ChatLayoutMode.Balanced;
 
@@ -213,4 +227,5 @@ public enum SettingsCategory
     Developer,
     Timers,
     SalesHistory,
+    GtaCompanion,
 }

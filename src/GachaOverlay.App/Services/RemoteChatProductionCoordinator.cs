@@ -109,6 +109,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
 
     public event Action<string>? SalesStatusChanged;
 
+    public event Action<GtaCompanionSnapshot>? GtaCompanionSnapshotReceived;
+
     public RemoteChatSnapshot Snapshot
     {
         get
@@ -589,6 +591,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
             Action<ChatBootstrapResponse>? channelReadyHandler = null;
             Action<SalesBootstrapResponse>? salesReadyHandler = null;
             Action<HostPresenceSnapshot>? presenceHandler = null;
+            Action<GtaCompanionSnapshot>? gtaCompanionHandler = null;
+            ILSOverlayGtaCompanionClient? gtaCompanionClient = null;
             using var bootstrapCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var requests = new RemoteRequestScope(cancellationToken);
             Task<BootstrapResponse>? presencePublicationTask = null;
@@ -608,6 +612,12 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                 client = _clientFactory(endpoint);
                 presenceHandler = presence => HostPresenceChanged?.Invoke(presence);
                 client.HostPresenceChanged += presenceHandler;
+                if (client is ILSOverlayGtaCompanionClient gtaCandidate)
+                {
+                    gtaCompanionClient = gtaCandidate;
+                    gtaCompanionHandler = snapshot => GtaCompanionSnapshotReceived?.Invoke(snapshot);
+                    gtaCompanionClient.GtaCompanionSnapshotReceived += gtaCompanionHandler;
+                }
                 SalesBootstrapResponse? salesBootstrap = null;
                 ILSOverlayRemoteSalesClient? salesClient = null;
                 if (_settingsStore.Current.SalesTrackingEnabled &&
@@ -940,6 +950,10 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                     if (channelReadyHandler is not null)
                     {
                         client.ChatChannelReady -= channelReadyHandler;
+                    }
+                    if (gtaCompanionClient is not null && gtaCompanionHandler is not null)
+                    {
+                        gtaCompanionClient.GtaCompanionSnapshotReceived -= gtaCompanionHandler;
                     }
                     client.ChatStreamStatusChanged -= OnChatStreamStatusChanged;
                     if (client is ILSOverlayRemoteSalesClient salesClient)

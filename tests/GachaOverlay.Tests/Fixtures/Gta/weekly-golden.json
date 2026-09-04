@@ -1,0 +1,16 @@
+[
+  { "name": "ordinary-weekly", "expected": "weeklyBulletin", "text": "A new GTA Online event starts on AUG 27-SEP 2\nWEEKLY CHALLENGE\nComplete 3 Contact Missions\nBONUSES\n2X GTA$ & RP ON CONTACT MISSIONS\nDISCOUNTS\n30% OFF BUNKERS\nGUN VAN INVENTORY & DISCOUNTS\nFREE VEHICLES & TEST RIDES" },
+  { "name": "continuation-weekly", "expected": "weeklyBulletin", "text": "The latest GTA Online event is still live\nWEEKLY CHALLENGES\nWin 2 Races\nBONUS REWARDS\n3X GTA$ & RP ON RACES\nOFFERS\n40% OFF NIGHTCLUBS\nTIME TRIALS\nPODIUM VEHICLE" },
+  { "name": "trusted-changed-opening", "expected": "weeklyBulletin", "publisher": "GTA Series Videos", "channel": "gtao-weekly-bonuses", "text": "A fresh week in GTA Online begins\nWEEKLY CHALLENGE\nPlay 3 Adversary Modes\nBONUSES\n2X GTA$ & RP ON ADVERSARY MODES\nDISCOUNTS\n30% OFF ACID LAB\nPRIZE RIDE CHALLENGE" },
+  { "name": "candidate-two-anchors", "expected": "candidate", "publisher": "GTA Series Videos", "text": "WEEKLY CHALLENGE\nComplete a mission\nBONUSES\n2X GTA$ ON MISSIONS\nDISCOUNTS\n30% OFF VEHICLES" },
+  { "name": "candidate-no-heading", "expected": "candidate", "text": "A new GTA Online event starts on AUG 27-SEP 2\nBONUSES\n2X GTA$ ON MISSIONS\nDISCOUNTS\n30% OFF VEHICLES\nGUN VAN\nTEST RIDES" },
+  { "name": "gta-plus", "expected": "ignore", "channel": "gta-plus-benefits", "text": "GTA+ MONTHLY BENEFITS\nBONUSES\nFREE VEHICLE\nDISCOUNTS\nWEEKLY CHALLENGE" },
+  { "name": "unrelated", "expected": "ignore", "text": "Community game night starts tomorrow." },
+  { "name": "campaign", "expected": "multiWeekCampaign", "text": "Summer Event Breakdown\nFull schedule below\nBonuses & Discounts by Week\nAUG 1-7 Week One\nAUG 8-14 Week Two\nAUG 15-21 Week Three" },
+  { "name": "weekly-multiple-dates", "expected": "weeklyBulletin", "text": "A new GTA Online event starts on AUG 27-SEP 2\nWEEKLY CHALLENGE\nEarn GTA$100000\nBONUSES\n6X GTA$ & RP (AUG 28-30)\nDISCOUNTS\n30% OFF BUNKERS\nGUN VAN\nTEST RIDES SEP 1-2" },
+  { "name": "outside-posting-window", "expected": "weeklyBulletin", "text": "A new GTA Online event starts on AUG 27-SEP 2\nWEEKLY CHALLENGE\nWin a Race\nBONUSES\n2X GTA$ & RP ON RACES\nDISCOUNTS\n20% OFF VEHICLES\nGUN VAN\nPRIZE RIDE" },
+  { "name": "heading-aliases", "expected": "weeklyBulletin", "text": "A new GTA Online event starts on SEP 3-9\nWEEKLY CHALLENGES\nComplete 2 Survivals\nGUN VAN PRIMARY DISCOUNTS\nSALVAGE YARD ROBBERIES\nFREE VEHICLES & TEST RIDES\nPREMIUM RACE" },
+  { "name": "embed-shaped-weekly", "expected": "weeklyBulletin", "publisher": "GTA Series Videos", "text": "WEEKLY CHALLENGE\nCollect 5 items\nBONUS GTA$\n2X GTA$ ON FUTURE ACTIVITY\nLOGIN REWARDS\nFREE ITEM\nCOMMUNITY SERIES" },
+  { "name": "gta-unknown", "expected": "unknown", "text": "GTA Online Future Content Announcement without weekly structure." },
+  { "name": "campaign-month-long", "expected": "multiWeekCampaign", "text": "Month-Long Weekly Challenges\nEvent Breakdown\nFull schedule below by Week\nOCT 1-7 First Week\nOCT 8-14 Second Week\nRewards\nComplete every weekly goal" }
+]

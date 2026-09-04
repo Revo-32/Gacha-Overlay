@@ -88,7 +88,7 @@ public sealed class M753WpfLayoutTests
     {
         var source = File.ReadAllText(Source("ChatMessageView.xaml"));
 
-        Assert.Equal(7, source.Split("<local:CrispOutlinedText", StringSplitOptions.None).Length - 1);
+        Assert.Equal(10, source.Split("<local:CrispOutlinedText", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("CrispTextOutline", source);
         Assert.DoesNotContain("ChatRichTextBlock", source);
         Assert.DoesNotContain("Padding=\"3,1\"", source, StringComparison.Ordinal);

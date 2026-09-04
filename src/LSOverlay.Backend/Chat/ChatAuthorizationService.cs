@@ -208,14 +208,18 @@ internal sealed class ChatAuthorizationService : IChatAuthorizationService
         {
             var guild = source.Guild;
             var authorized = guild.Channels
-                .Where(channel => CanRead(guild, guild.User, channel) &&
+                .Where(channel =>
+                    channel.Descriptor.ChannelId != GtaCompanionProtocolPolicy.ProductionEventChannelId &&
+                    CanRead(guild, guild.User, channel) &&
                     CanRead(guild, guild.Bot, channel))
                 .Select(channel => channel.Descriptor)
                 .OrderBy(channel => channel.Position)
                 .ThenBy(channel => channel.ChannelId)
                 .ToArray();
             var reactionAuthorized = guild.Channels
-                .Where(channel => CanRead(guild, guild.User, channel) &&
+                .Where(channel =>
+                    channel.Descriptor.ChannelId != GtaCompanionProtocolPolicy.ProductionEventChannelId &&
+                    CanRead(guild, guild.User, channel) &&
                     CanAddReactions(guild, guild.Bot, channel))
                 .Select(channel => channel.Descriptor)
                 .OrderBy(channel => channel.Position)

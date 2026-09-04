@@ -39,6 +39,22 @@ public static class OverlayTransportProtocol
     public const string SalesAccessRevoked = "sales_access_revoked";
     public const string SalesAuthorizationUnavailable = "sales_authorization_unavailable";
     public const string SalesChannelUnavailable = "sales_channel_unavailable";
+
+    public const string GtaCompanionSnapshot = "gta_companion_snapshot";
+    public const string GtaCompanionV1Capability = "gta_companion_v1";
+}
+
+public static class GtaCompanionProtocolPolicy
+{
+    public const ulong ProductionEventChannelId = 1417898156187713577;
+    public const int MaximumBonuses = 64;
+    public const int MaximumDiscounts = 128;
+    public const int MaximumFreeItems = 32;
+    public const int MaximumDetailSections = 32;
+    public const int MaximumUpcomingWeeks = 8;
+    public const int MaximumCampaignEntries = 16;
+    public const int MaximumTitleLength = 256;
+    public const int MaximumDetailLength = 1024;
 }
 
 public static class RemoteSalesPolicy
@@ -403,6 +419,75 @@ public sealed record SalesMutationEnvelope(
     ChatMessage? Message,
     SalesCompletionObservation? CompletionObservation);
 
+public enum GtaCompanionDataState
+{
+    Available,
+    Preparing,
+    Unavailable,
+}
+
+public enum GtaCompanionItemKind
+{
+    Bonus,
+    Discount,
+    FreeItem,
+    LoginReward,
+    RotatingContent,
+    Note,
+}
+
+public sealed record GtaCompanionChallenge(
+    string ChallengeKey,
+    string DisplayTextKo,
+    string? RewardTextKo,
+    IReadOnlyList<string> RequirementsKo);
+
+public sealed record GtaCompanionItem(
+    string ItemKey,
+    GtaCompanionItemKind Kind,
+    string DisplayTextKo,
+    string OriginalLabel,
+    int? Multiplier,
+    int? DiscountPercent,
+    IReadOnlyList<string> RewardTypes,
+    DateTimeOffset? EffectiveFrom,
+    DateTimeOffset? EffectiveTo);
+
+public sealed record GtaCompanionWeek(
+    string WeekKey,
+    DateTimeOffset EffectiveFrom,
+    DateTimeOffset? EffectiveTo,
+    string? ThemeKo,
+    GtaCompanionChallenge? WeeklyChallenge,
+    IReadOnlyList<GtaCompanionItem> Bonuses,
+    IReadOnlyList<GtaCompanionItem> Discounts,
+    IReadOnlyList<GtaCompanionItem> FreeItems,
+    IReadOnlyList<GtaCompanionItem> OtherEvents);
+
+public sealed record GtaCompanionCampaignWeek(
+    string WeekKey,
+    string DisplayTextKo,
+    DateTimeOffset? EffectiveFrom,
+    DateTimeOffset? EffectiveTo);
+
+public sealed record GtaCompanionCampaign(
+    string CampaignKey,
+    string TitleKo,
+    DateTimeOffset? StartAt,
+    DateTimeOffset? EndAt,
+    IReadOnlyList<string> GoalsKo,
+    IReadOnlyList<string> RewardsKo,
+    IReadOnlyList<GtaCompanionCampaignWeek> UpcomingWeeks);
+
+public sealed record GtaCompanionSnapshot(
+    int ProtocolVersion,
+    long Revision,
+    GtaCompanionDataState State,
+    DateTimeOffset GeneratedAt,
+    GtaCompanionWeek? CurrentWeek,
+    GtaCompanionCampaign? Campaign,
+    bool IsTruncated = false);
+
 public sealed record StreamClientMessage(
     int ProtocolVersion,
     string Type,
@@ -414,7 +499,8 @@ public sealed record StreamClientMessage(
     long? AfterChatSequence = null,
     long? SwitchGeneration = null,
     string? SalesGeneration = null,
-    long? AfterSalesSequence = null);
+    long? AfterSalesSequence = null,
+    IReadOnlyList<string>? Capabilities = null);
 
 public sealed record StreamServerMessage(
     int ProtocolVersion,
@@ -432,7 +518,8 @@ public sealed record StreamServerMessage(
     ChatMutationEnvelope? ChatEvent = null,
     string? SalesGeneration = null,
     long? SalesLatestSequence = null,
-    SalesMutationEnvelope? SalesEvent = null);
+    SalesMutationEnvelope? SalesEvent = null,
+    GtaCompanionSnapshot? GtaCompanion = null);
 
 public static class OverlayProtocolJson
 {

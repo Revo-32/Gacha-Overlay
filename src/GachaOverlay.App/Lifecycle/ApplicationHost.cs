@@ -19,6 +19,8 @@ using GachaOverlay.Infrastructure.Settings;
 using GachaOverlay.Core.Sales;
 using GachaOverlay.Infrastructure.Sales;
 using GachaOverlay.Core.Themes;
+using GachaOverlay.Core.Gta;
+using GachaOverlay.Infrastructure.Gta;
 
 namespace GachaOverlay.App.Lifecycle;
 
@@ -34,6 +36,7 @@ internal sealed class ApplicationHost : IDisposable
     private SettingsWindowService? _settingsWindowService;
     private TrayIconService? _trayIcon;
     private HudWindowController? _hudController;
+    private GtaCompanionWindowController? _gtaCompanionController;
     private RemoteChatProductionCoordinator? _remoteChatCoordinator;
     private RemoteRecoveryAudit? _recoveryAudit;
     private IRemoteAccessCredentialStore? _remoteAccessCredentials;
@@ -211,6 +214,23 @@ internal sealed class ApplicationHost : IDisposable
             Logger,
             settings);
 
+        var gtaCompanionState = new GtaCompanionStateManager(
+            new JsonGtaCompanionStateStore(paths.GtaCompanionStateFilePath, Logger),
+            DateTimeOffset.UtcNow);
+        var gtaCompanionWindow = new GtaCompanionWindow();
+        var gtaCompanionViewModel = new GtaCompanionViewModel(
+            gtaCompanionState,
+            _localization,
+            settings,
+            gtaCompanionWindow.Dispatcher);
+        _gtaCompanionController = new GtaCompanionWindowController(
+            gtaCompanionWindow,
+            gtaCompanionViewModel,
+            hudState,
+            _settingsStore,
+            Logger,
+            settings);
+
         var remoteMessagePipeline = new DiscordMessagePipeline(
             Logger,
             metrics: _runtimeMetrics);
@@ -228,6 +248,7 @@ internal sealed class ApplicationHost : IDisposable
             channelPolicy: MainChannelPolicy.Apply);
         _hudController.ChannelStepRequested += OnChannelStepRequested;
         _hudController.TimerStartRequested += OnTimerStartRequested;
+        _hudController.GtaCompanionVisibilityToggleRequested += OnGtaCompanionVisibilityToggleRequested;
         salesViewModel.ConfigureStatusAction(
             _remoteChatCoordinator.SetSalesStatusAsync);
         _remoteChatCoordinator.MessageStateChanged += OnRemoteMessageStateChanged;
@@ -239,6 +260,7 @@ internal sealed class ApplicationHost : IDisposable
         _remoteChatCoordinator.SalesBootstrapReady += OnRemoteSalesBootstrapReady;
         _remoteChatCoordinator.SalesMutationReceived += OnRemoteSalesMutationReceived;
         _remoteChatCoordinator.SalesStatusChanged += OnRemoteSalesStatusChanged;
+        _remoteChatCoordinator.GtaCompanionSnapshotReceived += OnGtaCompanionSnapshotReceived;
         var remoteSettingsViewModel = new RemoteChatSettingsViewModel(
             _localization,
             _remoteChatCoordinator.Snapshot,
@@ -266,6 +288,7 @@ internal sealed class ApplicationHost : IDisposable
                 try
                 {
                     _hudController?.ApplySettings(updated);
+                    _gtaCompanionController?.ApplySettings(updated);
                     _salesCoordinator?.ApplySettings(updated);
                     _remoteChatCoordinator?.NotifySalesTrackingChanged();
                 }
@@ -329,6 +352,7 @@ internal sealed class ApplicationHost : IDisposable
             _requestShutdown);
         _hudController.StateApplied += OnHudStateApplied;
         _hudController.Start();
+        _gtaCompanionController.Start();
         _trayIcon.UpdateHudState(_hudController.State);
 
         _remoteChatCoordinator.Start();
@@ -389,16 +413,21 @@ internal sealed class ApplicationHost : IDisposable
         _timerHudViewModel = null;
         _sessionHudViewModel = null;
 
+        _gtaCompanionController?.Dispose();
+        _gtaCompanionController = null;
+
         if (_remoteChatCoordinator is not null)
         {
             if (_hudController is not null) _hudController.ChannelStepRequested -= OnChannelStepRequested;
             if (_hudController is not null) _hudController.TimerStartRequested -= OnTimerStartRequested;
+            if (_hudController is not null) _hudController.GtaCompanionVisibilityToggleRequested -= OnGtaCompanionVisibilityToggleRequested;
             _remoteChatCoordinator.MessageStateChanged -= OnRemoteMessageStateChanged;
             _remoteChatCoordinator.PresenceBootstrapReady -= OnRemotePresenceBootstrapReady;
             _remoteChatCoordinator.HostPresenceChanged -= OnRemoteHostPresenceChanged;
             _remoteChatCoordinator.SalesBootstrapReady -= OnRemoteSalesBootstrapReady;
             _remoteChatCoordinator.SalesMutationReceived -= OnRemoteSalesMutationReceived;
             _remoteChatCoordinator.SalesStatusChanged -= OnRemoteSalesStatusChanged;
+            _remoteChatCoordinator.GtaCompanionSnapshotReceived -= OnGtaCompanionSnapshotReceived;
             _remoteChatCoordinator.AuthenticatedUserChanged -= OnRemoteAuthenticatedUserChanged;
             _remoteChatCoordinator.SnapshotChanged -= OnRemoteSnapshotChanged;
             _remoteChatCoordinator.ChannelSwitchCommitted -= OnChannelSwitchCommitted;
@@ -498,6 +527,12 @@ internal sealed class ApplicationHost : IDisposable
 
     private void OnTimerStartRequested(GachaOverlay.Core.Timers.GtaoTimerSlot slot) =>
         DispatchToUi(() => _timerHudViewModel?.Start(slot));
+
+    private void OnGtaCompanionVisibilityToggleRequested() =>
+        _gtaCompanionController?.ToggleTemporaryVisibility();
+
+    private void OnGtaCompanionSnapshotReceived(LSOverlay.Protocol.GtaCompanionSnapshot snapshot) =>
+        _gtaCompanionController?.ApplySnapshot(snapshot);
 
     private void OnTimerCompletionSoundRequested()
     {
@@ -1082,6 +1117,7 @@ internal sealed class ApplicationHost : IDisposable
         _localization.SetLanguage(defaults.Language);
         ApplyColorTheme(defaults.ColorTheme);
         _hudController?.ApplySettings(defaults);
+        _gtaCompanionController?.ApplySettings(defaults);
         _salesCoordinator?.ApplySettings(defaults);
         _foundationViewModel?.ReloadFromCurrentSettings();
         Logger.Information("SETTINGS", "All application settings reset by user request.");
@@ -1112,6 +1148,7 @@ internal sealed class ApplicationHost : IDisposable
     {
         _colorThemeManager?.Apply(theme);
         _hudController?.RefreshTheme();
+        _gtaCompanionController?.RefreshTheme();
         _salesPreviewWindow?.RefreshTheme();
         Logger.Information("THEME", $"Applied {ColorThemeCatalog.Get(theme).Id}.");
     }

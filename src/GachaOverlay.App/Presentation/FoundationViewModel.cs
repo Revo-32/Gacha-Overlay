@@ -31,6 +31,12 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private int _bunkerTimerMinutes;
     private int _lsdTimerMinutes;
     private bool _timerCompletionSoundEnabled;
+    private bool _gtaCompanionEnabled;
+    private bool _gtaCompanionDailyEnabled;
+    private bool _gtaCompanionWeeklyEnabled;
+    private bool _gtaCompanionWeeklyEventsEnabled;
+    private double _gtaCompanionSurfaceOpacity;
+    private string _gtaCompanionVisibilityHotkeyText = string.Empty;
     private readonly Func<SalesFeatureHealthSnapshot> _getSalesHealthSnapshot;
     private readonly Func<ManualSalesResyncResult> _manualSalesResync;
     private readonly Action _clearMediaCache;
@@ -185,6 +191,12 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _bunkerTimerMinutes = settings.BunkerTimerMinutes;
         _lsdTimerMinutes = settings.LsdTimerMinutes;
         _timerCompletionSoundEnabled = settings.TimerCompletionSoundEnabled;
+        _gtaCompanionEnabled = settings.GtaCompanionEnabled;
+        _gtaCompanionDailyEnabled = settings.GtaCompanionDailyEnabled;
+        _gtaCompanionWeeklyEnabled = settings.GtaCompanionWeeklyEnabled;
+        _gtaCompanionWeeklyEventsEnabled = settings.GtaCompanionWeeklyEventsEnabled;
+        _gtaCompanionSurfaceOpacity = settings.GtaCompanionSurfaceOpacity;
+        _gtaCompanionVisibilityHotkeyText = FormatOptionalHotkey(settings.GtaCompanionVisibilityHotkey);
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
@@ -381,6 +393,12 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _bunkerTimerMinutes = settings.BunkerTimerMinutes;
         _lsdTimerMinutes = settings.LsdTimerMinutes;
         _timerCompletionSoundEnabled = settings.TimerCompletionSoundEnabled;
+        _gtaCompanionEnabled = settings.GtaCompanionEnabled;
+        _gtaCompanionDailyEnabled = settings.GtaCompanionDailyEnabled;
+        _gtaCompanionWeeklyEnabled = settings.GtaCompanionWeeklyEnabled;
+        _gtaCompanionWeeklyEventsEnabled = settings.GtaCompanionWeeklyEventsEnabled;
+        _gtaCompanionSurfaceOpacity = settings.GtaCompanionSurfaceOpacity;
+        _gtaCompanionVisibilityHotkeyText = FormatOptionalHotkey(settings.GtaCompanionVisibilityHotkey);
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
@@ -818,6 +836,51 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             ref _timerCompletionSoundEnabled,
             value,
             settings => settings with { TimerCompletionSoundEnabled = value });
+    }
+
+    public bool GtaCompanionEnabled
+    {
+        get => _gtaCompanionEnabled;
+        set => SetAndSave(ref _gtaCompanionEnabled, value,
+            settings => settings with { GtaCompanionEnabled = value });
+    }
+
+    public bool GtaCompanionDailyEnabled
+    {
+        get => _gtaCompanionDailyEnabled;
+        set => SetAndSave(ref _gtaCompanionDailyEnabled, value,
+            settings => settings with { GtaCompanionDailyEnabled = value });
+    }
+
+    public bool GtaCompanionWeeklyEnabled
+    {
+        get => _gtaCompanionWeeklyEnabled;
+        set => SetAndSave(ref _gtaCompanionWeeklyEnabled, value,
+            settings => settings with { GtaCompanionWeeklyEnabled = value });
+    }
+
+    public bool GtaCompanionWeeklyEventsEnabled
+    {
+        get => _gtaCompanionWeeklyEventsEnabled;
+        set => SetAndSave(ref _gtaCompanionWeeklyEventsEnabled, value,
+            settings => settings with { GtaCompanionWeeklyEventsEnabled = value });
+    }
+
+    public double GtaCompanionSurfaceOpacity
+    {
+        get => _gtaCompanionSurfaceOpacity;
+        set
+        {
+            var normalized = HudSettingsDefaults.NormalizeSurfaceOpacity(value);
+            SetAndSave(ref _gtaCompanionSurfaceOpacity, normalized,
+                settings => settings with { GtaCompanionSurfaceOpacity = normalized });
+        }
+    }
+
+    public string GtaCompanionVisibilityHotkeyText
+    {
+        get => _gtaCompanionVisibilityHotkeyText;
+        set { _gtaCompanionVisibilityHotkeyText = value; OnPropertyChanged(); }
     }
 
     private static string FormatOptionalHotkey(HotkeySetting? setting) =>
@@ -1354,11 +1417,12 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             !TryOptionalHotkey(NextChannelHotkeyText, out var nextChannel) ||
             !TryOptionalHotkey(GeneralTimerHotkeyText, out var generalTimer) ||
             !TryOptionalHotkey(BunkerTimerHotkeyText, out var bunkerTimer) ||
-            !TryOptionalHotkey(LsdTimerHotkeyText, out var lsdTimer))
+            !TryOptionalHotkey(LsdTimerHotkeyText, out var lsdTimer) ||
+            !TryOptionalHotkey(GtaCompanionVisibilityHotkeyText, out var gtaCompanionVisibility))
         { HotkeyValidationMessage = Localization["SettingsHotkeyInvalid"]; return; }
 
         var assigned = new HotkeyGesture?[]
-            { lockGesture, visibilityGesture, previousChannel, nextChannel, generalTimer, bunkerTimer, lsdTimer }
+            { lockGesture, visibilityGesture, previousChannel, nextChannel, generalTimer, bunkerTimer, lsdTimer, gtaCompanionVisibility }
             .Where(value => value.HasValue).Select(value => value!.Value).ToArray();
         if (assigned.Distinct().Count() != assigned.Length)
         { HotkeyValidationMessage = Localization["SettingsHotkeyDuplicate"]; return; }
@@ -1372,6 +1436,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             GeneralTimerHotkey = generalTimer?.ToSetting() ?? new HotkeySetting { Key = "" },
             BunkerTimerHotkey = bunkerTimer?.ToSetting() ?? new HotkeySetting { Key = "" },
             LsdTimerHotkey = lsdTimer?.ToSetting() ?? new HotkeySetting { Key = "" },
+            GtaCompanionVisibilityHotkey = gtaCompanionVisibility?.ToSetting() ?? new HotkeySetting { Key = "" },
             HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
             HotkeysCustomized = true,
         });
@@ -1395,6 +1460,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         GeneralTimerHotkey = new HotkeySetting { Key = "" },
         BunkerTimerHotkey = new HotkeySetting { Key = "" },
         LsdTimerHotkey = new HotkeySetting { Key = "" },
+        GtaCompanionVisibilityHotkey = new HotkeySetting { Key = "" },
         HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
         HotkeysCustomized = false,
     });
@@ -1413,6 +1479,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             GeneralTimerHotkey = desired.GeneralTimerHotkey,
             BunkerTimerHotkey = desired.BunkerTimerHotkey,
             LsdTimerHotkey = desired.LsdTimerHotkey,
+            GtaCompanionVisibilityHotkey = desired.GtaCompanionVisibilityHotkey,
             HotkeySettingsVersion = desired.HotkeySettingsVersion,
             HotkeysCustomized = desired.HotkeysCustomized,
         }))
@@ -1436,6 +1503,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         GeneralTimerHotkeyText = FormatOptionalHotkey(settings.GeneralTimerHotkey);
         BunkerTimerHotkeyText = FormatOptionalHotkey(settings.BunkerTimerHotkey);
         LsdTimerHotkeyText = FormatOptionalHotkey(settings.LsdTimerHotkey);
+        GtaCompanionVisibilityHotkeyText = FormatOptionalHotkey(settings.GtaCompanionVisibilityHotkey);
     }
 
     private void RequestManualSalesResync()
@@ -1533,6 +1601,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         CreateCategory(SettingsCategory.Sales, "SettingsCategorySales", "M5,3H19V21H5ZM8,7H16M8,11H16M8,15H13M8,19H11"),
         CreateCategory(SettingsCategory.SalesHistory, "SettingsCategorySalesHistory", "M4,4H20V20H4ZM8,8H16M8,12H16M8,16H13M17,15V19M15,17H19"),
         CreateCategory(SettingsCategory.Timers, "SettingsTimerTitle", "M12,3A9,9 0 1 0 12,21A9,9 0 1 0 12,3M12,7V12L15,14M9,2H15"),
+        CreateCategory(SettingsCategory.GtaCompanion, "SettingsGtaCompanionTitle", "M4,5H20V19H4ZM7,9H17M7,13H13M16,12L19,15M19,12L16,15"),
         CreateCategory(SettingsCategory.Hotkeys, "SettingsCategoryHotkeys", "M3,6H21V18H3ZM6,10H8M10,10H12M14,10H16M18,10H19M6,14H8M10,14H17"),
         CreateCategory(SettingsCategory.Diagnostics, "SettingsCategoryDiagnostics", "M14.7,6.3A5,5 0 0 0 8.3,12.7L3.5,17.5L6.5,20.5L11.3,15.7A5,5 0 0 0 17.7,9.3L14,13L11,10Z"),
         CreateCategory(SettingsCategory.Developer, "SettingsCategoryDeveloper", "M9,3H15L16,7L20,9V15L16,17L15,21H9L8,17L4,15V9L8,7ZM12,9A3,3 0 1 0 12,15A3,3 0 1 0 12,9"),

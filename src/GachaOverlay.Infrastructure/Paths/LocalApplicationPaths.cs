@@ -30,6 +30,7 @@ public sealed class LocalApplicationPaths
             "sales-products.override.json");
         SalesHistoryFilePath = Path.Combine(DataDirectory, "sales-history.json");
         SharedTimerFilePath = Path.Combine(DataDirectory, "shared-timers.json");
+        GtaCompanionStateFilePath = Path.Combine(DataDirectory, "gta-companion-state.json");
         LogDirectory = Path.Combine(DataDirectory, "Logs");
         CrashSummaryFilePath = Path.Combine(DataDirectory, "crash-summary.json");
         NotificationToneDirectory = Path.Combine(DataDirectory, "NotificationTones");
@@ -56,6 +57,8 @@ public sealed class LocalApplicationPaths
     public string SalesHistoryFilePath { get; }
 
     public string SharedTimerFilePath { get; }
+
+    public string GtaCompanionStateFilePath { get; }
 
     public string LogDirectory { get; }
 

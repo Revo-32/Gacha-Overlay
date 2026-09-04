@@ -9,8 +9,10 @@ using LSOverlay.Protocol;
 
 namespace LSOverlay.RemoteClient;
 
-public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSOverlayRemoteSalesClient, ILSOverlayDiscordWebAuthClient
+public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSOverlayRemoteSalesClient, ILSOverlayGtaCompanionClient, ILSOverlayDiscordWebAuthClient
 {
+    private static readonly IReadOnlyList<string> SupportedCapabilities =
+        new[] { OverlayTransportProtocol.GtaCompanionV1Capability };
     private static readonly TimeSpan[] ReconnectDelays =
     {
         TimeSpan.FromSeconds(1),
@@ -61,6 +63,7 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
     public event Action<SalesBootstrapResponse>? SalesReady;
     public event Action<SalesMutationEnvelope>? SalesMutationReceived;
     public event Action<string>? SalesStreamStatusChanged;
+    public event Action<GtaCompanionSnapshot>? GtaCompanionSnapshotReceived;
 
     public async Task<BootstrapResponse> GetBootstrapAsync(
         string accessToken,
@@ -226,7 +229,8 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
             OverlayTransportProtocol.Version,
             OverlayTransportProtocol.Resume,
             presenceBootstrap.Generation,
-            presenceBootstrap.LatestSequence), sendGate, cancellationToken).ConfigureAwait(false);
+            presenceBootstrap.LatestSequence,
+            Capabilities: SupportedCapabilities), sendGate, cancellationToken).ConfigureAwait(false);
 
         var switchState = new TransactionalChatSwitchState(this);
         await switchState.RequestAsync(
@@ -243,6 +247,7 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
         }
         var presenceGeneration = presenceBootstrap.Generation;
         var nextPresenceSequence = presenceBootstrap.LatestSequence + 1;
+        var lastGtaRevision = -1L;
         // These requests now belong to the transactional states, not this
         // connection-long async frame. Keep only the presence cursor.
         initialChatBootstrap = null!;
@@ -333,6 +338,9 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
                     case OverlayTransportProtocol.SalesChannelUnavailable:
                         salesState.Status(message);
                         break;
+                    case OverlayTransportProtocol.GtaCompanionSnapshot:
+                        AcceptGtaCompanionSnapshot(message, ref lastGtaRevision);
+                        break;
                     case OverlayTransportProtocol.ResyncRequired:
                         ResyncRequired?.Invoke();
                         throw new RemoteResyncRequiredException();
@@ -395,9 +403,11 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
             OverlayTransportProtocol.Version,
             OverlayTransportProtocol.Resume,
             bootstrap.Generation,
-            bootstrap.LatestSequence), cancellationToken).ConfigureAwait(false);
+            bootstrap.LatestSequence,
+            Capabilities: SupportedCapabilities), cancellationToken).ConfigureAwait(false);
 
         var nextExpectedSequence = bootstrap.LatestSequence + 1;
+        var lastGtaRevision = -1L;
 
         while (!cancellationToken.IsCancellationRequested && socket.State == WebSocketState.Open)
         {
@@ -425,6 +435,9 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
                 case OverlayTransportProtocol.Live:
                     becameLive();
                     StreamLive?.Invoke();
+                    break;
+                case OverlayTransportProtocol.GtaCompanionSnapshot:
+                    AcceptGtaCompanionSnapshot(message, ref lastGtaRevision);
                     break;
                 case OverlayTransportProtocol.ResyncRequired:
                     ResyncRequired?.Invoke();
@@ -568,6 +581,27 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
         {
             throw new InvalidDataException("Invalid remote event envelope.");
         }
+    }
+
+    private void AcceptGtaCompanionSnapshot(
+        StreamServerMessage message,
+        ref long lastRevision)
+    {
+        var snapshot = message.GtaCompanion;
+        if (snapshot is null ||
+            snapshot.ProtocolVersion != OverlayTransportProtocol.Version ||
+            snapshot.Revision <= 0)
+        {
+            throw new InvalidDataException("Invalid GTA Companion snapshot.");
+        }
+
+        if (snapshot.Revision <= lastRevision)
+        {
+            return;
+        }
+
+        lastRevision = snapshot.Revision;
+        GtaCompanionSnapshotReceived?.Invoke(snapshot);
     }
 
     private static bool IsAuthenticationFailure(Exception exception)

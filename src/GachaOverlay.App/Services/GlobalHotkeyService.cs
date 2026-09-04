@@ -13,6 +13,7 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
     private const int VisibilityToggleId = 0x5A02;
     private const int PreviousChannelId = 0x5A03;
     private const int NextChannelId = 0x5A04;
+    private const int GtaCompanionVisibilityId = 0x5A06;
     private const int GeneralTimerId = 0x5B01;
     private const int BunkerTimerId = 0x5B02;
     private const int LsdTimerId = 0x5B03;
@@ -38,6 +39,8 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 
     public event Action<int>? ChannelStepRequested;
 
+    public event Action? GtaCompanionVisibilityToggleRequested;
+
     public event Action<GtaoTimerSlot>? TimerStartRequested;
 
     public bool Bind(AppSettings settings)
@@ -48,7 +51,8 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
             !TryOptional(settings.NextMainChannelHotkey, out var next) ||
             !TryOptional(settings.GeneralTimerHotkey, out var generalTimer) ||
             !TryOptional(settings.BunkerTimerHotkey, out var bunkerTimer) ||
-            !TryOptional(settings.LsdTimerHotkey, out var lsdTimer)) return false;
+            !TryOptional(settings.LsdTimerHotkey, out var lsdTimer) ||
+            !TryOptional(settings.GtaCompanionVisibilityHotkey, out var gtaCompanionVisibility)) return false;
         var desired = new Dictionary<int, HotkeyGesture?>
         {
             [VisibilityToggleId] = plan.VisibilityToggle,
@@ -58,6 +62,7 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
             [GeneralTimerId] = generalTimer,
             [BunkerTimerId] = bunkerTimer,
             [LsdTimerId] = lsdTimer,
+            [GtaCompanionVisibilityId] = gtaCompanionVisibility,
         };
         var assigned = desired.Values.Where(value => value.HasValue).Select(value => value!.Value).ToArray();
         if (assigned.Distinct().Count() != assigned.Length) return false;
@@ -197,6 +202,12 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
         if (id == GeneralTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.General); return; }
         if (id == BunkerTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.Bunker); return; }
         if (id == LsdTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.Lsd); return; }
+        if (id == GtaCompanionVisibilityId)
+        {
+            _logger.Information("HOTKEY", "Trigger GtaCompanionVisibilityToggle.");
+            GtaCompanionVisibilityToggleRequested?.Invoke();
+            return;
+        }
         if (id == LockToggleId)
         {
             _logger.Information("HOTKEY", "Trigger LockToggle.");
