@@ -490,4 +490,6 @@
   <data name="SettingsGtaCompanionCompactHint" xml:space="preserve"><value>주간 이벤트를 끄면 같은 HUD가 도전 중심의 작은 모드로 바뀝니다.</value></data>
   <data name="SettingsGtaCompanionHotkey" xml:space="preserve"><value>컴패니언 표시 단축키</value></data>
   <data name="SettingsGtaCompanionHotkeyHint" xml:space="preserve"><value>기본값은 미지정입니다. F10 잠금은 기존 HUD와 함께 적용됩니다.</value></data>
+  <data name="SettingsBusinessManagerTitle" xml:space="preserve"><value>사업장 관리자</value></data>
+  <data name="SettingsAnimatedMediaPlayback" xml:space="preserve"><value>움직이는 미디어 재생</value></data>
 </root>

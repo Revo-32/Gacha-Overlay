@@ -308,12 +308,19 @@ public sealed class JsonSettingsStore : ISettingsStore
                 !usedGestures.Add(value)) return new HotkeySetting { Key = "" };
             return value.ToSetting();
         }
+        static HotkeySetting Retired(HotkeySetting? candidate) =>
+            candidate is not null && HotkeyGesture.TryParse(candidate, out var value)
+                ? value.ToSetting()
+                : new HotkeySetting { Key = "" };
         var previousChannelHotkey = Optional(settings.PreviousMainChannelHotkey);
         var nextChannelHotkey = Optional(settings.NextMainChannelHotkey);
         var generalTimerHotkey = Optional(settings.GeneralTimerHotkey);
-        var bunkerTimerHotkey = Optional(settings.BunkerTimerHotkey);
-        var lsdTimerHotkey = Optional(settings.LsdTimerHotkey);
+        // Retired timer gestures remain in the settings document for downgrade/data
+        // compatibility, but GlobalHotkeyService no longer registers either gesture.
+        var bunkerTimerHotkey = Retired(settings.BunkerTimerHotkey);
+        var lsdTimerHotkey = Retired(settings.LsdTimerHotkey);
         var gtaCompanionVisibilityHotkey = Optional(settings.GtaCompanionVisibilityHotkey);
+        var businessManagerVisibilityHotkey = Optional(settings.BusinessManagerVisibilityHotkey);
 
         var geometry = settings.HudWindowGeometry;
         if (geometry is not null && !geometry.Rectangle.IsFiniteAndPositive)
@@ -327,6 +334,25 @@ public sealed class JsonSettingsStore : ISettingsStore
         {
             gtaCompanionGeometry = null;
             _logger.Warning("SETTINGS", "Invalid GTA Companion geometry was discarded.");
+        }
+
+        var businessManagerGeometry = settings.BusinessManagerWindowGeometry;
+        if (businessManagerGeometry is not null && !businessManagerGeometry.Rectangle.IsFiniteAndPositive)
+        {
+            businessManagerGeometry = null;
+            _logger.Warning("SETTINGS", "Invalid Business Manager geometry was discarded.");
+        }
+
+        var nightclubMinimumIncome = GachaOverlay.Core.Business.BusinessMechanicCatalog.NightclubTargets
+            .Contains(settings.BusinessNightclubMinimumIncome)
+                ? settings.BusinessNightclubMinimumIncome
+                : 50_000;
+        static string WarehouseName(string? value, int slot)
+        {
+            var normalized = value?.Trim();
+            return string.IsNullOrWhiteSpace(normalized)
+                ? $"창고 {slot}"
+                : normalized[..Math.Min(normalized.Length, 32)];
         }
 
         var fontPreset = settings.ChatFontPreset == ChatFontPreset.KoPubWorldDotum
@@ -431,6 +457,23 @@ public sealed class JsonSettingsStore : ISettingsStore
                 settings.GtaCompanionSurfaceOpacity),
             GtaCompanionVisibilityHotkey = gtaCompanionVisibilityHotkey,
             GtaCompanionWindowGeometry = gtaCompanionGeometry,
+            BusinessManagerEnabled = sourceSchemaVersion < 22
+                ? false
+                : settings.BusinessManagerEnabled,
+            BusinessManagerSurfaceOpacity = HudSettingsDefaults.NormalizeSurfaceOpacity(
+                settings.BusinessManagerSurfaceOpacity),
+            BusinessManagerVisibilityHotkey = businessManagerVisibilityHotkey,
+            BusinessManagerWindowGeometry = businessManagerGeometry,
+            BusinessNightclubMinimumIncome = nightclubMinimumIncome,
+            BusinessMoneyFrontCount = Math.Clamp(settings.BusinessMoneyFrontCount, 1, 3),
+            BusinessSpecialCargoWarehouseCount = Math.Clamp(
+                settings.BusinessSpecialCargoWarehouseCount, 1, 5),
+            BusinessSpecialCargoWarehouse1Name = WarehouseName(settings.BusinessSpecialCargoWarehouse1Name, 1),
+            BusinessSpecialCargoWarehouse2Name = WarehouseName(settings.BusinessSpecialCargoWarehouse2Name, 2),
+            BusinessSpecialCargoWarehouse3Name = WarehouseName(settings.BusinessSpecialCargoWarehouse3Name, 3),
+            BusinessSpecialCargoWarehouse4Name = WarehouseName(settings.BusinessSpecialCargoWarehouse4Name, 4),
+            BusinessSpecialCargoWarehouse5Name = WarehouseName(settings.BusinessSpecialCargoWarehouse5Name, 5),
+            AnimatedMediaPlaybackEnabled = sourceSchemaVersion < 22 || settings.AnimatedMediaPlaybackEnabled,
             SelectedSessionHost = Enum.IsDefined(settings.SelectedSessionHost)
                 ? settings.SelectedSessionHost
                 : SessionHostSelection.Host1,
@@ -532,8 +575,11 @@ public sealed class JsonSettingsStore : ISettingsStore
         source.BunkerTimerHotkey != normalized.BunkerTimerHotkey ||
         source.LsdTimerHotkey != normalized.LsdTimerHotkey ||
         source.GtaCompanionVisibilityHotkey != normalized.GtaCompanionVisibilityHotkey ||
+        source.BusinessManagerVisibilityHotkey != normalized.BusinessManagerVisibilityHotkey ||
         source.GtaCompanionWindowGeometry != normalized.GtaCompanionWindowGeometry ||
+        source.BusinessManagerWindowGeometry != normalized.BusinessManagerWindowGeometry ||
         Math.Abs(source.GtaCompanionSurfaceOpacity - normalized.GtaCompanionSurfaceOpacity) > 0.001 ||
+        Math.Abs(source.BusinessManagerSurfaceOpacity - normalized.BusinessManagerSurfaceOpacity) > 0.001 ||
         source.GeneralTimerMinutes != normalized.GeneralTimerMinutes ||
         source.BunkerTimerMinutes != normalized.BunkerTimerMinutes ||
         source.LsdTimerMinutes != normalized.LsdTimerMinutes ||

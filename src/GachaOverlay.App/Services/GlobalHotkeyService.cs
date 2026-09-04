@@ -14,9 +14,8 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
     private const int PreviousChannelId = 0x5A03;
     private const int NextChannelId = 0x5A04;
     private const int GtaCompanionVisibilityId = 0x5A06;
+    private const int BusinessManagerVisibilityId = 0x5A07;
     private const int GeneralTimerId = 0x5B01;
-    private const int BunkerTimerId = 0x5B02;
-    private const int LsdTimerId = 0x5B03;
     private AppSettings _lastSettings = AppSettings.CreateDefault();
     private const uint ModNoRepeat = 0x4000;
 
@@ -40,6 +39,7 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
     public event Action<int>? ChannelStepRequested;
 
     public event Action? GtaCompanionVisibilityToggleRequested;
+    public event Action? BusinessManagerVisibilityToggleRequested;
 
     public event Action<GtaoTimerSlot>? TimerStartRequested;
 
@@ -50,9 +50,8 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
         if (!TryOptional(settings.PreviousMainChannelHotkey, out var previous) ||
             !TryOptional(settings.NextMainChannelHotkey, out var next) ||
             !TryOptional(settings.GeneralTimerHotkey, out var generalTimer) ||
-            !TryOptional(settings.BunkerTimerHotkey, out var bunkerTimer) ||
-            !TryOptional(settings.LsdTimerHotkey, out var lsdTimer) ||
-            !TryOptional(settings.GtaCompanionVisibilityHotkey, out var gtaCompanionVisibility)) return false;
+            !TryOptional(settings.GtaCompanionVisibilityHotkey, out var gtaCompanionVisibility) ||
+            !TryOptional(settings.BusinessManagerVisibilityHotkey, out var businessManagerVisibility)) return false;
         var desired = new Dictionary<int, HotkeyGesture?>
         {
             [VisibilityToggleId] = plan.VisibilityToggle,
@@ -60,9 +59,8 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
             [PreviousChannelId] = previous,
             [NextChannelId] = next,
             [GeneralTimerId] = generalTimer,
-            [BunkerTimerId] = bunkerTimer,
-            [LsdTimerId] = lsdTimer,
             [GtaCompanionVisibilityId] = gtaCompanionVisibility,
+            [BusinessManagerVisibilityId] = businessManagerVisibility,
         };
         var assigned = desired.Values.Where(value => value.HasValue).Select(value => value!.Value).ToArray();
         if (assigned.Distinct().Count() != assigned.Length) return false;
@@ -200,12 +198,16 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
         if (id == PreviousChannelId) { ChannelStepRequested?.Invoke(-1); return; }
         if (id == NextChannelId) { ChannelStepRequested?.Invoke(1); return; }
         if (id == GeneralTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.General); return; }
-        if (id == BunkerTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.Bunker); return; }
-        if (id == LsdTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.Lsd); return; }
         if (id == GtaCompanionVisibilityId)
         {
             _logger.Information("HOTKEY", "Trigger GtaCompanionVisibilityToggle.");
             GtaCompanionVisibilityToggleRequested?.Invoke();
+            return;
+        }
+        if (id == BusinessManagerVisibilityId)
+        {
+            _logger.Information("HOTKEY", "Trigger BusinessManagerVisibilityToggle.");
+            BusinessManagerVisibilityToggleRequested?.Invoke();
             return;
         }
         if (id == LockToggleId)

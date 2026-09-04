@@ -839,6 +839,7 @@ internal sealed class ChatReactionViewModel : INotifyPropertyChanged
     public ChatReactionViewModel(DiscordMessageReaction reaction)
     {
         EmojiId = reaction.Emoji.EmojiId;
+        IsAnimatedEmoji = reaction.Emoji.Animated;
         Text = string.IsNullOrWhiteSpace(reaction.Emoji.EmojiId)
             ? reaction.Emoji.Name
             : $":{reaction.Emoji.Name}:";
@@ -848,6 +849,8 @@ internal sealed class ChatReactionViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public string? EmojiId { get; }
+
+    public bool IsAnimatedEmoji { get; }
 
     public string Text { get; }
 

@@ -23,6 +23,13 @@
       "blocksFinalPackage": false,
       "sourcePath": "src/GachaOverlay.App/Assets/Themes/ThirdPartyNotices",
       "stagingDirectory": "Themes"
+    },
+    {
+      "component": "SkiaSharp animated-media decoder",
+      "status": "VerifiedFromRepositoryEvidence",
+      "blocksFinalPackage": false,
+      "sourcePath": "src/GachaOverlay.App/Assets/Media/ThirdPartyNotices",
+      "stagingDirectory": "Media"
     }
   ]
 }

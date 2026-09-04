@@ -67,6 +67,15 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
         Refresh();
     }
 
+    public void StartGeneral(int minutes)
+    {
+        var normalized = GtaoTimerPresets.Normalize(GtaoTimerSlot.General, minutes);
+        _completedSlots.Remove(GtaoTimerSlot.General);
+        _engine.Start(GtaoTimerSlot.General, TimeSpan.FromMinutes(normalized), Now());
+        if (!_refreshTimer.IsEnabled) _refreshTimer.Start();
+        Refresh();
+    }
+
     public void Dispose()
     {
         _refreshTimer.Stop();

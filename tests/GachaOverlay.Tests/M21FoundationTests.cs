@@ -33,7 +33,7 @@ public sealed class M21FoundationTests
 
         var settings = new JsonSettingsStore(path).Load();
 
-        Assert.Equal(21, settings.SchemaVersion);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, settings.SchemaVersion);
         Assert.Equal("ko", settings.Language);
         Assert.Equal(RoleIconPosition.Left, settings.ChatRoleIconPosition);
         Assert.Equal(18, settings.ChatReactionSize);

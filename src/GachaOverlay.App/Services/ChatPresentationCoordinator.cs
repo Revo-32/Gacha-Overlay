@@ -22,11 +22,13 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     private readonly ChatTypographyResolver _typographyResolver;
     private readonly Dictionary<string, ChatMessageViewModel> _items = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ChatMessagePresentation> _presentations = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<IDisposable>> _animationHandles = new(StringComparer.Ordinal);
     private AppSettings _settings;
     private ResolvedChatTypography _typography;
     private ChatResponsiveLevel _responsiveLevel = ChatResponsiveLevel.Full;
     private int _responsiveMeasurementRevision;
     private bool _disposed;
+    private bool _animationsVisible = true;
     private long _scrollGeneration = -1;
     private readonly IRuntimeMetrics? _metrics;
 
@@ -48,6 +50,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         _typographyResolver = typographyResolver;
         _typography = typographyResolver.Resolve(settings.ChatFontPreset);
         _metrics = metrics;
+        _metrics?.SetState(RuntimeMetricNames.MediaAnimationEnabled,
+            settings.AnimatedMediaPlaybackEnabled.ToString());
     }
 
     public void ApplyState(DiscordMessageState state, string? authenticatedUserId)
@@ -113,6 +117,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             Math.Abs(_settings.ChatFontSizePoints - settings.ChatFontSizePoints) > 0.001 ||
             Math.Abs(_settings.ChatLineHeightMultiplier - settings.ChatLineHeightMultiplier) > 0.001;
         _settings = settings;
+        _metrics?.SetState(RuntimeMetricNames.MediaAnimationEnabled,
+            settings.AnimatedMediaPlaybackEnabled.ToString());
         _viewModel.PaintViewportPadding = ChatPaintSafety.CalculateViewportPadding(settings);
         _typography = _typographyResolver.Resolve(settings.ChatFontPreset);
         if (metricsChanged)
@@ -133,6 +139,24 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         RegroupConsecutiveAuthors();
     }
 
+    public void SetAnimationsVisible(bool visible)
+    {
+        if (_animationsVisible == visible) return;
+        _animationsVisible = visible;
+        if (!visible)
+        {
+            StopAllAnimations();
+            return;
+        }
+
+        foreach (var item in _items.Values)
+        {
+            item.RestartEnrichment();
+            if (_presentations.TryGetValue(item.MessageId, out var presentation))
+                StartEnrichment(item, presentation);
+        }
+    }
+
     internal ResolvedChatTypography CurrentTypography => _typography;
 
     internal int ResponsiveMeasurementRevision => _responsiveMeasurementRevision;
@@ -141,6 +165,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
 
     public void ClearMediaCache()
     {
+        StopAllAnimations();
         _viewModel.PreviewImage = null;
         _media.ClearCache();
         foreach (var item in _items.Values)
@@ -248,6 +273,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         }
 
         _items.Clear();
+        StopAllAnimations();
         _presentations.Clear();
         _viewModel.Messages.Clear();
         _viewModel.PreviewImage = null;
@@ -286,6 +312,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             _viewModel.PreviewImage = null;
         }
 
+        StopAnimations(item.MessageId);
         item.Update(presentation);
         item.ApplySettings(_settings, _responsiveLevel, _typography);
         _presentations[presentation.MessageId] = presentation;
@@ -300,6 +327,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         }
 
         _presentations.Remove(messageId);
+        StopAnimations(messageId);
         _viewModel.Messages.Remove(item);
         item.Dispose();
         if (ReferenceEquals(_viewModel.PreviewImage, item.Thumbnail))
@@ -312,6 +340,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         ChatMessageViewModel item,
         ChatMessagePresentation presentation)
     {
+        StopAnimations(item.MessageId);
         var revision = presentation.Revision;
         var identity = new ChatEnrichmentIdentity(
             presentation.MessageId,
@@ -390,8 +419,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     {
         try
         {
-            var image = await _media.GetEmojiAsync(token.Identity!, item.EnrichmentToken);
-            if (image is null)
+            var asset = await _media.GetEmojiMediaAsync(token.Identity!, token.IsAnimatedEmoji, item.EnrichmentToken);
+            if (asset is null)
             {
                 return;
             }
@@ -400,7 +429,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             {
                 if (item.IsCurrent(identity) && _items.ContainsKey(item.MessageId))
                 {
-                    token.Image = image;
+                    token.Image = asset.Preview;
+                    StartAnimation(item, identity, asset, frame => token.Image = frame);
                 }
             });
         }
@@ -416,8 +446,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     {
         try
         {
-            var image = await _media.GetThumbnailAsync(url, item.EnrichmentToken);
-            if (image is null)
+            var asset = await _media.GetThumbnailMediaAsync(url, item.EnrichmentToken);
+            if (asset is null)
             {
                 return;
             }
@@ -426,7 +456,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             {
                 if (item.IsCurrent(identity) && _items.ContainsKey(item.MessageId))
                 {
-                    item.Thumbnail = image;
+                    item.Thumbnail = asset.Preview;
+                    StartAnimation(item, identity, asset, frame => item.Thumbnail = frame);
                 }
             });
         }
@@ -468,8 +499,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     {
         try
         {
-            var image = await _media.GetEmojiAsync(reaction.EmojiId!, item.EnrichmentToken);
-            if (image is null)
+            var asset = await _media.GetEmojiMediaAsync(reaction.EmojiId!, reaction.IsAnimatedEmoji, item.EnrichmentToken);
+            if (asset is null)
             {
                 return;
             }
@@ -480,7 +511,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                     _items.ContainsKey(item.MessageId) &&
                     item.Reactions.Contains(reaction))
                 {
-                    reaction.Image = image;
+                    reaction.Image = asset.Preview;
+                    StartAnimation(item, identity, asset, frame => reaction.Image = frame);
                 }
             });
         }
@@ -496,11 +528,11 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     {
         try
         {
-            var image = await _media.GetStickerAsync(
+            var asset = await _media.GetStickerMediaAsync(
                 sticker,
                 item.MessageId,
                 item.EnrichmentToken);
-            if (image is null)
+            if (asset is null)
             {
                 _logger.Information(
                     "STICKER",
@@ -512,7 +544,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             {
                 if (item.IsCurrent(identity) && _items.ContainsKey(item.MessageId))
                 {
-                    item.StickerImage = image;
+                    item.StickerImage = asset.Preview;
+                    StartAnimation(item, identity, asset, frame => item.StickerImage = frame);
                     _logger.Information(
                         "STICKER",
                         $"message={item.MessageId} presentation=Visible.");
@@ -538,8 +571,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     {
         try
         {
-            var image = await _media.GetThumbnailAsync(url, item.EnrichmentToken);
-            if (image is null)
+            var asset = await _media.GetThumbnailMediaAsync(url, item.EnrichmentToken);
+            if (asset is null)
             {
                 return;
             }
@@ -550,7 +583,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                     _items.ContainsKey(item.MessageId) &&
                     item.ForwardedMessages.Contains(forwarded))
                 {
-                    forwarded.Thumbnail = image;
+                    forwarded.Thumbnail = asset.Preview;
+                    StartAnimation(item, identity, asset, frame => forwarded.Thumbnail = frame);
                 }
             });
         }
@@ -567,8 +601,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     {
         try
         {
-            var image = await _media.GetEmojiAsync(token.Identity!, item.EnrichmentToken);
-            if (image is null)
+            var asset = await _media.GetEmojiMediaAsync(token.Identity!, token.IsAnimatedEmoji, item.EnrichmentToken);
+            if (asset is null)
             {
                 return;
             }
@@ -580,7 +614,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                     item.ForwardedMessages.Contains(forwarded) &&
                     forwarded.Tokens.Contains(token))
                 {
-                    token.Image = image;
+                    token.Image = asset.Preview;
+                    StartAnimation(item, identity, asset, frame => token.Image = frame);
                 }
             });
         }
@@ -597,11 +632,11 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     {
         try
         {
-            var image = await _media.GetStickerAsync(
+            var asset = await _media.GetStickerMediaAsync(
                 sticker,
                 item.MessageId + ":forward",
                 item.EnrichmentToken);
-            if (image is null)
+            if (asset is null)
             {
                 return;
             }
@@ -612,7 +647,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                     _items.ContainsKey(item.MessageId) &&
                     item.ForwardedMessages.Contains(forwarded))
                 {
-                    forwarded.StickerImage = image;
+                    forwarded.StickerImage = asset.Preview;
+                    StartAnimation(item, identity, asset, frame => forwarded.StickerImage = frame);
                 }
             });
         }
@@ -629,6 +665,31 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         }
 
         _viewModel.PreviewImage = item.Thumbnail;
+    }
+
+    private void StartAnimation(ChatMessageViewModel item, ChatEnrichmentIdentity identity,
+        CachedMediaAsset asset, Action<ImageSource> apply)
+    {
+        if (!_settings.AnimatedMediaPlaybackEnabled || !_animationsVisible || !asset.IsAnimated) return;
+        var handle = _media.Play(asset, frame =>
+        {
+            if (item.IsCurrent(identity) && _items.ContainsKey(item.MessageId)) apply(frame);
+        });
+        if (handle is null) return;
+        if (!_animationHandles.TryGetValue(item.MessageId, out var handles))
+            _animationHandles[item.MessageId] = handles = [];
+        handles.Add(handle);
+    }
+
+    private void StopAnimations(string messageId)
+    {
+        if (!_animationHandles.Remove(messageId, out var handles)) return;
+        foreach (var handle in handles) handle.Dispose();
+    }
+
+    private void StopAllAnimations()
+    {
+        foreach (var messageId in _animationHandles.Keys.ToArray()) StopAnimations(messageId);
     }
 
     private void RegroupConsecutiveAuthors()

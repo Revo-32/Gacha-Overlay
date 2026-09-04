@@ -490,4 +490,6 @@
   <data name="SettingsGtaCompanionCompactHint" xml:space="preserve"><value>週間イベントを無効にすると、同じHUDが小さいチャレンジ専用表示になります。</value></data>
   <data name="SettingsGtaCompanionHotkey" xml:space="preserve"><value>コンパニオン表示ホットキー</value></data>
   <data name="SettingsGtaCompanionHotkeyHint" xml:space="preserve"><value>既定では未割り当てです。F10ロックは既存HUDと共有されます。</value></data>
+  <data name="SettingsBusinessManagerTitle" xml:space="preserve"><value>ビジネスマネージャー</value></data>
+  <data name="SettingsAnimatedMediaPlayback" xml:space="preserve"><value>アニメーションメディアを再生</value></data>
 </root>

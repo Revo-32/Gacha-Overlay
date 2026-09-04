@@ -23,12 +23,13 @@ public sealed class M757FinalPassTests
     public void SettingsEnum_PreservesLegacyOrderAndIncludesTimerAndSalesHistory()
     {
         var values = Enum.GetValues<SettingsCategory>();
-        Assert.Equal(13, values.Length);
+        Assert.Equal(14, values.Length);
         Assert.Equal(SettingsCategory.Server, values[2]);
         Assert.Equal(9, (int)SettingsCategory.Developer);
-        Assert.Equal(SettingsCategory.Timers, values[^3]);
-        Assert.Equal(SettingsCategory.SalesHistory, values[^2]);
-        Assert.Equal(SettingsCategory.GtaCompanion, values[^1]);
+        Assert.Equal(SettingsCategory.Timers, values[^4]);
+        Assert.Equal(SettingsCategory.SalesHistory, values[^3]);
+        Assert.Equal(SettingsCategory.GtaCompanion, values[^2]);
+        Assert.Equal(SettingsCategory.BusinessManager, values[^1]);
     }
 
     [Theory]

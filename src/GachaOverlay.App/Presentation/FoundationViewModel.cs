@@ -37,6 +37,32 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private bool _gtaCompanionWeeklyEventsEnabled;
     private double _gtaCompanionSurfaceOpacity;
     private string _gtaCompanionVisibilityHotkeyText = string.Empty;
+    private bool _businessManagerEnabled;
+    private double _businessManagerSurfaceOpacity;
+    private string _businessManagerVisibilityHotkeyText = string.Empty;
+    private bool _businessBunkerEnabled;
+    private bool _businessBunkerUpgraded;
+    private bool _businessNightclubEnabled;
+    private bool _businessNightclubStaffUpgrade;
+    private int _businessNightclubMinimumIncome;
+    private bool _businessAcidEnabled;
+    private bool _businessAcidUpgraded;
+    private bool _businessCarWashEnabled;
+    private int _businessMoneyFrontCount;
+    private bool _businessSpecialCargoEnabled;
+    private int _businessSpecialCargoWarehouseCount;
+    private string _businessSpecialCargoWarehouse1Name = string.Empty;
+    private string _businessSpecialCargoWarehouse2Name = string.Empty;
+    private string _businessSpecialCargoWarehouse3Name = string.Empty;
+    private string _businessSpecialCargoWarehouse4Name = string.Empty;
+    private string _businessSpecialCargoWarehouse5Name = string.Empty;
+    private bool _businessAirFreightEnabled;
+    private bool _businessOriginalHeistEnabled;
+    private bool _businessDoomsdayHeistEnabled;
+    private bool _businessCasinoHeistEnabled;
+    private bool _businessCayoHeistEnabled;
+    private bool _businessKortzHeistEnabled;
+    private bool _businessMansionBoostEnabled;
     private readonly Func<SalesFeatureHealthSnapshot> _getSalesHealthSnapshot;
     private readonly Func<ManualSalesResyncResult> _manualSalesResync;
     private readonly Action _clearMediaCache;
@@ -83,6 +109,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private ChatImageSizeMode _selectedChatImageSizeMode;
     private bool _chatCustomEmojiEnabled;
     private bool _chatStickerEnabled;
+    private bool _animatedMediaPlaybackEnabled;
     private bool _hidePreviewSourceUrl;
     private bool _salesTrackingEnabled;
     private bool _salesShowCurrentSeller;
@@ -197,6 +224,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _gtaCompanionWeeklyEventsEnabled = settings.GtaCompanionWeeklyEventsEnabled;
         _gtaCompanionSurfaceOpacity = settings.GtaCompanionSurfaceOpacity;
         _gtaCompanionVisibilityHotkeyText = FormatOptionalHotkey(settings.GtaCompanionVisibilityHotkey);
+        LoadBusinessSettings(settings);
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
@@ -221,6 +249,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _selectedChatImageSizeMode = settings.ChatImageSizeMode;
         _chatCustomEmojiEnabled = settings.ChatCustomEmojiEnabled;
         _chatStickerEnabled = settings.ChatStickerEnabled;
+        _animatedMediaPlaybackEnabled = settings.AnimatedMediaPlaybackEnabled;
         _hidePreviewSourceUrl = settings.HidePreviewSourceUrl;
         _salesTrackingEnabled = settings.SalesTrackingEnabled;
         _salesShowCurrentSeller = settings.SalesShowCurrentSeller;
@@ -399,6 +428,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _gtaCompanionWeeklyEventsEnabled = settings.GtaCompanionWeeklyEventsEnabled;
         _gtaCompanionSurfaceOpacity = settings.GtaCompanionSurfaceOpacity;
         _gtaCompanionVisibilityHotkeyText = FormatOptionalHotkey(settings.GtaCompanionVisibilityHotkey);
+        LoadBusinessSettings(settings);
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
@@ -883,6 +913,36 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         set { _gtaCompanionVisibilityHotkeyText = value; OnPropertyChanged(); }
     }
 
+    public bool BusinessManagerEnabled { get => _businessManagerEnabled; set => SetAndSave(ref _businessManagerEnabled, value, s => s with { BusinessManagerEnabled = value }); }
+    public double BusinessManagerSurfaceOpacity { get => _businessManagerSurfaceOpacity; set { var n = HudSettingsDefaults.NormalizeSurfaceOpacity(value); SetAndSave(ref _businessManagerSurfaceOpacity, n, s => s with { BusinessManagerSurfaceOpacity = n }); } }
+    public string BusinessManagerVisibilityHotkeyText { get => _businessManagerVisibilityHotkeyText; set { _businessManagerVisibilityHotkeyText = value; OnPropertyChanged(); } }
+    public bool BusinessBunkerEnabled { get => _businessBunkerEnabled; set => SetAndSave(ref _businessBunkerEnabled, value, s => s with { BusinessBunkerEnabled = value }); }
+    public bool BusinessBunkerUpgraded { get => _businessBunkerUpgraded; set => SetAndSave(ref _businessBunkerUpgraded, value, s => s with { BusinessBunkerUpgraded = value }); }
+    public bool BusinessNightclubEnabled { get => _businessNightclubEnabled; set => SetAndSave(ref _businessNightclubEnabled, value, s => s with { BusinessNightclubEnabled = value }); }
+    public bool BusinessNightclubStaffUpgrade { get => _businessNightclubStaffUpgrade; set => SetAndSave(ref _businessNightclubStaffUpgrade, value, s => s with { BusinessNightclubStaffUpgrade = value }); }
+    public int BusinessNightclubMinimumIncome { get => _businessNightclubMinimumIncome; set => SetAndSave(ref _businessNightclubMinimumIncome, value, s => s with { BusinessNightclubMinimumIncome = value }); }
+    public IReadOnlyList<int> BusinessNightclubIncomeOptions => GachaOverlay.Core.Business.BusinessMechanicCatalog.NightclubTargets;
+    public bool BusinessAcidEnabled { get => _businessAcidEnabled; set => SetAndSave(ref _businessAcidEnabled, value, s => s with { BusinessAcidEnabled = value }); }
+    public bool BusinessAcidUpgraded { get => _businessAcidUpgraded; set => SetAndSave(ref _businessAcidUpgraded, value, s => s with { BusinessAcidUpgraded = value }); }
+    public bool BusinessCarWashEnabled { get => _businessCarWashEnabled; set => SetAndSave(ref _businessCarWashEnabled, value, s => s with { BusinessCarWashEnabled = value }); }
+    public int BusinessMoneyFrontCount { get => _businessMoneyFrontCount; set => SetAndSave(ref _businessMoneyFrontCount, value, s => s with { BusinessMoneyFrontCount = value }); }
+    public IReadOnlyList<int> BusinessCountOptions { get; } = new[] { 1, 2, 3 };
+    public bool BusinessSpecialCargoEnabled { get => _businessSpecialCargoEnabled; set => SetAndSave(ref _businessSpecialCargoEnabled, value, s => s with { BusinessSpecialCargoEnabled = value }); }
+    public int BusinessSpecialCargoWarehouseCount { get => _businessSpecialCargoWarehouseCount; set => SetAndSave(ref _businessSpecialCargoWarehouseCount, value, s => s with { BusinessSpecialCargoWarehouseCount = value }); }
+    public IReadOnlyList<int> BusinessWarehouseCountOptions { get; } = new[] { 1, 2, 3, 4, 5 };
+    public string BusinessSpecialCargoWarehouse1Name { get => _businessSpecialCargoWarehouse1Name; set => SetAndSave(ref _businessSpecialCargoWarehouse1Name, value, s => s with { BusinessSpecialCargoWarehouse1Name = value }); }
+    public string BusinessSpecialCargoWarehouse2Name { get => _businessSpecialCargoWarehouse2Name; set => SetAndSave(ref _businessSpecialCargoWarehouse2Name, value, s => s with { BusinessSpecialCargoWarehouse2Name = value }); }
+    public string BusinessSpecialCargoWarehouse3Name { get => _businessSpecialCargoWarehouse3Name; set => SetAndSave(ref _businessSpecialCargoWarehouse3Name, value, s => s with { BusinessSpecialCargoWarehouse3Name = value }); }
+    public string BusinessSpecialCargoWarehouse4Name { get => _businessSpecialCargoWarehouse4Name; set => SetAndSave(ref _businessSpecialCargoWarehouse4Name, value, s => s with { BusinessSpecialCargoWarehouse4Name = value }); }
+    public string BusinessSpecialCargoWarehouse5Name { get => _businessSpecialCargoWarehouse5Name; set => SetAndSave(ref _businessSpecialCargoWarehouse5Name, value, s => s with { BusinessSpecialCargoWarehouse5Name = value }); }
+    public bool BusinessAirFreightEnabled { get => _businessAirFreightEnabled; set => SetAndSave(ref _businessAirFreightEnabled, value, s => s with { BusinessAirFreightEnabled = value }); }
+    public bool BusinessOriginalHeistEnabled { get => _businessOriginalHeistEnabled; set => SetAndSave(ref _businessOriginalHeistEnabled, value, s => s with { BusinessOriginalHeistEnabled = value }); }
+    public bool BusinessDoomsdayHeistEnabled { get => _businessDoomsdayHeistEnabled; set => SetAndSave(ref _businessDoomsdayHeistEnabled, value, s => s with { BusinessDoomsdayHeistEnabled = value }); }
+    public bool BusinessCasinoHeistEnabled { get => _businessCasinoHeistEnabled; set => SetAndSave(ref _businessCasinoHeistEnabled, value, s => s with { BusinessCasinoHeistEnabled = value }); }
+    public bool BusinessCayoHeistEnabled { get => _businessCayoHeistEnabled; set => SetAndSave(ref _businessCayoHeistEnabled, value, s => s with { BusinessCayoHeistEnabled = value }); }
+    public bool BusinessKortzHeistEnabled { get => _businessKortzHeistEnabled; set => SetAndSave(ref _businessKortzHeistEnabled, value, s => s with { BusinessKortzHeistEnabled = value }); }
+    public bool BusinessMansionBoostEnabled { get => _businessMansionBoostEnabled; set => SetAndSave(ref _businessMansionBoostEnabled, value, s => s with { BusinessMansionBoostEnabled = value }); }
+
     private static string FormatOptionalHotkey(HotkeySetting? setting) =>
         setting is not null && HotkeyGesture.TryParse(setting, out var gesture) ? gesture.ToString() : string.Empty;
 
@@ -1144,6 +1204,15 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         set => SetAndSave(ref _chatStickerEnabled, value, settings => settings with
         {
             ChatStickerEnabled = value,
+        });
+    }
+
+    public bool AnimatedMediaPlaybackEnabled
+    {
+        get => _animatedMediaPlaybackEnabled;
+        set => SetAndSave(ref _animatedMediaPlaybackEnabled, value, settings => settings with
+        {
+            AnimatedMediaPlaybackEnabled = value,
         });
     }
 
@@ -1416,13 +1485,12 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             !TryOptionalHotkey(PreviousChannelHotkeyText, out var previousChannel) ||
             !TryOptionalHotkey(NextChannelHotkeyText, out var nextChannel) ||
             !TryOptionalHotkey(GeneralTimerHotkeyText, out var generalTimer) ||
-            !TryOptionalHotkey(BunkerTimerHotkeyText, out var bunkerTimer) ||
-            !TryOptionalHotkey(LsdTimerHotkeyText, out var lsdTimer) ||
-            !TryOptionalHotkey(GtaCompanionVisibilityHotkeyText, out var gtaCompanionVisibility))
+            !TryOptionalHotkey(GtaCompanionVisibilityHotkeyText, out var gtaCompanionVisibility) ||
+            !TryOptionalHotkey(BusinessManagerVisibilityHotkeyText, out var businessManagerVisibility))
         { HotkeyValidationMessage = Localization["SettingsHotkeyInvalid"]; return; }
 
         var assigned = new HotkeyGesture?[]
-            { lockGesture, visibilityGesture, previousChannel, nextChannel, generalTimer, bunkerTimer, lsdTimer, gtaCompanionVisibility }
+            { lockGesture, visibilityGesture, previousChannel, nextChannel, generalTimer, gtaCompanionVisibility, businessManagerVisibility }
             .Where(value => value.HasValue).Select(value => value!.Value).ToArray();
         if (assigned.Distinct().Count() != assigned.Length)
         { HotkeyValidationMessage = Localization["SettingsHotkeyDuplicate"]; return; }
@@ -1434,9 +1502,10 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             PreviousMainChannelHotkey = previousChannel?.ToSetting() ?? new HotkeySetting { Key = "" },
             NextMainChannelHotkey = nextChannel?.ToSetting() ?? new HotkeySetting { Key = "" },
             GeneralTimerHotkey = generalTimer?.ToSetting() ?? new HotkeySetting { Key = "" },
-            BunkerTimerHotkey = bunkerTimer?.ToSetting() ?? new HotkeySetting { Key = "" },
-            LsdTimerHotkey = lsdTimer?.ToSetting() ?? new HotkeySetting { Key = "" },
+            BunkerTimerHotkey = _settingsStore.Current.BunkerTimerHotkey,
+            LsdTimerHotkey = _settingsStore.Current.LsdTimerHotkey,
             GtaCompanionVisibilityHotkey = gtaCompanionVisibility?.ToSetting() ?? new HotkeySetting { Key = "" },
+            BusinessManagerVisibilityHotkey = businessManagerVisibility?.ToSetting() ?? new HotkeySetting { Key = "" },
             HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
             HotkeysCustomized = true,
         });
@@ -1461,6 +1530,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         BunkerTimerHotkey = new HotkeySetting { Key = "" },
         LsdTimerHotkey = new HotkeySetting { Key = "" },
         GtaCompanionVisibilityHotkey = new HotkeySetting { Key = "" },
+        BusinessManagerVisibilityHotkey = new HotkeySetting { Key = "" },
         HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
         HotkeysCustomized = false,
     });
@@ -1480,6 +1550,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             BunkerTimerHotkey = desired.BunkerTimerHotkey,
             LsdTimerHotkey = desired.LsdTimerHotkey,
             GtaCompanionVisibilityHotkey = desired.GtaCompanionVisibilityHotkey,
+            BusinessManagerVisibilityHotkey = desired.BusinessManagerVisibilityHotkey,
             HotkeySettingsVersion = desired.HotkeySettingsVersion,
             HotkeysCustomized = desired.HotkeysCustomized,
         }))
@@ -1504,6 +1575,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         BunkerTimerHotkeyText = FormatOptionalHotkey(settings.BunkerTimerHotkey);
         LsdTimerHotkeyText = FormatOptionalHotkey(settings.LsdTimerHotkey);
         GtaCompanionVisibilityHotkeyText = FormatOptionalHotkey(settings.GtaCompanionVisibilityHotkey);
+        BusinessManagerVisibilityHotkeyText = FormatOptionalHotkey(settings.BusinessManagerVisibilityHotkey);
     }
 
     private void RequestManualSalesResync()
@@ -1602,6 +1674,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         CreateCategory(SettingsCategory.SalesHistory, "SettingsCategorySalesHistory", "M4,4H20V20H4ZM8,8H16M8,12H16M8,16H13M17,15V19M15,17H19"),
         CreateCategory(SettingsCategory.Timers, "SettingsTimerTitle", "M12,3A9,9 0 1 0 12,21A9,9 0 1 0 12,3M12,7V12L15,14M9,2H15"),
         CreateCategory(SettingsCategory.GtaCompanion, "SettingsGtaCompanionTitle", "M4,5H20V19H4ZM7,9H17M7,13H13M16,12L19,15M19,12L16,15"),
+        CreateCategory(SettingsCategory.BusinessManager, "SettingsBusinessManagerTitle", "M4,5H20V19H4ZM7,9H17M7,13H17M7,17H13M16,15H19V18H16Z"),
         CreateCategory(SettingsCategory.Hotkeys, "SettingsCategoryHotkeys", "M3,6H21V18H3ZM6,10H8M10,10H12M14,10H16M18,10H19M6,14H8M10,14H17"),
         CreateCategory(SettingsCategory.Diagnostics, "SettingsCategoryDiagnostics", "M14.7,6.3A5,5 0 0 0 8.3,12.7L3.5,17.5L6.5,20.5L11.3,15.7A5,5 0 0 0 17.7,9.3L14,13L11,10Z"),
         CreateCategory(SettingsCategory.Developer, "SettingsCategoryDeveloper", "M9,3H15L16,7L20,9V15L16,17L15,21H9L8,17L4,15V9L8,7ZM12,9A3,3 0 1 0 12,15A3,3 0 1 0 12,9"),
@@ -1790,6 +1863,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _selectedChatImageSizeMode = settings.ChatImageSizeMode;
         _chatCustomEmojiEnabled = settings.ChatCustomEmojiEnabled;
         _chatStickerEnabled = settings.ChatStickerEnabled;
+        _animatedMediaPlaybackEnabled = settings.AnimatedMediaPlaybackEnabled;
         _hidePreviewSourceUrl = settings.HidePreviewSourceUrl;
 
         foreach (var name in new[]
@@ -1823,6 +1897,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             nameof(SelectedChatImageSizeMode),
             nameof(ChatCustomEmojiEnabled),
             nameof(ChatStickerEnabled),
+            nameof(AnimatedMediaPlaybackEnabled),
             nameof(HidePreviewSourceUrl),
         })
         {
@@ -1830,6 +1905,36 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         }
 
         RefreshChatPresetState();
+    }
+
+    private void LoadBusinessSettings(AppSettings settings)
+    {
+        _businessManagerEnabled = settings.BusinessManagerEnabled;
+        _businessManagerSurfaceOpacity = settings.BusinessManagerSurfaceOpacity;
+        _businessManagerVisibilityHotkeyText = FormatOptionalHotkey(settings.BusinessManagerVisibilityHotkey);
+        _businessBunkerEnabled = settings.BusinessBunkerEnabled;
+        _businessBunkerUpgraded = settings.BusinessBunkerUpgraded;
+        _businessNightclubEnabled = settings.BusinessNightclubEnabled;
+        _businessNightclubStaffUpgrade = settings.BusinessNightclubStaffUpgrade;
+        _businessNightclubMinimumIncome = settings.BusinessNightclubMinimumIncome;
+        _businessAcidEnabled = settings.BusinessAcidEnabled;
+        _businessAcidUpgraded = settings.BusinessAcidUpgraded;
+        _businessCarWashEnabled = settings.BusinessCarWashEnabled;
+        _businessMoneyFrontCount = settings.BusinessMoneyFrontCount;
+        _businessSpecialCargoEnabled = settings.BusinessSpecialCargoEnabled;
+        _businessSpecialCargoWarehouseCount = settings.BusinessSpecialCargoWarehouseCount;
+        _businessSpecialCargoWarehouse1Name = settings.BusinessSpecialCargoWarehouse1Name;
+        _businessSpecialCargoWarehouse2Name = settings.BusinessSpecialCargoWarehouse2Name;
+        _businessSpecialCargoWarehouse3Name = settings.BusinessSpecialCargoWarehouse3Name;
+        _businessSpecialCargoWarehouse4Name = settings.BusinessSpecialCargoWarehouse4Name;
+        _businessSpecialCargoWarehouse5Name = settings.BusinessSpecialCargoWarehouse5Name;
+        _businessAirFreightEnabled = settings.BusinessAirFreightEnabled;
+        _businessOriginalHeistEnabled = settings.BusinessOriginalHeistEnabled;
+        _businessDoomsdayHeistEnabled = settings.BusinessDoomsdayHeistEnabled;
+        _businessCasinoHeistEnabled = settings.BusinessCasinoHeistEnabled;
+        _businessCayoHeistEnabled = settings.BusinessCayoHeistEnabled;
+        _businessKortzHeistEnabled = settings.BusinessKortzHeistEnabled;
+        _businessMansionBoostEnabled = settings.BusinessMansionBoostEnabled;
     }
 
     private void RefreshChatPresetState()

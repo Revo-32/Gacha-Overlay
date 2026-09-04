@@ -14,7 +14,7 @@ public sealed record AppSettings
 {
     private static readonly Dictionary<string, double> EmptyScrollPositions =
         new(StringComparer.OrdinalIgnoreCase);
-    public const int CurrentSchemaVersion = 21;
+    public const int CurrentSchemaVersion = 22;
 
     public const int CurrentOnboardingVersion = 2;
 
@@ -104,6 +104,38 @@ public sealed record AppSettings
 
     public FloatingHudGeometry? GtaCompanionWindowGeometry { get; init; }
 
+    public bool BusinessManagerEnabled { get; init; }
+
+    public double BusinessManagerSurfaceOpacity { get; init; } = HudSettingsDefaults.SurfaceOpacity;
+
+    public HotkeySetting BusinessManagerVisibilityHotkey { get; init; } = new() { Key = "" };
+
+    public FloatingHudGeometry? BusinessManagerWindowGeometry { get; init; }
+
+    public bool BusinessBunkerEnabled { get; init; }
+    public bool BusinessBunkerUpgraded { get; init; } = true;
+    public bool BusinessNightclubEnabled { get; init; }
+    public bool BusinessNightclubStaffUpgrade { get; init; }
+    public int BusinessNightclubMinimumIncome { get; init; } = 50_000;
+    public bool BusinessAcidEnabled { get; init; }
+    public bool BusinessAcidUpgraded { get; init; } = true;
+    public bool BusinessCarWashEnabled { get; init; }
+    public int BusinessMoneyFrontCount { get; init; } = 1;
+    public bool BusinessSpecialCargoEnabled { get; init; }
+    public int BusinessSpecialCargoWarehouseCount { get; init; } = 1;
+    public string BusinessSpecialCargoWarehouse1Name { get; init; } = "창고 1";
+    public string BusinessSpecialCargoWarehouse2Name { get; init; } = "창고 2";
+    public string BusinessSpecialCargoWarehouse3Name { get; init; } = "창고 3";
+    public string BusinessSpecialCargoWarehouse4Name { get; init; } = "창고 4";
+    public string BusinessSpecialCargoWarehouse5Name { get; init; } = "창고 5";
+    public bool BusinessAirFreightEnabled { get; init; }
+    public bool BusinessOriginalHeistEnabled { get; init; }
+    public bool BusinessDoomsdayHeistEnabled { get; init; }
+    public bool BusinessCasinoHeistEnabled { get; init; }
+    public bool BusinessCayoHeistEnabled { get; init; }
+    public bool BusinessKortzHeistEnabled { get; init; }
+    public bool BusinessMansionBoostEnabled { get; init; }
+
     public ChatLayoutMode ChatLayoutMode { get; init; } = ChatLayoutMode.Balanced;
 
     public bool ChatShowTime { get; init; } = true;
@@ -142,6 +174,8 @@ public sealed record AppSettings
     public bool ChatCustomEmojiEnabled { get; init; } = true;
 
     public bool ChatStickerEnabled { get; init; } = true;
+
+    public bool AnimatedMediaPlaybackEnabled { get; init; } = true;
 
     public bool HidePreviewSourceUrl { get; init; } = true;
 
@@ -228,4 +262,5 @@ public enum SettingsCategory
     Timers,
     SalesHistory,
     GtaCompanion,
+    BusinessManager,
 }

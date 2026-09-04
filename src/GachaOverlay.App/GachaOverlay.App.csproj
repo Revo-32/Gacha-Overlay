@@ -15,6 +15,7 @@
     <ApplicationIcon>Assets\Branding\LSOverlay-AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="3.119.1" />
     <ProjectReference Include="..\GachaOverlay.Core\GachaOverlay.Core.csproj" />
     <ProjectReference Include="..\GachaOverlay.Infrastructure\GachaOverlay.Infrastructure.csproj" />
     <ProjectReference Include="..\LSOverlay.RemoteClient\LSOverlay.RemoteClient.csproj" />
@@ -54,6 +55,8 @@
              CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Themes\ThirdPartyNotices\**\*"
              Condition="'$(PublishSingleFile)' != 'true'"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Media\ThirdPartyNotices\**\*"
              CopyToOutputDirectory="PreserveNewest" />
     <Resource Include="Assets\Branding\LSOverlay-AppIcon.ico" />
     <Resource Include="Assets\Branding\LSOverlay-AppIcon.png" />

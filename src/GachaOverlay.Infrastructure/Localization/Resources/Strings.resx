@@ -525,4 +525,6 @@
   <data name="SettingsGtaCompanionCompactHint" xml:space="preserve"><value>Disabling weekly events makes the same HUD use a smaller challenge-only layout.</value></data>
   <data name="SettingsGtaCompanionHotkey" xml:space="preserve"><value>Companion visibility hotkey</value></data>
   <data name="SettingsGtaCompanionHotkeyHint" xml:space="preserve"><value>Unassigned by default. F10 lock is shared with the existing HUD.</value></data>
+  <data name="SettingsBusinessManagerTitle" xml:space="preserve"><value>Business Manager</value></data>
+  <data name="SettingsAnimatedMediaPlayback" xml:space="preserve"><value>Play animated media</value></data>
 </root>

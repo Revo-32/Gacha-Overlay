@@ -167,6 +167,17 @@ public sealed class SharedTimerRegistry
         Update(onlineStatus?.Current ?? OnlinePlaytimeAvailability.Unknown);
 
     public IReadOnlyList<SharedTimerSnapshot> Update(OnlinePlaytimeAvailability onlineAvailability)
+        => Update(onlineAvailability, null);
+
+    public IReadOnlyList<SharedTimerSnapshot> Update(
+        OnlinePlaytimeAvailability onlineAvailability,
+        Func<string, DateTimeOffset, DateTimeOffset, TimeSpan>? onlineProgress) =>
+        Update(onlineAvailability, onlineProgress, persistChanges: true);
+
+    public IReadOnlyList<SharedTimerSnapshot> Update(
+        OnlinePlaytimeAvailability onlineAvailability,
+        Func<string, DateTimeOffset, DateTimeOffset, TimeSpan>? onlineProgress,
+        bool persistChanges)
     {
         if (!Enum.IsDefined(onlineAvailability))
         {
@@ -212,7 +223,14 @@ public sealed class SharedTimerRegistry
                     if (_lastOnlineAvailability == OnlinePlaytimeAvailability.Online &&
                         elapsed > TimeSpan.Zero)
                     {
-                        accumulated = Min(entry.RequiredDuration, accumulated + elapsed);
+                        var intervalStart = now - elapsed;
+                        var progress = onlineProgress?.Invoke(entry.TimerId, intervalStart, now) ?? elapsed;
+                        if (progress < TimeSpan.Zero || progress > TimeSpan.FromDays(365))
+                        {
+                            progress = TimeSpan.Zero;
+                        }
+
+                        accumulated = Min(entry.RequiredDuration, accumulated + progress);
                     }
 
                     var ready = accumulated >= entry.RequiredDuration;
@@ -237,7 +255,7 @@ public sealed class SharedTimerRegistry
             }
 
             _lastOnlineAvailability = onlineAvailability;
-            if (changed)
+            if (changed && persistChanges)
             {
                 PersistUnderLock();
             }
@@ -254,6 +272,14 @@ public sealed class SharedTimerRegistry
         }
 
         return snapshots;
+    }
+
+    public void Persist()
+    {
+        lock (_sync)
+        {
+            PersistUnderLock();
+        }
     }
 
     private IReadOnlyList<SharedTimerPersistedEntry> SafeLoad()

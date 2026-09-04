@@ -21,6 +21,9 @@ using GachaOverlay.Infrastructure.Sales;
 using GachaOverlay.Core.Themes;
 using GachaOverlay.Core.Gta;
 using GachaOverlay.Infrastructure.Gta;
+using GachaOverlay.Core.Business;
+using GachaOverlay.Core.Timers;
+using GachaOverlay.Infrastructure.Timers;
 
 namespace GachaOverlay.App.Lifecycle;
 
@@ -37,6 +40,8 @@ internal sealed class ApplicationHost : IDisposable
     private TrayIconService? _trayIcon;
     private HudWindowController? _hudController;
     private GtaCompanionWindowController? _gtaCompanionController;
+    private BusinessManagerWindowController? _businessManagerController;
+    private RemoteOnlinePlaytimeStatusSource? _onlinePlaytimeStatus;
     private RemoteChatProductionCoordinator? _remoteChatCoordinator;
     private RemoteRecoveryAudit? _recoveryAudit;
     private IRemoteAccessCredentialStore? _remoteAccessCredentials;
@@ -231,6 +236,26 @@ internal sealed class ApplicationHost : IDisposable
             Logger,
             settings);
 
+        _onlinePlaytimeStatus = new RemoteOnlinePlaytimeStatusSource(settings);
+        var businessManagerWindow = new BusinessManagerWindow();
+        var businessManagerEngine = new BusinessManagerEngine(new SharedTimerRegistry(
+            new JsonSharedTimerStore(paths.SharedTimerFilePath, Logger)));
+        var businessManagerViewModel = new BusinessManagerViewModel(
+            businessManagerEngine,
+            _onlinePlaytimeStatus,
+            settings,
+            businessManagerWindow.Dispatcher,
+            minutes => timerViewModel.StartGeneral(minutes),
+            _runtimeMetrics);
+        businessManagerViewModel.Ready += OnBusinessTimerReady;
+        _businessManagerController = new BusinessManagerWindowController(
+            businessManagerWindow,
+            businessManagerViewModel,
+            hudState,
+            _settingsStore,
+            Logger,
+            settings);
+
         var remoteMessagePipeline = new DiscordMessagePipeline(
             Logger,
             metrics: _runtimeMetrics);
@@ -249,6 +274,7 @@ internal sealed class ApplicationHost : IDisposable
         _hudController.ChannelStepRequested += OnChannelStepRequested;
         _hudController.TimerStartRequested += OnTimerStartRequested;
         _hudController.GtaCompanionVisibilityToggleRequested += OnGtaCompanionVisibilityToggleRequested;
+        _hudController.BusinessManagerVisibilityToggleRequested += OnBusinessManagerVisibilityToggleRequested;
         salesViewModel.ConfigureStatusAction(
             _remoteChatCoordinator.SetSalesStatusAsync);
         _remoteChatCoordinator.MessageStateChanged += OnRemoteMessageStateChanged;
@@ -289,6 +315,8 @@ internal sealed class ApplicationHost : IDisposable
                 {
                     _hudController?.ApplySettings(updated);
                     _gtaCompanionController?.ApplySettings(updated);
+                    _businessManagerController?.ApplySettings(updated);
+                    _onlinePlaytimeStatus?.ApplySettings(updated);
                     _salesCoordinator?.ApplySettings(updated);
                     _remoteChatCoordinator?.NotifySalesTrackingChanged();
                 }
@@ -353,6 +381,7 @@ internal sealed class ApplicationHost : IDisposable
         _hudController.StateApplied += OnHudStateApplied;
         _hudController.Start();
         _gtaCompanionController.Start();
+        _businessManagerController.Start();
         _trayIcon.UpdateHudState(_hudController.State);
 
         _remoteChatCoordinator.Start();
@@ -403,6 +432,9 @@ internal sealed class ApplicationHost : IDisposable
 
         _salesCoordinator?.Dispose();
         _salesCoordinator = null;
+        _businessManagerController?.Dispose();
+        _businessManagerController = null;
+        _onlinePlaytimeStatus = null;
         if (_timerHudViewModel is not null)
         {
             _timerHudViewModel.CompletionSoundRequested -= OnTimerCompletionSoundRequested;
@@ -421,6 +453,7 @@ internal sealed class ApplicationHost : IDisposable
             if (_hudController is not null) _hudController.ChannelStepRequested -= OnChannelStepRequested;
             if (_hudController is not null) _hudController.TimerStartRequested -= OnTimerStartRequested;
             if (_hudController is not null) _hudController.GtaCompanionVisibilityToggleRequested -= OnGtaCompanionVisibilityToggleRequested;
+            if (_hudController is not null) _hudController.BusinessManagerVisibilityToggleRequested -= OnBusinessManagerVisibilityToggleRequested;
             _remoteChatCoordinator.MessageStateChanged -= OnRemoteMessageStateChanged;
             _remoteChatCoordinator.PresenceBootstrapReady -= OnRemotePresenceBootstrapReady;
             _remoteChatCoordinator.HostPresenceChanged -= OnRemoteHostPresenceChanged;
@@ -514,7 +547,11 @@ internal sealed class ApplicationHost : IDisposable
         _salesCoordinator?.ApplyRemoteSalesStatus(status);
 
     private void OnRemotePresenceBootstrapReady(LSOverlay.Protocol.BootstrapResponse bootstrap) =>
-        DispatchToUi(() => _sessionHudViewModel?.ApplyBootstrap(bootstrap));
+        DispatchToUi(() =>
+        {
+            _sessionHudViewModel?.ApplyBootstrap(bootstrap);
+            _onlinePlaytimeStatus?.ApplyBootstrap(bootstrap);
+        });
 
     private void OnChannelStepRequested(int direction)
     {
@@ -531,6 +568,9 @@ internal sealed class ApplicationHost : IDisposable
     private void OnGtaCompanionVisibilityToggleRequested() =>
         _gtaCompanionController?.ToggleTemporaryVisibility();
 
+    private void OnBusinessManagerVisibilityToggleRequested() =>
+        _businessManagerController?.ToggleTemporaryVisibility();
+
     private void OnGtaCompanionSnapshotReceived(LSOverlay.Protocol.GtaCompanionSnapshot snapshot) =>
         _gtaCompanionController?.ApplySnapshot(snapshot);
 
@@ -540,16 +580,28 @@ internal sealed class ApplicationHost : IDisposable
         Logger.Information("TIMER-SOUND", "Timer completion notification requested.");
     }
 
+    private void OnBusinessTimerReady(SharedTimerCompletion completion)
+    {
+        if (_settingsStore?.Current.TimerCompletionSoundEnabled == true)
+            _salesNotificationSoundService?.Play(SalesTurnNotificationKind.Current, 50);
+        Logger.Information("BUSINESS", $"Ready timer={completion.TimerId} sound={_settingsStore?.Current.TimerCompletionSoundEnabled == true}.");
+    }
+
     private void OnChannelSwitchCommitted(string label) =>
         DispatchToUi(() => _hudController?.NotifyCommittedChannel(label));
 
     private void OnRemoteHostPresenceChanged(LSOverlay.Protocol.HostPresenceSnapshot presence) =>
-        DispatchToUi(() => _sessionHudViewModel?.ApplyPresence(presence));
+        DispatchToUi(() =>
+        {
+            _sessionHudViewModel?.ApplyPresence(presence);
+            _onlinePlaytimeStatus?.ApplyPresence(presence);
+        });
 
     private void OnRemoteSnapshotChanged(RemoteChatSnapshot snapshot) =>
         DispatchToUi(() =>
         {
             _hudController?.OnRemoteConnectionStatus(snapshot);
+            _onlinePlaytimeStatus?.ApplyConnection(snapshot);
             _trayIcon?.UpdateRemoteStatus(snapshot);
             _foundationViewModel?.RemoteChatSettings?.UpdateSnapshot(snapshot);
             _sessionHudViewModel?.UpdateRemoteState(
@@ -577,8 +629,11 @@ internal sealed class ApplicationHost : IDisposable
             .ConfigureAwait(false);
     }
 
-    private void OnHudStateApplied(HudSessionState state) =>
+    private void OnHudStateApplied(HudSessionState state)
+    {
         _trayIcon?.UpdateHudState(state);
+        _salesCoordinator?.SetAnimationsVisible(state.EffectiveVisible);
+    }
 
     private bool ApplyWindowsAutoStart(bool enabled)
     {
@@ -1149,6 +1204,7 @@ internal sealed class ApplicationHost : IDisposable
         _colorThemeManager?.Apply(theme);
         _hudController?.RefreshTheme();
         _gtaCompanionController?.RefreshTheme();
+        _businessManagerController?.RefreshTheme();
         _salesPreviewWindow?.RefreshTheme();
         Logger.Information("THEME", $"Applied {ColorThemeCatalog.Get(theme).Id}.");
     }

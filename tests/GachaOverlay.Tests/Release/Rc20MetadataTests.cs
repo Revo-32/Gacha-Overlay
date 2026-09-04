@@ -33,7 +33,7 @@ public sealed class Rc20MetadataTests
     public void RcPackagingPreservesExistingProfileAndCredentialIdentity()
     {
         Assert.Equal(Path.Combine("X:/Users/Test", "GachaOverlay"), new LocalApplicationPaths("X:/Users/Test").DataDirectory);
-        Assert.Equal(21, AppSettings.CurrentSchemaVersion);
+        Assert.Equal(22, AppSettings.CurrentSchemaVersion);
         var app = File.ReadAllText(Path.Combine(Root, "src/GachaOverlay.App/App.xaml.cs"));
         Assert.Contains(@"Local\GachaOverlay.Foundation.74B75E39-1972-4FA1-B718-5546F7D85E30", app);
         var credential = File.ReadAllText(Path.Combine(Root, "src/GachaOverlay.App/Services/DpapiRemoteAccessCredentialStore.cs"));

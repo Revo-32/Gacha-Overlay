@@ -53,6 +53,8 @@ internal sealed class SalesPresentationCoordinator : IDisposable
     private bool _started;
     private bool _disposed;
     private CancellationTokenSource? _detailEmojiCancellation;
+    private readonly List<IDisposable> _detailAnimationHandles = [];
+    private bool _animationsVisible = true;
 
     public SalesPresentationCoordinator(
         SalesStateEngine engine,
@@ -353,6 +355,14 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         OnSnapshotChanged(_engine.Current);
     }
 
+    public void SetAnimationsVisible(bool visible)
+    {
+        if (_animationsVisible == visible) return;
+        _animationsVisible = visible;
+        if (visible) StartDetailEmojiEnrichment();
+        else StopDetailAnimations();
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -364,6 +374,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         var cancellation = Interlocked.Exchange(ref _detailEmojiCancellation, null);
         cancellation?.Cancel();
         cancellation?.Dispose();
+        StopDetailAnimations();
         _engine.SnapshotChanged -= OnSnapshotChanged;
         _localization.LanguageChanged -= OnLanguageChanged;
         _uiUpdates.Dispose();
@@ -603,6 +614,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
 
     private void StartDetailEmojiEnrichment()
     {
+        StopDetailAnimations();
         var cancellation = Interlocked.Exchange(
             ref _detailEmojiCancellation,
             _media is null ? null : new CancellationTokenSource());
@@ -632,8 +644,9 @@ internal sealed class SalesPresentationCoordinator : IDisposable
     {
         try
         {
-            var image = await _media!.GetEmojiAsync(token.Identity!, cancellationToken);
-            if (image is null || cancellationToken.IsCancellationRequested)
+            var asset = await _media!.GetEmojiMediaAsync(
+                token.Identity!, token.IsAnimatedEmoji, cancellationToken);
+            if (asset is null || cancellationToken.IsCancellationRequested)
             {
                 return;
             }
@@ -644,13 +657,29 @@ internal sealed class SalesPresentationCoordinator : IDisposable
                     _viewModel.DetailItems.Contains(item) &&
                     item.DetailTokens.Contains(token))
                 {
-                    token.Image = image;
+                    token.Image = asset.Preview;
+                    if (_settings.AnimatedMediaPlaybackEnabled && _animationsVisible && asset.IsAnimated)
+                    {
+                        var handle = _media.Play(asset, frame =>
+                        {
+                            if (!cancellationToken.IsCancellationRequested &&
+                                _viewModel.DetailItems.Contains(item) && item.DetailTokens.Contains(token))
+                                token.Image = frame;
+                        });
+                        if (handle is not null) _detailAnimationHandles.Add(handle);
+                    }
                 }
             });
         }
         catch (OperationCanceledException)
         {
         }
+    }
+
+    private void StopDetailAnimations()
+    {
+        foreach (var handle in _detailAnimationHandles) handle.Dispose();
+        _detailAnimationHandles.Clear();
     }
 
     private static SalesQueueSnapshot RedactForAccessRevocation(SalesQueueSnapshot snapshot) =>

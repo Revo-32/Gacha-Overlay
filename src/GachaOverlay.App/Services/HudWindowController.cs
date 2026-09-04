@@ -78,9 +78,11 @@ internal sealed class HudWindowController : IDisposable
     public event Action<int>? ChannelStepRequested;
     public event Action<GtaoTimerSlot>? TimerStartRequested;
     public event Action? GtaCompanionVisibilityToggleRequested;
+    public event Action? BusinessManagerVisibilityToggleRequested;
     private void OnChannelStep(int direction) => ChannelStepRequested?.Invoke(direction);
     private void OnTimerStart(GtaoTimerSlot slot) => TimerStartRequested?.Invoke(slot);
     private void OnGtaCompanionVisibilityToggle() => GtaCompanionVisibilityToggleRequested?.Invoke();
+    private void OnBusinessManagerVisibilityToggle() => BusinessManagerVisibilityToggleRequested?.Invoke();
 
     public HudSessionState State => _stateService.Current;
 
@@ -103,6 +105,7 @@ internal sealed class HudWindowController : IDisposable
         _hotkeys.ChannelStepRequested += OnChannelStep;
         _hotkeys.TimerStartRequested += OnTimerStart;
         _hotkeys.GtaCompanionVisibilityToggleRequested += OnGtaCompanionVisibilityToggle;
+        _hotkeys.BusinessManagerVisibilityToggleRequested += OnBusinessManagerVisibilityToggle;
         _gameMonitor.ForegroundChanged += OnGameForegroundChanged;
         _modifierDrag.DragCompleted += OnModifierDragCompleted;
         _localization.LanguageChanged += OnLanguageChanged;
@@ -213,7 +216,8 @@ internal sealed class HudWindowController : IDisposable
                 old.GeneralTimerHotkey != settings.GeneralTimerHotkey ||
                 old.BunkerTimerHotkey != settings.BunkerTimerHotkey ||
                 old.LsdTimerHotkey != settings.LsdTimerHotkey ||
-                old.GtaCompanionVisibilityHotkey != settings.GtaCompanionVisibilityHotkey)
+                old.GtaCompanionVisibilityHotkey != settings.GtaCompanionVisibilityHotkey ||
+                old.BusinessManagerVisibilityHotkey != settings.BusinessManagerVisibilityHotkey)
             {
                 _hotkeys.Bind(settings);
             }
@@ -248,6 +252,7 @@ internal sealed class HudWindowController : IDisposable
         _hotkeys.ChannelStepRequested -= OnChannelStep;
         _hotkeys.TimerStartRequested -= OnTimerStart;
         _hotkeys.GtaCompanionVisibilityToggleRequested -= OnGtaCompanionVisibilityToggle;
+        _hotkeys.BusinessManagerVisibilityToggleRequested -= OnBusinessManagerVisibilityToggle;
         _gameMonitor.ForegroundChanged -= OnGameForegroundChanged;
         _modifierDrag.DragCompleted -= OnModifierDragCompleted;
         _localization.LanguageChanged -= OnLanguageChanged;
@@ -300,6 +305,8 @@ internal sealed class HudWindowController : IDisposable
         {
             _interop.ApplyTopmost();
         }
+
+        _chat.SetAnimationsVisible(state.EffectiveVisible);
 
         UpdateModifierDrag(state);
         _lastAppliedState = state;

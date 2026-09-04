@@ -2,8 +2,8 @@ Gacha Overlay - Third-party notice index
 ========================================
 
 This Release Candidate bundles the .NET 8 Windows Desktop self-contained
-runtime, fonts, and palette references. Their repository-preserved notices are
-staged under the Runtime, Fonts, and Themes folders.
+runtime, fonts, palette references, and the SkiaSharp media decoder. Their
+repository-preserved notices are staged under Runtime, Fonts, Themes, and Media.
 
 Fonts
 -----
@@ -18,6 +18,12 @@ Themes
 
 - Palette reference attributions and the applicable MIT notice text are
   recorded in Themes/NOTICE-Color-Themes.txt.
+
+Animated media
+--------------
+
+- SkiaSharp 3.119.1: the MIT license and attribution are recorded in
+  Media/SkiaSharp.txt.
 
 .NET runtime
 ------------

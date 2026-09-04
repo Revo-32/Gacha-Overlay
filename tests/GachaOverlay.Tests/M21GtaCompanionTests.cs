@@ -180,7 +180,8 @@ public sealed class M21GtaCompanionTests
         var now = DateTimeOffset.Parse("2026-09-04T12:00:00+09:00");
         var previousWeek = Week(
             "2026-08-27",
-            DateTimeOffset.Parse("2026-08-27T18:00:00+09:00")) with { SourceMessageId = 41 };
+            DateTimeOffset.Parse("2026-08-27T18:00:00+09:00")) with
+        { SourceMessageId = 41 };
         var badFuture = Week(
             "2026-09-24",
             DateTimeOffset.Parse("2026-09-24T18:00:00+09:00"));
@@ -337,7 +338,7 @@ public sealed class M21GtaCompanionTests
         var path = directory.File("settings.json");
         File.WriteAllText(path, "{\"schemaVersion\":20,\"gtaCompanionEnabled\":true,\"gtaCompanionDailyEnabled\":false}");
         var migrated = new JsonSettingsStore(path).Load();
-        Assert.Equal(21, migrated.SchemaVersion);
+        Assert.Equal(AppSettings.CurrentSchemaVersion, migrated.SchemaVersion);
         Assert.False(migrated.GtaCompanionEnabled);
         Assert.True(migrated.GtaCompanionDailyEnabled);
         Assert.True(migrated.GtaCompanionWeeklyEnabled);

@@ -1,0 +1,63 @@
+<Window x:Class="GachaOverlay.App.Presentation.BusinessManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GachaOverlay.App.Presentation"
+        Title="사업장 관리자" Width="390" Height="620" MinWidth="320" MinHeight="220"
+        AllowsTransparency="True" Background="Transparent" ResizeMode="CanResize"
+        ShowActivated="False" ShowInTaskbar="False" Topmost="True" WindowStyle="None"
+        Closing="OnClosing" SnapsToDevicePixels="True" UseLayoutRounding="True">
+    <Window.Resources>
+        <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
+    </Window.Resources>
+    <Border x:Name="Surface" Padding="10" BorderThickness="1" CornerRadius="11">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Width="26" Height="20" Margin="0,0,0,3"
+                    HorizontalAlignment="Right" Background="Transparent" CornerRadius="5"
+                    IsHitTestVisible="{Binding IsInteractive}" MouseLeftButtonDown="OnDragMouseLeftButtonDown"
+                    ToolTip="창 이동">
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="15"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Opacity="0.7" Text="⠿"/>
+            </Border>
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,7,0,0">
+                <TextBlock FontWeight="SemiBold" Text="일반 타이머"/>
+                <UniformGrid Margin="0,4,0,0" Columns="3"
+                             Visibility="{Binding IsInteractive, Converter={StaticResource BoolVisibility}}">
+                    <Button Margin="2" Command="{Binding StartGeneral12Command}" Content="12분"/>
+                    <Button Margin="2" Command="{Binding StartGeneral24Command}" Content="24분"/>
+                    <Button Margin="2" Command="{Binding StartGeneral48Command}" Content="48분"/>
+                </UniformGrid>
+            </StackPanel>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding Sections}">
+                    <ItemsControl.ItemTemplate><DataTemplate>
+                        <Border Margin="0,0,0,6" Padding="8" Background="{DynamicResource BusinessCardSurfaceBrush}" CornerRadius="7">
+                            <StackPanel>
+                                <TextBlock FontWeight="SemiBold" Text="{Binding Title}"/>
+                                <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding Rows}">
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <Border Margin="0,2" Padding="5" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                                            <StackPanel>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Grid.Column="1" Margin="8,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Status}"/>
+                                                </Grid>
+                                                <WrapPanel Margin="0,4,0,0"
+                                                           Visibility="{Binding IsInteractive, Converter={StaticResource BoolVisibility}}">
+                                                    <Button Margin="0,0,4,0" Padding="7,2" Command="{Binding PrimaryCommand}" Content="{Binding PrimaryLabel}"/>
+                                                    <Button Margin="0,0,4,0" Padding="7,2" Command="{Binding SecondaryCommand}" Content="{Binding SecondaryLabel}"
+                                                            Visibility="{Binding HasSecondary, Converter={StaticResource BoolVisibility}}"/>
+                                                    <Button Padding="7,2" Command="{Binding StopCommand}" Content="취소"/>
+                                                </WrapPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</Window>
