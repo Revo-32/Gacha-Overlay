@@ -107,6 +107,95 @@ public sealed class M21GtaCompanionTests
         Assert.Equal(3, parsed.Week.WeeklyChallenge!.Count);
     }
 
+    [Fact]
+    public void WeeklyParser_FutureSubRange_DoesNotBecomeWeeklyIdentity()
+    {
+        var receivedAt = DateTimeOffset.Parse("2026-09-03T05:08:00+09:00");
+        var week = ParseTrustedWeek(WeeklyWithSecondaryRanges(
+            "6X GTA$ & RP ON SPECIAL CARGO SALES (SEP 24-30)"), receivedAt);
+
+        Assert.Equal("2026-09-03", week.WeekKey);
+        Assert.Equal(DateTimeOffset.Parse("2026-09-03T18:00:00+09:00"), week.EffectiveFrom);
+        Assert.Equal(DateTimeOffset.Parse("2026-09-10T18:00:00+09:00"), week.EffectiveTo);
+        Assert.NotEqual("2026-09-24", week.WeekKey);
+    }
+
+    [Fact]
+    public void WeeklyParser_MultipleSecondaryRanges_UsesReceivedAtWeeklyCycle()
+    {
+        var receivedAt = DateTimeOffset.Parse("2026-09-03T05:08:00+09:00");
+        var week = ParseTrustedWeek(WeeklyWithSecondaryRanges(
+            "2X GTA$ & RP ON SPECIAL CARGO SALES (AUG 28-30)",
+            "6X GTA$ & RP ON BUNKER RESEARCH PROGRESS (SEP 24-30)"), receivedAt);
+
+        Assert.Equal("2026-09-03", week.WeekKey);
+        Assert.Equal(DateTimeOffset.Parse("2026-09-03T18:00:00+09:00"), week.EffectiveFrom);
+        Assert.Equal(DateTimeOffset.Parse("2026-09-10T18:00:00+09:00"), week.EffectiveTo);
+    }
+
+    [Fact]
+    public void WeeklyParser_PreResetBulletin_StagesCorrectUpcomingWeek()
+    {
+        var receivedAt = DateTimeOffset.Parse("2026-09-03T05:08:00+09:00");
+        var week = ParseTrustedWeek(WeeklyWithSecondaryRanges(
+            "6X GTA$ & RP ON SPECIAL CARGO SALES (SEP 24-30)"), receivedAt);
+        var resolver = new GtaEventResolver();
+
+        Assert.True(resolver.ApplyWeek(week, receivedAt));
+        Assert.Null(resolver.TrustedState.ActiveWeek);
+        Assert.Equal("2026-09-03", resolver.TrustedState.StagedWeek!.WeekKey);
+    }
+
+    [Fact]
+    public void WeeklyParser_PostResetBulletin_BecomesCurrentActiveWeek()
+    {
+        var receivedAt = DateTimeOffset.Parse("2026-09-03T18:08:00+09:00");
+        var week = ParseTrustedWeek(WeeklyWithSecondaryRanges(
+            "6X GTA$ & RP ON SPECIAL CARGO SALES (SEP 24-30)"), receivedAt);
+        var resolver = new GtaEventResolver();
+
+        Assert.True(resolver.ApplyWeek(week, receivedAt));
+        Assert.Equal("2026-09-03", resolver.TrustedState.ActiveWeek!.WeekKey);
+        Assert.Null(resolver.TrustedState.StagedWeek);
+        Assert.Equal(GtaResolvedAvailability.Available, resolver.Resolve(receivedAt).Availability);
+    }
+
+    [Fact]
+    public void WeeklyParser_SecondaryRange_RemainsOnItemDateScope()
+    {
+        var receivedAt = DateTimeOffset.Parse("2026-09-03T05:08:00+09:00");
+        var week = ParseTrustedWeek(WeeklyWithSecondaryRanges(
+            "6X GTA$ & RP ON SPECIAL CARGO SALES (SEP 24-30)"), receivedAt);
+
+        var bonus = Assert.Single(week.Bonuses, item => item.Multiplier == 6);
+        Assert.Equal(DateTimeOffset.Parse("2026-09-24T18:00:00+09:00"), bonus.DateScope!.StartAt);
+        Assert.Equal(DateTimeOffset.Parse("2026-10-01T18:00:00+09:00"), bonus.DateScope.EndAt);
+        Assert.Equal("2026-09-03", week.WeekKey);
+    }
+
+    [Fact]
+    public void Resolver_SameSourceMessage_ReconcilesPersistedBadFutureWeekKey()
+    {
+        var schedule = new KstResetSchedule();
+        var now = DateTimeOffset.Parse("2026-09-04T12:00:00+09:00");
+        var previousWeek = Week(
+            "2026-08-27",
+            DateTimeOffset.Parse("2026-08-27T18:00:00+09:00")) with { SourceMessageId = 41 };
+        var badFuture = Week(
+            "2026-09-24",
+            DateTimeOffset.Parse("2026-09-24T18:00:00+09:00"));
+        var resolver = new GtaEventResolver(schedule);
+        resolver.Restore(new GtaTrustedEventState(1, previousWeek, badFuture, [], now.AddDays(-1)), now);
+        var corrected = ParseTrustedWeek(WeeklyWithSecondaryRanges(
+            "6X GTA$ & RP ON SPECIAL CARGO SALES (SEP 24-30)"),
+            DateTimeOffset.Parse("2026-09-03T05:08:00+09:00"));
+
+        Assert.True(resolver.ApplyWeek(corrected, now));
+        Assert.Equal("2026-09-03", resolver.TrustedState.ActiveWeek!.WeekKey);
+        Assert.Equal(corrected.SourceMessageId, resolver.TrustedState.ActiveWeek.SourceMessageId);
+        Assert.Null(resolver.TrustedState.StagedWeek);
+    }
+
     [Theory]
     [InlineData("AUG 28-30", 8, 28, 8, 31)]
     [InlineData("AUG 28-SEP 2", 8, 28, 9, 3)]
@@ -477,6 +566,27 @@ public sealed class M21GtaCompanionTests
             publisher: publisher,
             channelName: channelName,
             receivedAt: receivedAt));
+
+    private static GtaEventWeek ParseTrustedWeek(string text, DateTimeOffset receivedAt)
+    {
+        var document = Document(text, receivedAt: receivedAt);
+        var classifier = new GtaEventClassifier();
+        var classification = classifier.Classify(document);
+        Assert.Equal(GtaEventClassificationKind.WeeklyBulletin, classification.Kind);
+        return Assert.IsType<GtaEventWeek>(new GtaEventParser().Parse(document, classification).Week);
+    }
+
+    private static string WeeklyWithSecondaryRanges(params string[] bonuses) => $$"""
+        THE LATEST GTA ONLINE EVENT IS STILL LIVE
+        WEEKLY CHALLENGE
+        Complete 3 Contact Missions
+        BONUSES
+        {{string.Join('\n', bonuses)}}
+        DISCOUNTS
+        30% OFF BUNKERS
+        FREE ITEMS
+        FREE FUTURE HAT
+        """;
 
     private static GtaEventSourceInput Input(
         string? content = null,

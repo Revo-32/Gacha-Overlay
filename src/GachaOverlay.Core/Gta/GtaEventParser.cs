@@ -39,9 +39,10 @@ public sealed partial class GtaEventParser
     private GtaEventWeek ParseWeek(CanonicalEventDocument document)
     {
         var lines = MeaningfulLines(document.CanonicalText);
-        var ranges = GtaEventDateParser.FindRanges(document.CanonicalText, document.ReceivedAt, _schedule);
-        var dateRange = ranges.FirstOrDefault();
-        var effectiveFrom = dateRange?.StartAt ?? InferWeeklyStart(document.ReceivedAt);
+        var inferredWeeklyStart = InferWeeklyStart(document.ReceivedAt);
+        var wholeWeekRange = FindWholeWeekRange(lines, document.ReceivedAt, inferredWeeklyStart);
+        var effectiveFrom = wholeWeekRange?.StartAt ?? inferredWeeklyStart;
+        var effectiveTo = wholeWeekRange?.EndAt ?? effectiveFrom.AddDays(7);
         var weekKey = effectiveFrom.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         var challenge = ParseWeeklyChallenge(lines, document.ReceivedAt);
         var bonuses = new List<GtaSemanticEventItem>();
@@ -87,7 +88,7 @@ public sealed partial class GtaEventParser
         return new GtaEventWeek(
             weekKey,
             effectiveFrom,
-            dateRange?.EndAt,
+            effectiveTo,
             lines.FirstOrDefault(line =>
                 !IsOpening(line) && !_vocabulary.IsKnownHeading(line) && !LooksLikeDateOnly(line, document.ReceivedAt)),
             challenge,
@@ -97,6 +98,38 @@ public sealed partial class GtaEventParser
             BoundDistinct(other, 64),
             document.SourceMessageId,
             document.EditedAt ?? document.ReceivedAt);
+    }
+
+    private GtaEventDateRange? FindWholeWeekRange(
+        IReadOnlyList<string> lines,
+        DateTimeOffset receivedAt,
+        DateTimeOffset inferredWeeklyStart)
+    {
+        for (var index = 0; index < lines.Count; index++)
+        {
+            if (!IsOpening(lines[index]))
+            {
+                continue;
+            }
+
+            var scopedText = lines[index];
+            if (index + 1 < lines.Count && LooksLikeDateOnly(lines[index + 1], receivedAt))
+            {
+                scopedText += $"\n{lines[index + 1]}";
+            }
+
+            var range = GtaEventDateParser.FindRanges(scopedText, receivedAt, _schedule)
+                .FirstOrDefault(candidate =>
+                    candidate.EndAt - candidate.StartAt == TimeSpan.FromDays(7) &&
+                    (candidate.StartAt == inferredWeeklyStart ||
+                     candidate.StartAt == inferredWeeklyStart.AddDays(7)));
+            if (range is not null)
+            {
+                return range;
+            }
+        }
+
+        return null;
     }
 
     private GtaEventCampaign ParseCampaign(CanonicalEventDocument document)

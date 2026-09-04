@@ -30,31 +30,27 @@ public sealed class GtaEventResolver
     {
         ArgumentNullException.ThrowIfNull(week);
         var currentKey = _schedule.GetWeeklyCycleKey(now);
-        var next = _state;
+        var next = ReconcileSameSource(_state, week, now);
         if (string.CompareOrdinal(week.WeekKey, currentKey) > 0)
         {
-            if (_state.StagedWeek is { } staged && staged.WeekKey == week.WeekKey &&
-                staged.ParsedAt > week.ParsedAt)
+            if (next.StagedWeek is not { } staged || staged.WeekKey != week.WeekKey ||
+                staged.ParsedAt <= week.ParsedAt)
             {
-                return false;
-            }
-
-            if (!SemanticEquals(next.StagedWeek, week))
-            {
-                next = next with { StagedWeek = week, LastUpdatedAt = now.ToUniversalTime() };
+                if (!SemanticEquals(next.StagedWeek, week))
+                {
+                    next = next with { StagedWeek = week, LastUpdatedAt = now.ToUniversalTime() };
+                }
             }
         }
         else if (string.CompareOrdinal(week.WeekKey, currentKey) == 0)
         {
-            if (_state.ActiveWeek is { } active && active.WeekKey == week.WeekKey &&
-                active.ParsedAt > week.ParsedAt)
+            if (next.ActiveWeek is not { } active || active.WeekKey != week.WeekKey ||
+                active.ParsedAt <= week.ParsedAt)
             {
-                return false;
-            }
-
-            if (!SemanticEquals(next.ActiveWeek, week))
-            {
-                next = next with { ActiveWeek = week, LastUpdatedAt = now.ToUniversalTime() };
+                if (!SemanticEquals(next.ActiveWeek, week))
+                {
+                    next = next with { ActiveWeek = week, LastUpdatedAt = now.ToUniversalTime() };
+                }
             }
         }
         else if (next.ActiveWeek is null)
@@ -67,6 +63,27 @@ public sealed class GtaEventResolver
         _state = next;
         changed |= EvaluateTransitions(now);
         return changed;
+    }
+
+    private static GtaTrustedEventState ReconcileSameSource(
+        GtaTrustedEventState state,
+        GtaEventWeek week,
+        DateTimeOffset now)
+    {
+        var removeActive = state.ActiveWeek is { } active &&
+            active.SourceMessageId == week.SourceMessageId &&
+            active.WeekKey != week.WeekKey;
+        var removeStaged = state.StagedWeek is { } staged &&
+            staged.SourceMessageId == week.SourceMessageId &&
+            staged.WeekKey != week.WeekKey;
+        return removeActive || removeStaged
+            ? state with
+            {
+                ActiveWeek = removeActive ? null : state.ActiveWeek,
+                StagedWeek = removeStaged ? null : state.StagedWeek,
+                LastUpdatedAt = now.ToUniversalTime(),
+            }
+            : state;
     }
 
     public bool ApplyCampaign(GtaEventCampaign campaign, DateTimeOffset now)
