@@ -16,12 +16,15 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
     private readonly BusinessManagerEngine _engine;
     private readonly RemoteOnlinePlaytimeStatusSource _online;
     private readonly DispatcherTimer _timer;
-    private readonly Action<int> _startGeneral;
+    private readonly GtaoTimerHudViewModel _generalTimers;
     private readonly IRuntimeMetrics? _metrics;
     private readonly Dispatcher _dispatcher;
-    private bool _readyNotificationPending;
+    private readonly Dictionary<string, DateTimeOffset> _attentionUntil = new(StringComparer.Ordinal);
+    private bool _notificationPending;
+    private DateTimeOffset _generalAttentionUntil;
     private AppSettings _settings;
     private bool _interactive;
+    private bool _sectionsDirty = true;
     private bool _disposed;
 
     public BusinessManagerViewModel(
@@ -29,19 +32,21 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
         RemoteOnlinePlaytimeStatusSource online,
         AppSettings settings,
         Dispatcher dispatcher,
-        Action<int> startGeneral,
+        GtaoTimerHudViewModel generalTimers,
         IRuntimeMetrics? metrics = null)
     {
         _engine = engine;
         _online = online;
         _settings = settings;
-        _startGeneral = startGeneral;
+        _generalTimers = generalTimers;
         _metrics = metrics;
         _dispatcher = dispatcher;
         _engine.Ready += OnReady;
-        StartGeneral12Command = new RelayCommand(() => _startGeneral(12), () => IsInteractive);
-        StartGeneral24Command = new RelayCommand(() => _startGeneral(24), () => IsInteractive);
-        StartGeneral48Command = new RelayCommand(() => _startGeneral(48), () => IsInteractive);
+        _engine.EarlyAlert += OnEarlyAlert;
+        _generalTimers.TimerCompleted += OnGeneralTimerCompleted;
+        StartGeneral12Command = new RelayCommand(() => StartGeneral(12), () => IsInteractive);
+        StartGeneral24Command = new RelayCommand(() => StartGeneral(24), () => IsInteractive);
+        StartGeneral48Command = new RelayCommand(() => StartGeneral(48), () => IsInteractive);
         _timer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Background,
             (_, _) => Refresh(), dispatcher);
         _timer.Start();
@@ -49,11 +54,13 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-    public event Action<SharedTimerCompletion>? Ready;
+    public event Action<BusinessTimerNotification>? NotificationRequested;
     public ObservableCollection<BusinessSectionViewModel> Sections { get; } = new();
     public ICommand StartGeneral12Command { get; }
     public ICommand StartGeneral24Command { get; }
     public ICommand StartGeneral48Command { get; }
+    public string GeneralTimerStatus => _generalTimers.GeneralStatus;
+    public bool IsGeneralTimerAttentionActive => DateTimeOffset.UtcNow < _generalAttentionUntil;
 
     public bool IsInteractive
     {
@@ -79,6 +86,7 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
     {
         _settings = settings;
         _online.ApplySettings(settings);
+        _sectionsDirty = true;
         Refresh();
     }
 
@@ -86,7 +94,8 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
     {
         if (_disposed) return;
         var now = DateTimeOffset.UtcNow;
-        var snapshots = _engine.Update(_online.Current).ToDictionary(item => item.TimerId, StringComparer.Ordinal);
+        var snapshots = _engine.Update(_online.Current, _settings.BusinessTimerEarlyAlertMinutes)
+            .ToDictionary(item => item.TimerId, StringComparer.Ordinal);
         _metrics?.SetGauge(RuntimeMetricNames.BusinessActiveTimers,
             snapshots.Values.Count(item => item.State == SharedTimerState.Running));
         _metrics?.SetGauge(RuntimeMetricNames.BusinessWallClockTimers,
@@ -104,10 +113,10 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
         _metrics?.SetGauge(RuntimeMetricNames.BusinessMansionBoostActive,
             IsRunning(BusinessTimerIds.MansionBunker) || IsRunning(BusinessTimerIds.MansionAcid) ? 1 : 0);
         _metrics?.SetState(RuntimeMetricNames.BusinessOnlineState, _online.Current.ToString());
-        var sections = BuildSections(snapshots, now);
-        Sections.Clear();
-        foreach (var section in sections) Sections.Add(section);
-        OnPropertyChanged(nameof(Sections));
+        SynchronizeSections(BuildSections(snapshots, now));
+        RefreshAttention(now);
+        OnPropertyChanged(nameof(GeneralTimerStatus));
+        OnPropertyChanged(nameof(IsGeneralTimerAttentionActive));
 
         bool IsRunning(string id) => snapshots.TryGetValue(id, out var timer) &&
             timer.State == SharedTimerState.Running;
@@ -119,6 +128,8 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
         _disposed = true;
         _timer.Stop();
         _engine.Ready -= OnReady;
+        _engine.EarlyAlert -= OnEarlyAlert;
+        _generalTimers.TimerCompleted -= OnGeneralTimerCompleted;
         _engine.Dispose();
     }
 
@@ -128,24 +139,39 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
     {
         var result = new List<BusinessSectionViewModel>();
         if (_settings.BusinessBunkerEnabled)
-            Add("벙커", _settings.BusinessBunkerUpgraded
-                ? Row("공급품 100% → 0%", BusinessTimerIds.Bunker, _engine.StartBunker, "보급 채움")
-                : Unsupported("비업그레이드 생산 시간 미검증"));
+        {
+            var bunker = new List<BusinessTimerRowViewModel>
+            {
+                _settings.BusinessBunkerUpgraded
+                    ? Row("보급품 소모", BusinessTimerIds.Bunker, _engine.StartBunker, "보급품 채움")
+                    : Unsupported("비업그레이드 생산 시간 미검증"),
+            };
+            if (_settings.BusinessMansionBoostEnabled && _settings.BusinessBunkerUpgraded)
+                bunker.Add(Row("맨션 생산 부스트", BusinessTimerIds.MansionBunker,
+                    () => _engine.StartMansionBoost(false), "생산 부스트"));
+            Add("벙커", bunker.ToArray());
+        }
         if (_settings.BusinessNightclubEnabled)
-            Add("나이트클럽", Row($"안전 수입 ${_settings.BusinessNightclubMinimumIncome:N0}",
+            Add("나이트클럽", Row($"금고수입 ${_settings.BusinessNightclubMinimumIncome:N0}",
                 BusinessTimerIds.Nightclub,
                 () => _engine.StartNightclub(_settings.BusinessNightclubMinimumIncome,
                     _settings.BusinessNightclubStaffUpgrade), "인기도 최대"));
         if (_settings.BusinessAcidEnabled)
-            Add("산성 연구소", _settings.BusinessAcidUpgraded
-                ? new[]
+        {
+            var acid = _settings.BusinessAcidUpgraded
+                ? new List<BusinessTimerRowViewModel>
                 {
-                    Row("공급품 100% → 0%", BusinessTimerIds.Acid, _engine.StartAcid, "보급 채움"),
-                    Row("생산 속도 보정", BusinessTimerIds.AcidBoost, _engine.StartAcidBoost, "생산 부스트"),
+                    Row("보급품 소모", BusinessTimerIds.Acid, _engine.StartAcid, "보급품 채움"),
+                    Row("자체 생산 부스트", BusinessTimerIds.AcidBoost, _engine.StartAcidBoost, "자체 부스트"),
                 }
-                : new[] { Unsupported("장비 미업그레이드 생산 시간 미검증") });
+                : [Unsupported("장비 미업그레이드 생산 시간 미검증")];
+            if (_settings.BusinessMansionBoostEnabled && _settings.BusinessAcidUpgraded)
+                acid.Add(Row("맨션 생산 부스트", BusinessTimerIds.MansionAcid,
+                    () => _engine.StartMansionBoost(true), "생산 부스트"));
+            Add("LSD", acid.ToArray());
+        }
         if (_settings.BusinessCarWashEnabled)
-            Add("세차장 · 위장 사업장", Row("용의도 0% → 100%",
+            Add("세차장", Row("용의도 Max",
                 BusinessTimerIds.CarWash, () => _engine.StartCarWash(_settings.BusinessMoneyFrontCount), "용의도 0%"));
         if (_settings.BusinessSpecialCargoEnabled)
         {
@@ -165,35 +191,53 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
             Add("항공 화물", Row("루스터 조달", BusinessTimerIds.AirFreight, _engine.StartAirFreight, "직원 파견"));
 
         var heists = new List<BusinessTimerRowViewModel>();
-        if (_settings.BusinessOriginalHeistEnabled) heists.Add(Heist("오리지널 습격", BusinessHeistKind.Original));
-        if (_settings.BusinessDoomsdayHeistEnabled) heists.Add(Heist("심판의 날 습격", BusinessHeistKind.Doomsday));
-        if (_settings.BusinessCasinoHeistEnabled) heists.Add(Heist("다이아몬드 카지노 습격", BusinessHeistKind.Casino));
+        if (_settings.BusinessOriginalHeistEnabled) heists.Add(Heist("구습", BusinessHeistKind.Original));
+        if (_settings.BusinessDoomsdayHeistEnabled) heists.Add(Heist("신습", BusinessHeistKind.Doomsday));
+        if (_settings.BusinessCasinoHeistEnabled) heists.Add(Heist("카습", BusinessHeistKind.Casino));
         if (_settings.BusinessCayoHeistEnabled)
-            heists.Add(snapshots.ContainsKey(BusinessTimerIds.CayoHardMode)
-                ? Row("카요 페리코", BusinessTimerIds.CayoHardMode,
-                    () => _engine.Stop(BusinessTimerIds.CayoHardMode), "준비 시작")
-                : Row("카요 페리코", Preferred(
-                        BusinessTimerIds.Heist(BusinessHeistKind.CayoGroup),
-                        BusinessTimerIds.Heist(BusinessHeistKind.CayoSolo)),
-                    () => _engine.StartHeist(BusinessHeistKind.CayoGroup), "그룹 완료",
-                    () => _engine.StartHeist(BusinessHeistKind.CayoSolo), "솔로 완료"));
+        {
+            var cooldownId = Preferred(
+                    BusinessTimerIds.Heist(BusinessHeistKind.CayoGroup),
+                    BusinessTimerIds.Heist(BusinessHeistKind.CayoSolo));
+            heists.Add(Row("페습", cooldownId,
+                () => _engine.StartHeist(BusinessHeistKind.CayoGroup), "그룹 완료",
+                () => _engine.StartHeist(BusinessHeistKind.CayoSolo), "솔로 완료"));
+            heists.Add(HardRow(cooldownId, BusinessTimerIds.CayoHardMode));
+        }
         if (_settings.BusinessKortzHeistEnabled)
-            heists.Add(snapshots.ContainsKey(BusinessTimerIds.KortzHardMode)
-                ? Row("코르츠", BusinessTimerIds.KortzHardMode,
-                    () => _engine.Stop(BusinessTimerIds.KortzHardMode), "준비 시작")
-                : Row("코르츠", BusinessTimerIds.Heist(BusinessHeistKind.Kortz),
-                    () => _engine.StartHeist(BusinessHeistKind.Kortz), "습격 완료"));
+        {
+            var cooldownId = BusinessTimerIds.Heist(BusinessHeistKind.Kortz);
+            heists.Add(Row("코습", cooldownId,
+                () => _engine.StartHeist(BusinessHeistKind.Kortz), "습격 완료"));
+            heists.Add(HardRow(cooldownId, BusinessTimerIds.KortzHardMode));
+        }
         if (heists.Count > 0) Add("습격 쿨다운", heists.ToArray());
-
-        if (_settings.BusinessMansionBoostEnabled)
-            Add("맨션 부스트", Row("24시간 x3", Preferred(
-                    BusinessTimerIds.MansionBunker, BusinessTimerIds.MansionAcid),
-                () => _engine.StartMansionBoost(false), "벙커",
-                () => _engine.StartMansionBoost(true), "산성 연구소"));
         return result;
 
         BusinessTimerRowViewModel Heist(string label, BusinessHeistKind kind) =>
             Row(label, BusinessTimerIds.Heist(kind), () => _engine.StartHeist(kind), "습격 완료");
+
+        BusinessTimerRowViewModel HardRow(string cooldownId, string hardModeId)
+        {
+            var status = "대기";
+            var accent = string.Empty;
+            if (snapshots.TryGetValue(hardModeId, out var hardMode))
+            {
+                accent = "가능 ·";
+                status = FormatTime(_engine.EstimateRemaining(hardMode, now));
+            }
+            else if (snapshots.TryGetValue(cooldownId, out var cooldown))
+            {
+                status = cooldown.State is SharedTimerState.Ready or SharedTimerState.Completed
+                    ? "종료"
+                    : $"{FormatTime(_engine.EstimateRemaining(cooldown, now))} 후 가능";
+            }
+
+            return new BusinessTimerRowViewModel(
+                "하드", hardModeId, status, () => { }, string.Empty, null, string.Empty,
+                () => { }, IsInteractive, available: false, refresh: null,
+                availabilityAccentText: accent);
+        }
 
         string Preferred(params string[] ids) => ids.FirstOrDefault(snapshots.ContainsKey) ?? ids[0];
 
@@ -210,15 +254,51 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
                 ? "대기"
                 : FormatStatus(snapshot, _engine.EstimateRemaining(snapshot, now), now);
             return new BusinessTimerRowViewModel(label, id, status, start, primaryLabel, secondary,
-                secondaryLabel, () => _engine.Stop(id), IsInteractive, available: true);
+                secondaryLabel, () => _engine.Stop(id), IsInteractive, available: true,
+                refresh: Refresh);
         }
 
         BusinessTimerRowViewModel Unsupported(string label) =>
             new(label, string.Empty, "설정 조합 검증 필요", () => { }, "지원 안 함", null,
-                string.Empty, () => { }, IsInteractive, available: false);
+                string.Empty, () => { }, IsInteractive, available: false, refresh: null);
 
         void Add(string title, params BusinessTimerRowViewModel[] rows) =>
             result.Add(new BusinessSectionViewModel(title, rows));
+    }
+
+    private void SynchronizeSections(IReadOnlyList<BusinessSectionViewModel> next)
+    {
+        if (_sectionsDirty || !HasSameStructure(next))
+        {
+            Sections.Clear();
+            foreach (var section in next) Sections.Add(section);
+            _sectionsDirty = false;
+            OnPropertyChanged(nameof(Sections));
+            return;
+        }
+
+        for (var sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++)
+        for (var rowIndex = 0; rowIndex < Sections[sectionIndex].Rows.Count; rowIndex++)
+            Sections[sectionIndex].Rows[rowIndex].UpdatePresentation(next[sectionIndex].Rows[rowIndex]);
+    }
+
+    private bool HasSameStructure(IReadOnlyList<BusinessSectionViewModel> next)
+    {
+        if (Sections.Count != next.Count) return false;
+        for (var sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++)
+        {
+            var current = Sections[sectionIndex];
+            var candidate = next[sectionIndex];
+            if (!string.Equals(current.Title, candidate.Title, StringComparison.Ordinal) ||
+                current.Rows.Count != candidate.Rows.Count)
+                return false;
+            for (var rowIndex = 0; rowIndex < current.Rows.Count; rowIndex++)
+            {
+                if (!current.Rows[rowIndex].HasSameStructure(candidate.Rows[rowIndex])) return false;
+            }
+        }
+
+        return true;
     }
 
     private static string FormatStatus(SharedTimerSnapshot snapshot, TimeSpan remaining, DateTimeOffset now)
@@ -228,33 +308,99 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
             if (snapshot.TimerId is BusinessTimerIds.Bunker or BusinessTimerIds.Acid) return "보급 필요";
             if (snapshot.TimerId == BusinessTimerIds.AirFreight ||
                 snapshot.TimerId.StartsWith("business.cargo.", StringComparison.Ordinal)) return "파견 가능";
+            if (snapshot.TimerId.StartsWith("business.heist.", StringComparison.Ordinal)) return "준비";
             return "준비 완료";
         }
-        var time = remaining.TotalHours >= 1
-            ? $"{(int)remaining.TotalHours:00}:{remaining.Minutes:00}:{remaining.Seconds:00}"
-            : $"{remaining.Minutes:00}:{remaining.Seconds:00}";
+        var time = FormatTime(remaining);
         if (snapshot.State == SharedTimerState.Paused) return $"일시 정지 · {time}";
         if (snapshot.TimerId is BusinessTimerIds.CayoHardMode or BusinessTimerIds.KortzHardMode)
-            return $"하드 모드 가능 · {time}";
+            return $"가능 · {time}";
         return snapshot.ClockMode == TimerClockMode.WallClock
             ? $"{time} · {(now + remaining).ToLocalTime():HH:mm} 예정"
             : time;
     }
+
+    private static string FormatTime(TimeSpan remaining) => remaining.TotalHours >= 1
+        ? $"{(int)remaining.TotalHours:00}:{remaining.Minutes:00}:{remaining.Seconds:00}"
+        : $"{remaining.Minutes:00}:{remaining.Seconds:00}";
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
     private void OnReady(SharedTimerCompletion completion)
     {
-        if (_readyNotificationPending) return;
-        _readyNotificationPending = true;
+        TriggerAttention(ReadyAttentionKey(completion.TimerId));
+        QueueNotification(new BusinessTimerNotification(
+            completion.TimerId,
+            BusinessTimerNotificationKind.Ready));
+    }
+
+    private void OnEarlyAlert(SharedTimerSnapshot snapshot)
+    {
+        TriggerAttention(snapshot.TimerId);
+        QueueNotification(new BusinessTimerNotification(
+            snapshot.TimerId,
+            BusinessTimerNotificationKind.EarlyAlert));
+    }
+
+    private void OnGeneralTimerCompleted(GtaoTimerSlot slot)
+    {
+        if (slot != GtaoTimerSlot.General) return;
+        _generalAttentionUntil = DateTimeOffset.UtcNow + GtaoTimerEngine.ExpiryEmphasisDuration;
+        OnPropertyChanged(nameof(IsGeneralTimerAttentionActive));
+    }
+
+    private void StartGeneral(int minutes)
+    {
+        _generalTimers.StartGeneral(minutes);
+        OnPropertyChanged(nameof(GeneralTimerStatus));
+    }
+
+    private void TriggerAttention(string timerId)
+    {
+        _attentionUntil[timerId] = DateTimeOffset.UtcNow + GtaoTimerEngine.ExpiryEmphasisDuration;
+        RefreshAttention(DateTimeOffset.UtcNow);
+    }
+
+    private void RefreshAttention(DateTimeOffset now)
+    {
+        foreach (var expired in _attentionUntil.Where(pair => pair.Value <= now).Select(pair => pair.Key).ToArray())
+            _attentionUntil.Remove(expired);
+        foreach (var row in Sections.SelectMany(section => section.Rows))
+            row.SetAttention(_attentionUntil.TryGetValue(row.TimerId, out var until) && until > now);
+    }
+
+    private void QueueNotification(BusinessTimerNotification notification)
+    {
+        if (_notificationPending) return;
+        _notificationPending = true;
         _dispatcher.BeginInvoke(() =>
         {
-            _readyNotificationPending = false;
-            Ready?.Invoke(completion);
+            _notificationPending = false;
+            NotificationRequested?.Invoke(notification);
         }, DispatcherPriority.Background);
     }
+
+    private static string ReadyAttentionKey(string timerId)
+    {
+        if (timerId == BusinessTimerIds.Heist(BusinessHeistKind.CayoGroup) ||
+            timerId == BusinessTimerIds.Heist(BusinessHeistKind.CayoSolo))
+            return BusinessTimerIds.CayoHardMode;
+        if (timerId == BusinessTimerIds.Heist(BusinessHeistKind.Kortz))
+            return BusinessTimerIds.KortzHardMode;
+        return timerId;
+    }
 }
+
+internal enum BusinessTimerNotificationKind
+{
+    EarlyAlert,
+    Ready,
+}
+
+internal sealed record BusinessTimerNotification(
+    string TimerId,
+    BusinessTimerNotificationKind Kind);
 
 internal sealed record BusinessSectionViewModel(
     string Title,
@@ -264,21 +410,26 @@ internal sealed class BusinessTimerRowViewModel : INotifyPropertyChanged
 {
     private bool _interactive;
     private readonly bool _available;
+    private readonly Action? _refresh;
+    private string _status;
+    private string _availabilityAccentText;
+    private bool _attentionActive;
     public BusinessTimerRowViewModel(string label, string timerId, string status, Action start,
         string primaryLabel, Action? secondary, string secondaryLabel, Action stop, bool interactive,
-        bool available)
+        bool available, Action? refresh = null, string availabilityAccentText = "")
     {
-        Label = label; TimerId = timerId; Status = status; PrimaryLabel = primaryLabel;
-        SecondaryLabel = secondaryLabel; _interactive = interactive; _available = available;
-        PrimaryCommand = new RelayCommand(start, () => IsInteractive);
-        SecondaryCommand = new RelayCommand(secondary ?? (() => { }), () => IsInteractive && HasSecondary);
-        StopCommand = new RelayCommand(stop, () => IsInteractive && Status != "대기");
+        Label = label; TimerId = timerId; _status = status; PrimaryLabel = primaryLabel;
+        SecondaryLabel = secondaryLabel; _interactive = interactive; _available = available; _refresh = refresh;
+        _availabilityAccentText = availabilityAccentText;
         HasSecondary = secondary is not null;
+        PrimaryCommand = new RelayCommand(() => Execute(start), () => IsInteractive);
+        SecondaryCommand = new RelayCommand(() => Execute(secondary ?? (() => { })), () => CanUseSecondary);
+        StopCommand = new RelayCommand(() => Execute(stop), () => CanStop);
     }
     public event PropertyChangedEventHandler? PropertyChanged;
     public string Label { get; }
     public string TimerId { get; }
-    public string Status { get; }
+    public string Status => _status;
     public string PrimaryLabel { get; }
     public string SecondaryLabel { get; }
     public bool HasSecondary { get; }
@@ -286,12 +437,59 @@ internal sealed class BusinessTimerRowViewModel : INotifyPropertyChanged
     public ICommand SecondaryCommand { get; }
     public ICommand StopCommand { get; }
     public bool IsInteractive => _interactive && _available;
+    public bool CanUseSecondary => IsInteractive && HasSecondary;
+    public bool CanStop => IsInteractive && Status != "대기";
+    public bool IsAttentionActive => _attentionActive;
+    public string AvailabilityAccentText => _availabilityAccentText;
+    public bool HasAvailabilityAccent => !string.IsNullOrEmpty(_availabilityAccentText);
+    public bool IsHardTrackingRow => TimerId is BusinessTimerIds.CayoHardMode or BusinessTimerIds.KortzHardMode;
+
     public void SetInteractive(bool value)
     {
+        if (_interactive == value) return;
         _interactive = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsInteractive)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanUseSecondary)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanStop)));
         ((RelayCommand)PrimaryCommand).RaiseCanExecuteChanged();
         ((RelayCommand)SecondaryCommand).RaiseCanExecuteChanged();
         ((RelayCommand)StopCommand).RaiseCanExecuteChanged();
+    }
+
+    public void UpdatePresentation(BusinessTimerRowViewModel other)
+    {
+        if (!string.Equals(_status, other.Status, StringComparison.Ordinal))
+        {
+            _status = other.Status;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Status)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanStop)));
+            ((RelayCommand)StopCommand).RaiseCanExecuteChanged();
+        }
+        if (!string.Equals(_availabilityAccentText, other.AvailabilityAccentText, StringComparison.Ordinal))
+        {
+            _availabilityAccentText = other.AvailabilityAccentText;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AvailabilityAccentText)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasAvailabilityAccent)));
+        }
+    }
+
+    public void SetAttention(bool value)
+    {
+        if (_attentionActive == value) return;
+        _attentionActive = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsAttentionActive)));
+    }
+
+    public bool HasSameStructure(BusinessTimerRowViewModel other) =>
+        string.Equals(Label, other.Label, StringComparison.Ordinal) &&
+        string.Equals(TimerId, other.TimerId, StringComparison.Ordinal) &&
+        string.Equals(PrimaryLabel, other.PrimaryLabel, StringComparison.Ordinal) &&
+        string.Equals(SecondaryLabel, other.SecondaryLabel, StringComparison.Ordinal) &&
+        HasSecondary == other.HasSecondary && _available == other._available;
+
+    private void Execute(Action action)
+    {
+        action();
+        _refresh?.Invoke();
     }
 }

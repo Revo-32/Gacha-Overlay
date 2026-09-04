@@ -15,16 +15,20 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
     private readonly GtaoTimerEngine _engine = new();
     private readonly HashSet<GtaoTimerSlot> _completedSlots = new();
     private readonly DispatcherTimer _refreshTimer;
+    private readonly Func<TimeSpan> _now;
     private AppSettings _settings;
     private bool _isVisible;
+    private string _generalStatus = "대기";
 
     public GtaoTimerHudViewModel(
         ILocalizationService localization,
         AppSettings settings,
-        Dispatcher dispatcher)
+        Dispatcher dispatcher,
+        Func<TimeSpan>? now = null)
     {
         _localization = localization;
         _settings = settings;
+        _now = now ?? SystemNow;
         _refreshTimer = new DispatcherTimer(
             TimeSpan.FromSeconds(1),
             DispatcherPriority.Background,
@@ -36,8 +40,20 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event Action? CompletionSoundRequested;
+    public event Action<GtaoTimerSlot>? TimerCompleted;
 
     public ObservableCollection<GtaoTimerHudItemViewModel> Items { get; } = new();
+
+    public string GeneralStatus
+    {
+        get => _generalStatus;
+        private set
+        {
+            if (string.Equals(_generalStatus, value, StringComparison.Ordinal)) return;
+            _generalStatus = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GeneralStatus)));
+        }
+    }
 
     public bool IsVisible
     {
@@ -82,11 +98,13 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
         _localization.LanguageChanged -= OnLanguageChanged;
     }
 
-    private void Refresh()
+    internal void Refresh()
     {
         var snapshots = _engine.Read(Now());
-        var completionDetected = snapshots.Any(snapshot =>
-            snapshot.IsExpired && _completedSlots.Add(snapshot.Slot));
+        var completed = snapshots
+            .Where(snapshot => snapshot.IsExpired && _completedSlots.Add(snapshot.Slot))
+            .Select(snapshot => snapshot.Slot)
+            .ToArray();
         var next = snapshots.Select(snapshot => new GtaoTimerHudItemViewModel(
             snapshot.Slot,
             Label(snapshot.Slot),
@@ -94,9 +112,11 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
             snapshot.IsExpired)).ToArray();
         Items.Clear();
         foreach (var item in next) Items.Add(item);
+        GeneralStatus = next.FirstOrDefault(item => item.Slot == GtaoTimerSlot.General)?.Value ?? "대기";
         IsVisible = Items.Count > 0;
         if (!IsVisible) _refreshTimer.Stop();
-        if (completionDetected && _settings.TimerCompletionSoundEnabled)
+        foreach (var slot in completed) TimerCompleted?.Invoke(slot);
+        if (completed.Length > 0 && _settings.TimerCompletionSoundEnabled)
         {
             CompletionSoundRequested?.Invoke();
         }
@@ -112,7 +132,9 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
 
     private void OnLanguageChanged(object? sender, EventArgs args) => Refresh();
 
-    private static TimeSpan Now() => Stopwatch.GetElapsedTime(0, Stopwatch.GetTimestamp());
+    private TimeSpan Now() => _now();
+
+    private static TimeSpan SystemNow() => Stopwatch.GetElapsedTime(0, Stopwatch.GetTimestamp());
 }
 
 internal sealed record GtaoTimerHudItemViewModel(

@@ -63,6 +63,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private bool _businessCayoHeistEnabled;
     private bool _businessKortzHeistEnabled;
     private bool _businessMansionBoostEnabled;
+    private int _businessTimerEarlyAlertMinutes;
     private readonly Func<SalesFeatureHealthSnapshot> _getSalesHealthSnapshot;
     private readonly Func<ManualSalesResyncResult> _manualSalesResync;
     private readonly Action _clearMediaCache;
@@ -196,7 +197,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _selectedLanguage = localization.CurrentLocale;
         var settings = settingsStore.Current;
         _selectedColorTheme = settings.ColorTheme;
-        _selectedSettingsCategory = settings.LastSettingsCategory;
+        _selectedSettingsCategory = NormalizeSettingsCategory(settings.LastSettingsCategory);
         _settingsCategories = CreateSettingsCategories();
         _hudSurfaceOpacity = settings.HudSurfaceOpacity;
         _hudChromeOpacity = settings.HudChromeOpacity;
@@ -399,7 +400,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     public void ReloadFromCurrentSettings()
     {
         var settings = _settingsStore.Current;
-        _selectedSettingsCategory = settings.LastSettingsCategory;
+        _selectedSettingsCategory = NormalizeSettingsCategory(settings.LastSettingsCategory);
         _selectedLanguage = settings.Language;
         _selectedColorTheme = settings.ColorTheme;
         _hudSurfaceOpacity = settings.HudSurfaceOpacity;
@@ -465,7 +466,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         get => _selectedSettingsCategory;
         set
         {
-            var normalized = Enum.IsDefined(value) ? value : SettingsCategory.General;
+            var normalized = NormalizeSettingsCategory(value);
             if (_selectedSettingsCategory == normalized)
             {
                 return;
@@ -478,6 +479,13 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     }
 
     public void OpenCategory(SettingsCategory category) => SelectedSettingsCategory = category;
+
+    private static SettingsCategory NormalizeSettingsCategory(SettingsCategory category) =>
+        !Enum.IsDefined(category)
+            ? SettingsCategory.General
+            : category == SettingsCategory.Timers
+                ? SettingsCategory.BusinessManager
+                : category;
 
     public double GetCategoryScrollPosition(SettingsCategory category) =>
         _settingsStore.Current.SettingsCategoryScrollPositions.TryGetValue(
@@ -942,6 +950,22 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     public bool BusinessCayoHeistEnabled { get => _businessCayoHeistEnabled; set => SetAndSave(ref _businessCayoHeistEnabled, value, s => s with { BusinessCayoHeistEnabled = value }); }
     public bool BusinessKortzHeistEnabled { get => _businessKortzHeistEnabled; set => SetAndSave(ref _businessKortzHeistEnabled, value, s => s with { BusinessKortzHeistEnabled = value }); }
     public bool BusinessMansionBoostEnabled { get => _businessMansionBoostEnabled; set => SetAndSave(ref _businessMansionBoostEnabled, value, s => s with { BusinessMansionBoostEnabled = value }); }
+    public IReadOnlyList<TimerPresetOption> BusinessTimerEarlyAlertOptions { get; } =
+    [
+        new(0, "사용 안 함"),
+        new(5, "5분 전"),
+        new(10, "10분 전"),
+    ];
+    public int BusinessTimerEarlyAlertMinutes
+    {
+        get => _businessTimerEarlyAlertMinutes;
+        set
+        {
+            var normalized = GachaOverlay.Core.Business.BusinessManagerEngine.NormalizeEarlyAlertMinutes(value);
+            SetAndSave(ref _businessTimerEarlyAlertMinutes, normalized,
+                settings => settings with { BusinessTimerEarlyAlertMinutes = normalized });
+        }
+    }
 
     private static string FormatOptionalHotkey(HotkeySetting? setting) =>
         setting is not null && HotkeyGesture.TryParse(setting, out var gesture) ? gesture.ToString() : string.Empty;
@@ -1492,7 +1516,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         var assigned = new HotkeyGesture?[]
             { lockGesture, visibilityGesture, previousChannel, nextChannel, generalTimer, gtaCompanionVisibility, businessManagerVisibility }
             .Where(value => value.HasValue).Select(value => value!.Value).ToArray();
-        if (assigned.Distinct().Count() != assigned.Length)
+        if (HasHotkeyConflict(assigned))
         { HotkeyValidationMessage = Localization["SettingsHotkeyDuplicate"]; return; }
 
         ApplyAndPersistHotkeys(_settingsStore.Current with
@@ -1509,6 +1533,12 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
             HotkeysCustomized = true,
         });
+    }
+
+    internal static bool HasHotkeyConflict(IEnumerable<HotkeyGesture> gestures)
+    {
+        var assigned = gestures.ToArray();
+        return assigned.Distinct().Count() != assigned.Length;
     }
 
     private static bool TryOptionalHotkey(string text, out HotkeyGesture? gesture)
@@ -1672,7 +1702,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         CreateCategory(SettingsCategory.Media, "SettingsCategoryMedia", "M3,5H21V19H3ZM6,16L10,12L13,15L16,10L20,16M8,9A1.5,1.5 0 1 1 8,6A1.5,1.5 0 1 1 8,9"),
         CreateCategory(SettingsCategory.Sales, "SettingsCategorySales", "M5,3H19V21H5ZM8,7H16M8,11H16M8,15H13M8,19H11"),
         CreateCategory(SettingsCategory.SalesHistory, "SettingsCategorySalesHistory", "M4,4H20V20H4ZM8,8H16M8,12H16M8,16H13M17,15V19M15,17H19"),
-        CreateCategory(SettingsCategory.Timers, "SettingsTimerTitle", "M12,3A9,9 0 1 0 12,21A9,9 0 1 0 12,3M12,7V12L15,14M9,2H15"),
         CreateCategory(SettingsCategory.GtaCompanion, "SettingsGtaCompanionTitle", "M4,5H20V19H4ZM7,9H17M7,13H13M16,12L19,15M19,12L16,15"),
         CreateCategory(SettingsCategory.BusinessManager, "SettingsBusinessManagerTitle", "M4,5H20V19H4ZM7,9H17M7,13H17M7,17H13M16,15H19V18H16Z"),
         CreateCategory(SettingsCategory.Hotkeys, "SettingsCategoryHotkeys", "M3,6H21V18H3ZM6,10H8M10,10H12M14,10H16M18,10H19M6,14H8M10,14H17"),
@@ -1935,6 +1964,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _businessCayoHeistEnabled = settings.BusinessCayoHeistEnabled;
         _businessKortzHeistEnabled = settings.BusinessKortzHeistEnabled;
         _businessMansionBoostEnabled = settings.BusinessMansionBoostEnabled;
+        _businessTimerEarlyAlertMinutes = settings.BusinessTimerEarlyAlertMinutes;
     }
 
     private void RefreshChatPresetState()

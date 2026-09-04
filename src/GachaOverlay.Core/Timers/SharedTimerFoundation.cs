@@ -35,7 +35,8 @@ public sealed record SharedTimerPersistedEntry(
     TimeSpan AccumulatedOnlineTime,
     SharedTimerState State,
     bool CompletionRaised,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    bool EarlyAlertRaised = false);
 
 public sealed record SharedTimerSnapshot(
     string TimerId,
@@ -44,7 +45,8 @@ public sealed record SharedTimerSnapshot(
     TimeSpan RequiredDuration,
     TimeSpan AccumulatedOnlineTime,
     TimeSpan Remaining,
-    DateTimeOffset? ReadyAtUtc);
+    DateTimeOffset? ReadyAtUtc,
+    bool EarlyAlertRaised = false);
 
 public sealed record SharedTimerCompletion(string TimerId, TimerClockMode ClockMode);
 
@@ -156,6 +158,27 @@ public sealed class SharedTimerRegistry
             _entries[id] = entry with
             {
                 State = SharedTimerState.Completed,
+                UpdatedAtUtc = _timeProvider.GetUtcNow(),
+            };
+            PersistUnderLock();
+            return true;
+        }
+    }
+
+    public bool TryMarkEarlyAlertRaised(string timerId)
+    {
+        var id = NormalizeId(timerId);
+        lock (_sync)
+        {
+            if (!_entries.TryGetValue(id, out var entry) || entry.EarlyAlertRaised ||
+                entry.State is SharedTimerState.Ready or SharedTimerState.Completed)
+            {
+                return false;
+            }
+
+            _entries[id] = entry with
+            {
+                EarlyAlertRaised = true,
                 UpdatedAtUtc = _timeProvider.GetUtcNow(),
             };
             PersistUnderLock();
@@ -333,7 +356,8 @@ public sealed class SharedTimerRegistry
             entry.RequiredDuration,
             entry.AccumulatedOnlineTime,
             remaining,
-            entry.ReadyAtUtc);
+            entry.ReadyAtUtc,
+            entry.EarlyAlertRaised);
     }
 
     private static bool IsValid(SharedTimerPersistedEntry entry) =>

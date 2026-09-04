@@ -464,6 +464,9 @@ public sealed class JsonSettingsStore : ISettingsStore
                 settings.BusinessManagerSurfaceOpacity),
             BusinessManagerVisibilityHotkey = businessManagerVisibilityHotkey,
             BusinessManagerWindowGeometry = businessManagerGeometry,
+            BusinessTimerEarlyAlertMinutes = settings.BusinessTimerEarlyAlertMinutes is 5 or 10
+                ? settings.BusinessTimerEarlyAlertMinutes
+                : 0,
             BusinessNightclubMinimumIncome = nightclubMinimumIncome,
             BusinessMoneyFrontCount = Math.Clamp(settings.BusinessMoneyFrontCount, 1, 3),
             BusinessSpecialCargoWarehouseCount = Math.Clamp(
@@ -580,6 +583,7 @@ public sealed class JsonSettingsStore : ISettingsStore
         source.BusinessManagerWindowGeometry != normalized.BusinessManagerWindowGeometry ||
         Math.Abs(source.GtaCompanionSurfaceOpacity - normalized.GtaCompanionSurfaceOpacity) > 0.001 ||
         Math.Abs(source.BusinessManagerSurfaceOpacity - normalized.BusinessManagerSurfaceOpacity) > 0.001 ||
+        source.BusinessTimerEarlyAlertMinutes != normalized.BusinessTimerEarlyAlertMinutes ||
         source.GeneralTimerMinutes != normalized.GeneralTimerMinutes ||
         source.BunkerTimerMinutes != normalized.BunkerTimerMinutes ||
         source.LsdTimerMinutes != normalized.LsdTimerMinutes ||

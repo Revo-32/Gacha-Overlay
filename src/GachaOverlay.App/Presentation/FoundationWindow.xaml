@@ -19,6 +19,14 @@
         <Style x:Key="SettingLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/><Setter Property="Margin" Value="0,14,0,7"/>
         </Style>
+        <Style TargetType="{x:Type local:HotkeyCaptureBox}" BasedOn="{StaticResource Style.Button.Secondary}">
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
 
         <DataTemplate x:Key="GeneralTemplate">
             <StackPanel>
@@ -204,30 +212,13 @@
         <DataTemplate x:Key="HotkeysTemplate">
             <StackPanel>
                 <TextBlock Style="{StaticResource SectionTitle}" Text="{Binding Localization[SettingsCategoryHotkeys]}"/><CheckBox IsChecked="{Binding HudModifierDragEnabled, Mode=TwoWay}" Content="{Binding Localization[SettingsModifierDrag]}"/><TextBlock Margin="28,4,0,10" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsModifierDragHint]}" TextWrapping="Wrap"/>
-                <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsVisibilityHotkey]}"/><TextBox Text="{Binding VisibilityHotkeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsLockHotkey]}"/><TextBox Text="{Binding LockHotkeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/><TextBlock Margin="0,8,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsHotkeyHint]}"/>
+                <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsVisibilityHotkey]}"/><local:HotkeyCaptureBox HotkeyText="{Binding VisibilityHotkeyText, Mode=TwoWay}"/><TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsLockHotkey]}"/><local:HotkeyCaptureBox HotkeyText="{Binding LockHotkeyText, Mode=TwoWay}"/><TextBlock Margin="0,8,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsHotkeyHint]}"/>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsPreviousChannel]}"/>
-                <TextBox Text="{Binding PreviousChannelHotkeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <local:HotkeyCaptureBox HotkeyText="{Binding PreviousChannelHotkeyText, Mode=TwoWay}"/>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsNextChannel]}"/>
-                <TextBox Text="{Binding NextChannelHotkeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <local:HotkeyCaptureBox HotkeyText="{Binding NextChannelHotkeyText, Mode=TwoWay}"/>
                 <TextBlock Margin="0,8,0,12" Text="{Binding Localization[SettingsChannelHotkeyHint]}" TextWrapping="Wrap"/>
                 <StackPanel Margin="0,18,0,0" Orientation="Horizontal"><Button Command="{Binding ApplyHotkeysCommand}" Content="{Binding Localization[SettingsApplyHotkeys]}"/><Button Margin="8,0,0,0" Command="{Binding ResetHotkeysCommand}" Content="{Binding Localization[SettingsResetHotkeys]}"/></StackPanel><TextBlock Margin="0,10,0,0" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding HotkeyValidationMessage}" TextWrapping="Wrap"/>
-            </StackPanel>
-        </DataTemplate>
-
-        <DataTemplate x:Key="TimersTemplate">
-            <StackPanel>
-                <TextBlock Style="{StaticResource SectionTitle}" Text="{Binding Localization[SettingsTimerTitle]}"/>
-                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsTimerDescription]}" TextWrapping="Wrap"/>
-                <Grid Margin="0,12,0,0">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="170"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <TextBlock VerticalAlignment="Center" Text="{Binding Localization[SettingsTimerGeneral]}"/>
-                    <ComboBox Grid.Column="1" Margin="8,0" ItemsSource="{Binding GeneralTimerPresets}" ItemTemplate="{StaticResource OptionTemplate}" SelectedValuePath="Minutes" SelectedValue="{Binding GeneralTimerMinutes, Mode=TwoWay}"/>
-                    <TextBox Grid.Column="2" Text="{Binding GeneralTimerHotkeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                </Grid>
-                <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsTimerHotkeyHint]}" TextWrapping="Wrap"/>
-                <CheckBox Margin="0,18,0,0" IsChecked="{Binding TimerCompletionSoundEnabled, Mode=TwoWay}" Content="{Binding Localization[SettingsTimerCompletionSound]}"/>
-                <Button Margin="0,18,0,0" HorizontalAlignment="Left" Command="{Binding ApplyHotkeysCommand}" Content="{Binding Localization[SettingsApplyHotkeys]}"/>
-                <TextBlock Margin="0,10,0,0" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding HotkeyValidationMessage}" TextWrapping="Wrap"/>
             </StackPanel>
         </DataTemplate>
 
@@ -275,7 +266,7 @@
                         Tag="{Binding GtaCompanionSurfaceOpacity, Converter={StaticResource SliderValueText}, ConverterParameter=Percent}"
                         Value="{Binding GtaCompanionSurfaceOpacity, Mode=TwoWay}"/>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsGtaCompanionHotkey]}"/>
-                <TextBox Text="{Binding GtaCompanionVisibilityHotkeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <local:HotkeyCaptureBox HotkeyText="{Binding GtaCompanionVisibilityHotkeyText, Mode=TwoWay}"/>
                 <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsGtaCompanionHotkeyHint]}" TextWrapping="Wrap"/>
                 <Button Margin="0,16,0,0" HorizontalAlignment="Left" Command="{Binding ApplyHotkeysCommand}" Content="{Binding Localization[SettingsApplyHotkeys]}"/>
                 <TextBlock Margin="0,9,0,0" Foreground="{DynamicResource AccentPrimaryBrush}" Text="{Binding HotkeyValidationMessage}" TextWrapping="Wrap"/>
@@ -290,8 +281,22 @@
                 <TextBlock Style="{StaticResource SettingLabel}" Text="HUD 투명도"/>
                 <Slider Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Tag="{Binding BusinessManagerSurfaceOpacity, Converter={StaticResource SliderValueText}, ConverterParameter=Percent}" Value="{Binding BusinessManagerSurfaceOpacity, Mode=TwoWay}"/>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="HUD 표시 단축키 (선택)"/>
-                <TextBox Text="{Binding BusinessManagerVisibilityHotkeyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                <Button Margin="0,10,0,0" HorizontalAlignment="Left" Command="{Binding ApplyHotkeysCommand}" Content="{Binding Localization[SettingsApplyHotkeys]}"/>
+                <local:HotkeyCaptureBox HotkeyText="{Binding BusinessManagerVisibilityHotkeyText, Mode=TwoWay}"/>
+                <Border Margin="0,18,0,0" Padding="14" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="8">
+                    <StackPanel>
+                        <TextBlock FontWeight="SemiBold" Text="일반 타이머"/>
+                        <Grid Margin="0,9,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <ComboBox ItemsSource="{Binding GeneralTimerPresets}" ItemTemplate="{StaticResource OptionTemplate}"
+                                      SelectedValuePath="Minutes" SelectedValue="{Binding GeneralTimerMinutes, Mode=TwoWay}"/>
+                            <local:HotkeyCaptureBox Grid.Column="1" Margin="8,0,0,0"
+                                                    HotkeyText="{Binding GeneralTimerHotkeyText, Mode=TwoWay}"/>
+                        </Grid>
+                        <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="시간을 선택하고 필요한 경우 전역 단축키를 지정하세요." TextWrapping="Wrap"/>
+                        <Button Margin="0,10,0,0" HorizontalAlignment="Left" Command="{Binding ApplyHotkeysCommand}" Content="{Binding Localization[SettingsApplyHotkeys]}"/>
+                    </StackPanel>
+                </Border>
                 <Border Margin="0,18,0,0" Padding="14" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="8">
                     <StackPanel>
                         <TextBlock FontWeight="SemiBold" Text="사업장"/>
@@ -299,11 +304,11 @@
                         <CheckBox Margin="24,5,0,0" IsChecked="{Binding BusinessBunkerUpgraded, Mode=TwoWay}" Content="장비·직원 업그레이드 / 제조 중심"/>
                         <CheckBox Margin="0,9,0,0" IsChecked="{Binding BusinessNightclubEnabled, Mode=TwoWay}" Content="나이트클럽"/>
                         <CheckBox Margin="24,5,0,0" IsChecked="{Binding BusinessNightclubStaffUpgrade, Mode=TwoWay}" Content="직원 업그레이드"/>
-                        <TextBlock Margin="24,6,0,2" Text="최저 안전 수입"/>
+                        <TextBlock Margin="24,6,0,2" Text="최저 금고수입"/>
                         <ComboBox Margin="24,0,0,0" Width="160" HorizontalAlignment="Left" ItemsSource="{Binding BusinessNightclubIncomeOptions}" SelectedItem="{Binding BusinessNightclubMinimumIncome, Mode=TwoWay}"/>
-                        <CheckBox Margin="0,9,0,0" IsChecked="{Binding BusinessAcidEnabled, Mode=TwoWay}" Content="산성 연구소"/>
+                        <CheckBox Margin="0,9,0,0" IsChecked="{Binding BusinessAcidEnabled, Mode=TwoWay}" Content="LSD"/>
                         <CheckBox Margin="24,5,0,0" IsChecked="{Binding BusinessAcidUpgraded, Mode=TwoWay}" Content="장비 업그레이드"/>
-                        <CheckBox Margin="0,9,0,0" IsChecked="{Binding BusinessCarWashEnabled, Mode=TwoWay}" Content="세차장 · 위장 사업장"/>
+                        <CheckBox Margin="0,9,0,0" IsChecked="{Binding BusinessCarWashEnabled, Mode=TwoWay}" Content="세차장"/>
                         <ComboBox Margin="24,5,0,0" Width="160" HorizontalAlignment="Left" ItemsSource="{Binding BusinessCountOptions}" SelectedItem="{Binding BusinessMoneyFrontCount, Mode=TwoWay}"/>
                     </StackPanel>
                 </Border>
@@ -324,16 +329,22 @@
                     <StackPanel>
                         <TextBlock FontWeight="SemiBold" Text="습격과 부스트"/>
                         <UniformGrid Columns="2" Margin="0,8,0,0">
-                            <CheckBox IsChecked="{Binding BusinessOriginalHeistEnabled, Mode=TwoWay}" Content="오리지널"/>
-                            <CheckBox IsChecked="{Binding BusinessDoomsdayHeistEnabled, Mode=TwoWay}" Content="심판의 날"/>
-                            <CheckBox Margin="0,6,0,0" IsChecked="{Binding BusinessCasinoHeistEnabled, Mode=TwoWay}" Content="카지노"/>
-                            <CheckBox Margin="0,6,0,0" IsChecked="{Binding BusinessCayoHeistEnabled, Mode=TwoWay}" Content="카요 페리코"/>
-                            <CheckBox Margin="0,6,0,0" IsChecked="{Binding BusinessKortzHeistEnabled, Mode=TwoWay}" Content="코르츠"/>
-                            <CheckBox Margin="0,6,0,0" IsChecked="{Binding BusinessMansionBoostEnabled, Mode=TwoWay}" Content="맨션 부스트"/>
+                            <CheckBox IsChecked="{Binding BusinessOriginalHeistEnabled, Mode=TwoWay}" Content="구습"/>
+                            <CheckBox IsChecked="{Binding BusinessDoomsdayHeistEnabled, Mode=TwoWay}" Content="신습"/>
+                            <CheckBox Margin="0,6,0,0" IsChecked="{Binding BusinessCasinoHeistEnabled, Mode=TwoWay}" Content="카습"/>
+                            <CheckBox Margin="0,6,0,0" IsChecked="{Binding BusinessCayoHeistEnabled, Mode=TwoWay}" Content="페습"/>
+                            <CheckBox Margin="0,6,0,0" IsChecked="{Binding BusinessKortzHeistEnabled, Mode=TwoWay}" Content="코습"/>
+                            <CheckBox Margin="0,6,0,0" IsChecked="{Binding BusinessMansionBoostEnabled, Mode=TwoWay}" Content="맨션 보유"/>
                         </UniformGrid>
                     </StackPanel>
                 </Border>
-                <CheckBox Margin="0,18,0,0" IsChecked="{Binding TimerCompletionSoundEnabled, Mode=TwoWay}" Content="준비 완료 알림음"/>
+                <CheckBox Margin="0,18,0,0" IsChecked="{Binding TimerCompletionSoundEnabled, Mode=TwoWay}" Content="타이머 완료 알림음"/>
+                <TextBlock Style="{StaticResource SettingLabel}" Text="미리 알림"/>
+                <ComboBox Width="160" HorizontalAlignment="Left"
+                          ItemsSource="{Binding BusinessTimerEarlyAlertOptions}"
+                          ItemTemplate="{StaticResource OptionTemplate}"
+                          SelectedValuePath="Minutes"
+                          SelectedValue="{Binding BusinessTimerEarlyAlertMinutes, Mode=TwoWay}"/>
                 <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="GTA Online 상태가 명확할 때만 생산 시간이 누적되며, 연결 불명 상태에서는 자동으로 일시 정지합니다." TextWrapping="Wrap"/>
             </StackPanel>
         </DataTemplate>
@@ -405,7 +416,7 @@
             </ListBox>
             <Border Grid.Column="1" Background="{DynamicResource BorderSubtleBrush}"/>
             <ScrollViewer x:Name="CategoryScrollViewer" Grid.Column="2" Margin="24,0,4,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ContentControl Content="{Binding}"><ContentControl.Style><Style TargetType="ContentControl"><Setter Property="ContentTemplate" Value="{StaticResource GeneralTemplate}"/><Style.Triggers>
-                <DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Discord}"><Setter Property="ContentTemplate" Value="{StaticResource DiscordTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Hud}"><Setter Property="ContentTemplate" Value="{StaticResource HudTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Chat}"><Setter Property="ContentTemplate" Value="{StaticResource ChatTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Media}"><Setter Property="ContentTemplate" Value="{StaticResource MediaTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Sales}"><Setter Property="ContentTemplate" Value="{StaticResource SalesTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.SalesHistory}"><Setter Property="ContentTemplate" Value="{StaticResource SalesHistoryTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Timers}"><Setter Property="ContentTemplate" Value="{StaticResource TimersTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.GtaCompanion}"><Setter Property="ContentTemplate" Value="{StaticResource GtaCompanionTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.BusinessManager}"><Setter Property="ContentTemplate" Value="{StaticResource BusinessManagerTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Hotkeys}"><Setter Property="ContentTemplate" Value="{StaticResource HotkeysTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Diagnostics}"><Setter Property="ContentTemplate" Value="{StaticResource DiagnosticsTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Developer}"><Setter Property="ContentTemplate" Value="{StaticResource DeveloperTemplate}"/></DataTrigger>
+                <DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Discord}"><Setter Property="ContentTemplate" Value="{StaticResource DiscordTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Hud}"><Setter Property="ContentTemplate" Value="{StaticResource HudTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Chat}"><Setter Property="ContentTemplate" Value="{StaticResource ChatTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Media}"><Setter Property="ContentTemplate" Value="{StaticResource MediaTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Sales}"><Setter Property="ContentTemplate" Value="{StaticResource SalesTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.SalesHistory}"><Setter Property="ContentTemplate" Value="{StaticResource SalesHistoryTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.GtaCompanion}"><Setter Property="ContentTemplate" Value="{StaticResource GtaCompanionTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.BusinessManager}"><Setter Property="ContentTemplate" Value="{StaticResource BusinessManagerTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Hotkeys}"><Setter Property="ContentTemplate" Value="{StaticResource HotkeysTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Diagnostics}"><Setter Property="ContentTemplate" Value="{StaticResource DiagnosticsTemplate}"/></DataTrigger><DataTrigger Binding="{Binding SelectedSettingsCategory}" Value="{x:Static settings:SettingsCategory.Developer}"><Setter Property="ContentTemplate" Value="{StaticResource DeveloperTemplate}"/></DataTrigger>
             </Style.Triggers></Style></ContentControl.Style></ContentControl></ScrollViewer>
         </Grid>
         <Grid Grid.Row="2" Margin="22,16,22,18"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Localization[SettingsChatLivePreviewHint]}"/><Button Grid.Column="1" Command="{Binding HideToTrayCommand}" Content="{Binding Localization[HideToTray]}"/></Grid>

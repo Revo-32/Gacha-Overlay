@@ -136,6 +136,8 @@ public sealed record AppSettings
     public bool BusinessKortzHeistEnabled { get; init; }
     public bool BusinessMansionBoostEnabled { get; init; }
 
+    public int BusinessTimerEarlyAlertMinutes { get; init; }
+
     public ChatLayoutMode ChatLayoutMode { get; init; } = ChatLayoutMode.Balanced;
 
     public bool ChatShowTime { get; init; } = true;

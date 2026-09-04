@@ -376,13 +376,13 @@ public sealed class M110FinalPolishTests
     }
 
     [Fact]
-    public void StaticUi_ContainsTimerClusterReadOnlyReactionsAndRoleIcon()
+    public void StaticUi_OmitsLegacyTimerClusterAndKeepsReadOnlyReactionsAndRoleIcon()
     {
         var hud = File.ReadAllText(Path.Combine(RepositoryRoot,
             "src", "GachaOverlay.App", "Presentation", "HudWindow.xaml"));
         var chat = File.ReadAllText(Path.Combine(RepositoryRoot,
             "src", "GachaOverlay.App", "Presentation", "ChatMessageView.xaml"));
-        Assert.Contains("Timers.Items", hud);
+        Assert.DoesNotContain("Timers.Items", hud);
         Assert.Contains("ReactionTemplate", chat);
         Assert.Contains("IsHitTestVisible=\"False\"", chat);
         Assert.Contains("RoleIconImage", chat);

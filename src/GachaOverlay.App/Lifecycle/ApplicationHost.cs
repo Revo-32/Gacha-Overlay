@@ -245,9 +245,9 @@ internal sealed class ApplicationHost : IDisposable
             _onlinePlaytimeStatus,
             settings,
             businessManagerWindow.Dispatcher,
-            minutes => timerViewModel.StartGeneral(minutes),
+            timerViewModel,
             _runtimeMetrics);
-        businessManagerViewModel.Ready += OnBusinessTimerReady;
+        businessManagerViewModel.NotificationRequested += OnBusinessTimerNotification;
         _businessManagerController = new BusinessManagerWindowController(
             businessManagerWindow,
             businessManagerViewModel,
@@ -580,11 +580,12 @@ internal sealed class ApplicationHost : IDisposable
         Logger.Information("TIMER-SOUND", "Timer completion notification requested.");
     }
 
-    private void OnBusinessTimerReady(SharedTimerCompletion completion)
+    private void OnBusinessTimerNotification(BusinessTimerNotification notification)
     {
         if (_settingsStore?.Current.TimerCompletionSoundEnabled == true)
             _salesNotificationSoundService?.Play(SalesTurnNotificationKind.Current, 50);
-        Logger.Information("BUSINESS", $"Ready timer={completion.TimerId} sound={_settingsStore?.Current.TimerCompletionSoundEnabled == true}.");
+        Logger.Information("BUSINESS",
+            $"Notification kind={notification.Kind} timer={notification.TimerId} sound={_settingsStore?.Current.TimerCompletionSoundEnabled == true}.");
     }
 
     private void OnChannelSwitchCommitted(string label) =>

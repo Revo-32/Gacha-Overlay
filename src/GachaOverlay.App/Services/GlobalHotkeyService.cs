@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using GachaOverlay.App.Presentation;
 using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Logging;
 using GachaOverlay.Core.Settings;
@@ -194,7 +195,7 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 
     private void OnHotkeyPressed(int id)
     {
-        if (_disposed) return;
+        if (_disposed || !ShouldDispatch) return;
         if (id == PreviousChannelId) { ChannelStepRequested?.Invoke(-1); return; }
         if (id == NextChannelId) { ChannelStepRequested?.Invoke(1); return; }
         if (id == GeneralTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.General); return; }
@@ -221,6 +222,8 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
             VisibilityToggleRequested?.Invoke();
         }
     }
+
+    internal static bool ShouldDispatch => !GlobalHotkeyDispatchGate.IsSuppressed;
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool RegisterHotKey(

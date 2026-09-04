@@ -48,8 +48,11 @@ public sealed class BusinessManagerEngine : IDisposable
     }
 
     public event Action<SharedTimerCompletion>? Ready;
+    public event Action<SharedTimerSnapshot>? EarlyAlert;
 
-    public IReadOnlyList<SharedTimerSnapshot> Update(OnlinePlaytimeAvailability availability)
+    public IReadOnlyList<SharedTimerSnapshot> Update(
+        OnlinePlaytimeAvailability availability,
+        int earlyAlertMinutes = 0)
     {
         ThrowIfDisposed();
         _availability = availability;
@@ -58,8 +61,11 @@ public sealed class BusinessManagerEngine : IDisposable
         var snapshots = _timers.Update(availability, CalculateOnlineProgress, persistChanges: false);
         if (persist) _updatesSincePersistence = 0;
         _last = snapshots.ToDictionary(item => item.TimerId, StringComparer.Ordinal);
+        RaiseEarlyAlerts(snapshots, NormalizeEarlyAlertMinutes(earlyAlertMinutes));
         return snapshots;
     }
+
+    public static int NormalizeEarlyAlertMinutes(int value) => value is 5 or 10 ? value : 0;
 
     public TimeSpan EstimateRemaining(SharedTimerSnapshot timer, DateTimeOffset now)
     {
@@ -406,8 +412,14 @@ public sealed class BusinessManagerEngine : IDisposable
     {
         if (completion.TimerId is BusinessTimerIds.AcidBoost or BusinessTimerIds.AcidBoostAllowance)
         {
-            _timers.Stop(BusinessTimerIds.AcidBoost);
-            _timers.Stop(BusinessTimerIds.AcidBoostAllowance);
+            var stoppedWindow = _timers.Stop(BusinessTimerIds.AcidBoost);
+            var stoppedAllowance = _timers.Stop(BusinessTimerIds.AcidBoostAllowance);
+            if (stoppedWindow || stoppedAllowance)
+            {
+                Ready?.Invoke(new SharedTimerCompletion(
+                    BusinessTimerIds.AcidBoost,
+                    TimerClockMode.WallClock));
+            }
             return;
         }
 
@@ -432,6 +444,33 @@ public sealed class BusinessManagerEngine : IDisposable
 
         Ready?.Invoke(completion);
     }
+
+    private void RaiseEarlyAlerts(
+        IReadOnlyList<SharedTimerSnapshot> snapshots,
+        int earlyAlertMinutes)
+    {
+        if (earlyAlertMinutes == 0) return;
+        var threshold = TimeSpan.FromMinutes(earlyAlertMinutes);
+        foreach (var snapshot in snapshots)
+        {
+            if (!SupportsEarlyAlert(snapshot.TimerId) || snapshot.EarlyAlertRaised ||
+                snapshot.State is SharedTimerState.Ready or SharedTimerState.Completed ||
+                snapshot.Remaining <= TimeSpan.Zero || snapshot.Remaining > threshold ||
+                !_timers.TryMarkEarlyAlertRaised(snapshot.TimerId))
+            {
+                continue;
+            }
+
+            EarlyAlert?.Invoke(snapshot with { EarlyAlertRaised = true });
+        }
+    }
+
+    private static bool SupportsEarlyAlert(string timerId) =>
+        timerId is BusinessTimerIds.Bunker or BusinessTimerIds.Acid or
+            BusinessTimerIds.Nightclub or BusinessTimerIds.CarWash or BusinessTimerIds.AirFreight ||
+        timerId.StartsWith("business.cargo.", StringComparison.Ordinal) ||
+        timerId.StartsWith("business.heist.", StringComparison.Ordinal) &&
+        timerId is not BusinessTimerIds.CayoHardMode and not BusinessTimerIds.KortzHardMode;
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 

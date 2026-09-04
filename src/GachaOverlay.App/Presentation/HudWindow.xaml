@@ -99,13 +99,11 @@
                             <Condition Binding="{Binding Chat.Messages.Count}" Value="0"/>
                             <Condition Binding="{Binding Chat.IsHealthVisible}" Value="False"/>
                             <Condition Binding="{Binding Session.IsVisible}" Value="False"/>
-                            <Condition Binding="{Binding Timers.IsVisible}" Value="False"/>
                         </MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Collapsed"/></MultiDataTrigger>
                     </Style.Triggers></Style></Border.Style>
                     <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <WrapPanel Grid.Row="0" Margin="0,0,0,5">
-                    <ItemsControl x:Name="SessionBadge" ItemsSource="{Binding Session.Items}" HorizontalAlignment="Left"
-                                  Margin="0,0,0,5" IsHitTestVisible="False"
+                    <ItemsControl x:Name="SessionBadge" Grid.Row="0" ItemsSource="{Binding Session.Items}"
+                                  HorizontalAlignment="Left" Margin="0,0,0,5" IsHitTestVisible="False"
                                   Visibility="{Binding Session.IsVisible, Converter={StaticResource BoolVisibility}}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -125,32 +123,6 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <ItemsControl ItemsSource="{Binding Timers.Items}" IsHitTestVisible="False"
-                                  Visibility="{Binding Timers.IsVisible, Converter={StaticResource BoolVisibility}}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Margin="0,0,5,0" Padding="8,3" CornerRadius="7">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsExpired}" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource StatusWarningBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <TextBlock FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}">
-                                        <Run FontWeight="SemiBold" Text="{Binding Label}"/><Run Text=" "/><Run Text="{Binding Value}"/>
-                                    </TextBlock>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    </WrapPanel>
                     <local:ChatView x:Name="ChatContent" Grid.Row="1" DataContext="{Binding Chat}" />
                     </Grid>
                 </Border>
