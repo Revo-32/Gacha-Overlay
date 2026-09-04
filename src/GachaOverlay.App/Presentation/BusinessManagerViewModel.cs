@@ -24,6 +24,7 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
     private DateTimeOffset _generalAttentionUntil;
     private AppSettings _settings;
     private bool _interactive;
+    private bool _presentationActive = true;
     private bool _sectionsDirty = true;
     private bool _disposed;
 
@@ -61,6 +62,7 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
     public ICommand StartGeneral48Command { get; }
     public string GeneralTimerStatus => _generalTimers.GeneralStatus;
     public bool IsGeneralTimerAttentionActive => DateTimeOffset.UtcNow < _generalAttentionUntil;
+    internal int PresentationRebuildCount { get; private set; }
 
     public bool IsInteractive
     {
@@ -80,6 +82,15 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
     {
         IsInteractive = unlocked;
         foreach (var row in Sections.SelectMany(section => section.Rows)) row.SetInteractive(unlocked);
+    }
+
+    public void SetPresentationActive(bool active)
+    {
+        if (_presentationActive == active) return;
+        _presentationActive = active;
+        if (!active) return;
+        _sectionsDirty = true;
+        Refresh();
     }
 
     public void ApplySettings(AppSettings settings)
@@ -113,7 +124,15 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
         _metrics?.SetGauge(RuntimeMetricNames.BusinessMansionBoostActive,
             IsRunning(BusinessTimerIds.MansionBunker) || IsRunning(BusinessTimerIds.MansionAcid) ? 1 : 0);
         _metrics?.SetState(RuntimeMetricNames.BusinessOnlineState, _online.Current.ToString());
-        SynchronizeSections(BuildSections(snapshots, now));
+        if (!_presentationActive) return;
+        if (_sectionsDirty)
+        {
+            RebuildSections(snapshots, now);
+        }
+        else
+        {
+            RefreshSectionPresentations(snapshots, now);
+        }
         RefreshAttention(now);
         OnPropertyChanged(nameof(GeneralTimerStatus));
         OnPropertyChanged(nameof(IsGeneralTimerAttentionActive));
@@ -137,6 +156,7 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
         IReadOnlyDictionary<string, SharedTimerSnapshot> snapshots,
         DateTimeOffset now)
     {
+        PresentationRebuildCount++;
         var result = new List<BusinessSectionViewModel>();
         if (_settings.BusinessBunkerEnabled)
         {
@@ -201,7 +221,8 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
                     BusinessTimerIds.Heist(BusinessHeistKind.CayoSolo));
             heists.Add(Row("페습", cooldownId,
                 () => _engine.StartHeist(BusinessHeistKind.CayoGroup), "그룹 완료",
-                () => _engine.StartHeist(BusinessHeistKind.CayoSolo), "솔로 완료"));
+                () => _engine.StartHeist(BusinessHeistKind.CayoSolo), "솔로 완료",
+                rebuildAfterAction: true));
             heists.Add(HardRow(cooldownId, BusinessTimerIds.CayoHardMode));
         }
         if (_settings.BusinessKortzHeistEnabled)
@@ -247,7 +268,8 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
             Action start,
             string primaryLabel = "시작 / 재시작",
             Action? secondary = null,
-            string secondaryLabel = "")
+            string secondaryLabel = "",
+            bool rebuildAfterAction = false)
         {
             snapshots.TryGetValue(id, out var snapshot);
             var status = snapshot is null
@@ -255,7 +277,7 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
                 : FormatStatus(snapshot, _engine.EstimateRemaining(snapshot, now), now);
             return new BusinessTimerRowViewModel(label, id, status, start, primaryLabel, secondary,
                 secondaryLabel, () => _engine.Stop(id), IsInteractive, available: true,
-                refresh: Refresh);
+                refresh: rebuildAfterAction ? RefreshStructureAfterMutation : Refresh);
         }
 
         BusinessTimerRowViewModel Unsupported(string label) =>
@@ -266,39 +288,60 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
             result.Add(new BusinessSectionViewModel(title, rows));
     }
 
-    private void SynchronizeSections(IReadOnlyList<BusinessSectionViewModel> next)
+    private void RebuildSections(
+        IReadOnlyDictionary<string, SharedTimerSnapshot> snapshots,
+        DateTimeOffset now)
     {
-        if (_sectionsDirty || !HasSameStructure(next))
-        {
-            Sections.Clear();
-            foreach (var section in next) Sections.Add(section);
-            _sectionsDirty = false;
-            OnPropertyChanged(nameof(Sections));
-            return;
-        }
-
-        for (var sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++)
-        for (var rowIndex = 0; rowIndex < Sections[sectionIndex].Rows.Count; rowIndex++)
-            Sections[sectionIndex].Rows[rowIndex].UpdatePresentation(next[sectionIndex].Rows[rowIndex]);
+        Sections.Clear();
+        foreach (var section in BuildSections(snapshots, now)) Sections.Add(section);
+        _sectionsDirty = false;
+        OnPropertyChanged(nameof(Sections));
     }
 
-    private bool HasSameStructure(IReadOnlyList<BusinessSectionViewModel> next)
+    private void RefreshSectionPresentations(
+        IReadOnlyDictionary<string, SharedTimerSnapshot> snapshots,
+        DateTimeOffset now)
     {
-        if (Sections.Count != next.Count) return false;
-        for (var sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++)
+        foreach (var row in Sections.SelectMany(section => section.Rows))
         {
-            var current = Sections[sectionIndex];
-            var candidate = next[sectionIndex];
-            if (!string.Equals(current.Title, candidate.Title, StringComparison.Ordinal) ||
-                current.Rows.Count != candidate.Rows.Count)
-                return false;
-            for (var rowIndex = 0; rowIndex < current.Rows.Count; rowIndex++)
+            if (row.IsHardTrackingRow)
             {
-                if (!current.Rows[rowIndex].HasSameStructure(candidate.Rows[rowIndex])) return false;
+                var cooldownId = row.TimerId == BusinessTimerIds.CayoHardMode
+                    ? Preferred(
+                        BusinessTimerIds.Heist(BusinessHeistKind.CayoGroup),
+                        BusinessTimerIds.Heist(BusinessHeistKind.CayoSolo))
+                    : BusinessTimerIds.Heist(BusinessHeistKind.Kortz);
+                var status = "대기";
+                var accent = string.Empty;
+                if (snapshots.TryGetValue(row.TimerId, out var hardMode))
+                {
+                    accent = "가능 ·";
+                    status = FormatTime(_engine.EstimateRemaining(hardMode, now));
+                }
+                else if (snapshots.TryGetValue(cooldownId, out var cooldown))
+                {
+                    status = cooldown.State is SharedTimerState.Ready or SharedTimerState.Completed
+                        ? "종료"
+                        : $"{FormatTime(_engine.EstimateRemaining(cooldown, now))} 후 가능";
+                }
+                row.UpdatePresentation(status, accent);
+                continue;
             }
+
+            if (string.IsNullOrEmpty(row.TimerId)) continue;
+            var timerStatus = snapshots.TryGetValue(row.TimerId, out var snapshot)
+                ? FormatStatus(snapshot, _engine.EstimateRemaining(snapshot, now), now)
+                : "대기";
+            row.UpdatePresentation(timerStatus, string.Empty);
         }
 
-        return true;
+        string Preferred(params string[] ids) => ids.FirstOrDefault(snapshots.ContainsKey) ?? ids[0];
+    }
+
+    private void RefreshStructureAfterMutation()
+    {
+        _sectionsDirty = true;
+        Refresh();
     }
 
     private static string FormatStatus(SharedTimerSnapshot snapshot, TimeSpan remaining, DateTimeOffset now)
@@ -456,18 +499,18 @@ internal sealed class BusinessTimerRowViewModel : INotifyPropertyChanged
         ((RelayCommand)StopCommand).RaiseCanExecuteChanged();
     }
 
-    public void UpdatePresentation(BusinessTimerRowViewModel other)
+    public void UpdatePresentation(string status, string availabilityAccentText)
     {
-        if (!string.Equals(_status, other.Status, StringComparison.Ordinal))
+        if (!string.Equals(_status, status, StringComparison.Ordinal))
         {
-            _status = other.Status;
+            _status = status;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Status)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanStop)));
             ((RelayCommand)StopCommand).RaiseCanExecuteChanged();
         }
-        if (!string.Equals(_availabilityAccentText, other.AvailabilityAccentText, StringComparison.Ordinal))
+        if (!string.Equals(_availabilityAccentText, availabilityAccentText, StringComparison.Ordinal))
         {
-            _availabilityAccentText = other.AvailabilityAccentText;
+            _availabilityAccentText = availabilityAccentText;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AvailabilityAccentText)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasAvailabilityAccent)));
         }
@@ -479,13 +522,6 @@ internal sealed class BusinessTimerRowViewModel : INotifyPropertyChanged
         _attentionActive = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsAttentionActive)));
     }
-
-    public bool HasSameStructure(BusinessTimerRowViewModel other) =>
-        string.Equals(Label, other.Label, StringComparison.Ordinal) &&
-        string.Equals(TimerId, other.TimerId, StringComparison.Ordinal) &&
-        string.Equals(PrimaryLabel, other.PrimaryLabel, StringComparison.Ordinal) &&
-        string.Equals(SecondaryLabel, other.SecondaryLabel, StringComparison.Ordinal) &&
-        HasSecondary == other.HasSecondary && _available == other._available;
 
     private void Execute(Action action)
     {

@@ -19,6 +19,9 @@ public sealed class M3BusinessHotkeyUxCorrectiveTests
 
     [Theory]
     [InlineData(Key.F9, ModifierKeys.None, "F9")]
+    [InlineData(Key.F10, ModifierKeys.None, "F10")]
+    [InlineData(Key.K, ModifierKeys.None, "K")]
+    [InlineData(Key.D1, ModifierKeys.None, "1")]
     [InlineData(Key.F9, ModifierKeys.Control, "Control+F9")]
     [InlineData(Key.F9, ModifierKeys.Control | ModifierKeys.Shift, "Control+Shift+F9")]
     [InlineData(Key.D1, ModifierKeys.Alt, "Alt+1")]
@@ -74,13 +77,14 @@ public sealed class M3BusinessHotkeyUxCorrectiveTests
     }
 
     [Fact]
-    public void EscapeCancelsAndClearProducesUnassigned()
+    public void EscapeAndDeleteClearTheMappingWhileFocusLossRestoresPreviousValue()
     {
-        var cancel = new HotkeyCaptureModel();
-        cancel.Begin("Control+F9");
-        var cancelled = cancel.Press(Key.Escape, ModifierKeys.None);
-        Assert.Equal(HotkeyCaptureResultKind.Cancel, cancelled.Kind);
-        Assert.Equal("Control+F9", cancelled.Value);
+        var escape = new HotkeyCaptureModel();
+        escape.Begin("Control+F9");
+        var escaped = escape.Press(Key.Escape, ModifierKeys.None);
+        Assert.Equal(HotkeyCaptureResultKind.Clear, escaped.Kind);
+        Assert.Equal(string.Empty, escaped.Value);
+        Assert.Equal(HotkeyCaptureBox.UnassignedText, escape.DisplayText);
 
         var clear = new HotkeyCaptureModel();
         clear.Begin("F10");
@@ -88,6 +92,12 @@ public sealed class M3BusinessHotkeyUxCorrectiveTests
         Assert.Equal(HotkeyCaptureResultKind.Clear, cleared.Kind);
         Assert.Equal(string.Empty, cleared.Value);
         Assert.Equal(HotkeyCaptureBox.UnassignedText, clear.DisplayText);
+
+        var focusLoss = new HotkeyCaptureModel();
+        focusLoss.Begin("Control+F9");
+        var cancelled = focusLoss.Cancel();
+        Assert.Equal(HotkeyCaptureResultKind.Cancel, cancelled.Kind);
+        Assert.Equal("Control+F9", cancelled.Value);
     }
 
     [Fact]
@@ -98,6 +108,7 @@ public sealed class M3BusinessHotkeyUxCorrectiveTests
 
         var captured = Capture(Key.F9, ModifierKeys.Control);
         Assert.True(HotkeyGesture.TryParseDisplayText(captured, out var first));
+        Assert.False(FoundationViewModel.HasHotkeyConflict([first]));
         Assert.True(FoundationViewModel.HasHotkeyConflict([first, first]));
         Assert.False(FoundationViewModel.HasHotkeyConflict([
             first,
@@ -112,6 +123,32 @@ public sealed class M3BusinessHotkeyUxCorrectiveTests
         using (GlobalHotkeyDispatchGate.Enter())
             Assert.False(GlobalHotkeyService.ShouldDispatch);
         Assert.True(GlobalHotkeyService.ShouldDispatch);
+    }
+
+    [Fact]
+    public void RegisteredBareF9_IsCapturedWithoutDispatchAndSuppressionEndsImmediately()
+    {
+        var model = new HotkeyCaptureModel();
+        model.Begin("Control+F9");
+        var result = default(HotkeyCaptureResult);
+        IDisposable? suppression = null;
+        suppression = GlobalHotkeyDispatchGate.Enter(gesture =>
+        {
+            result = model.CaptureRegisteredGesture(gesture);
+            suppression!.Dispose();
+        });
+
+        Assert.False(GlobalHotkeyService.ShouldDispatch);
+        Assert.True(GlobalHotkeyDispatchGate.TryCaptureRegisteredGesture(
+            new HotkeyGesture(HotkeyModifiers.None, 0x78)));
+
+        Assert.Equal(HotkeyCaptureResultKind.Commit, result.Kind);
+        Assert.Equal("F9", result.Value);
+        Assert.Equal("F9", model.DisplayText);
+        Assert.False(model.IsCapturing);
+        Assert.True(GlobalHotkeyService.ShouldDispatch);
+        Assert.False(GlobalHotkeyDispatchGate.TryCaptureRegisteredGesture(
+            new HotkeyGesture(HotkeyModifiers.None, 0x78)));
     }
 
     [Theory]
@@ -175,7 +212,18 @@ public sealed class M3BusinessHotkeyUxCorrectiveTests
         Assert.DoesNotContain("<TextBox Text=\"{Binding LockHotkeyText", xaml);
         Assert.DoesNotContain("<TextBox Text=\"{Binding GeneralTimerHotkeyText", xaml);
         Assert.Contains("TargetType=\"{x:Type local:HotkeyCaptureBox}\" BasedOn=\"{StaticResource Style.Button.Secondary}\"", xaml);
+        Assert.Contains("<Setter Property=\"Width\" Value=\"260\"/>", xaml);
+        Assert.Contains("<Setter Property=\"HorizontalAlignment\" Value=\"Left\"/>", xaml);
         Assert.Contains("<Setter Property=\"Background\" Value=\"{DynamicResource SurfaceRaisedBrush}\"/>", xaml);
+        var businessHotkey = xaml.IndexOf(
+            "HotkeyText=\"{Binding BusinessManagerVisibilityHotkeyText, Mode=TwoWay}\"/>",
+            StringComparison.Ordinal);
+        Assert.True(businessHotkey >= 0);
+        var nearbyApply = xaml.IndexOf(
+            "<Button Margin=\"0,10,0,0\"",
+            businessHotkey,
+            StringComparison.Ordinal);
+        Assert.InRange(nearbyApply - businessHotkey, 1, 220);
     }
 
     [Fact]

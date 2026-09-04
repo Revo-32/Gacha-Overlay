@@ -268,11 +268,13 @@ public sealed class JsonSettingsStore : ISettingsStore
         var lockHotkey = NormalizeHotkey(
             settings.HudLockHotkey,
             HotkeySetting.DefaultLockToggle,
-            "LockToggle");
+            "LockToggle",
+            allowUnassigned: true);
         var visibilityHotkey = NormalizeHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle,
-            "VisibilityToggle");
+            "VisibilityToggle",
+            allowUnassigned: true);
         if (HotkeyGesture.TryParse(lockHotkey, out var lockGesture) &&
             HotkeyGesture.TryParse(visibilityHotkey, out var visibilityGesture) &&
             lockGesture == visibilityGesture)
@@ -298,10 +300,10 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         // Optional navigation bindings must never prevent F9/F10 from registering.
         var usedGestures = new HashSet<HotkeyGesture>();
-        HotkeyGesture.TryParse(lockHotkey, out var normalizedLock);
-        HotkeyGesture.TryParse(visibilityHotkey, out var normalizedVisibility);
-        usedGestures.Add(normalizedLock);
-        usedGestures.Add(normalizedVisibility);
+        if (HotkeyGesture.TryParse(lockHotkey, out var normalizedLock))
+            usedGestures.Add(normalizedLock);
+        if (HotkeyGesture.TryParse(visibilityHotkey, out var normalizedVisibility))
+            usedGestures.Add(normalizedVisibility);
         HotkeySetting Optional(HotkeySetting? candidate)
         {
             if (candidate is null || !HotkeyGesture.TryParse(candidate, out var value) ||
@@ -550,8 +552,12 @@ public sealed class JsonSettingsStore : ISettingsStore
     private HotkeySetting NormalizeHotkey(
         HotkeySetting? setting,
         HotkeySetting fallback,
-        string name)
+        string name,
+        bool allowUnassigned = false)
     {
+        if (allowUnassigned && setting is not null && string.IsNullOrWhiteSpace(setting.Key))
+            return new HotkeySetting { Key = "" };
+
         if (HotkeyGesture.TryParse(setting, out var gesture))
         {
             return gesture.ToSetting();

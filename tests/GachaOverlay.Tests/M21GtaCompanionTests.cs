@@ -388,6 +388,7 @@ public sealed class M21GtaCompanionTests
         Assert.DoesNotContain("Text=\"GTA 컴패니언\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("AvailabilityText", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("이벤트 정보를 기다리는 중", viewModel, StringComparison.Ordinal);
+        Assert.Contains("_hudState.Current.EffectiveVisible", controller, StringComparison.Ordinal);
         Assert.Contains("SetSurfaceOpacity", codeBehind, StringComparison.Ordinal);
         Assert.Contains("Value=\"{Binding GtaCompanionSurfaceOpacity, Mode=TwoWay}\"", settingsXaml, StringComparison.Ordinal);
         Assert.Contains("DefaultWidth: 360", controller, StringComparison.Ordinal);

@@ -200,7 +200,11 @@ public sealed class OptionDisplayTests
                 {
                     fixture.ViewModel.OpenCategory(category);
                     window.UpdateLayout();
-                    Assert.Equal(category, fixture.ViewModel.SelectedSettingsCategory);
+                    Assert.Equal(
+                        category == SettingsCategory.Timers
+                            ? SettingsCategory.BusinessManager
+                            : category,
+                        fixture.ViewModel.SelectedSettingsCategory);
                     AssertModernScrollBars(window.CategoryScrollViewer, window);
                     foreach (var slider in Descendants<Slider>(window)
                                  .Where(slider => slider.Visibility == Visibility.Visible))

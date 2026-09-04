@@ -47,16 +47,17 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
     public bool Bind(AppSettings settings)
     {
         if (_disposed) return false;
-        var plan = CreateRegistrationPlan(settings.HudLockHotkey, settings.HudVisibilityHotkey);
-        if (!TryOptional(settings.PreviousMainChannelHotkey, out var previous) ||
+        if (!TryOptional(settings.HudLockHotkey, out var lockToggle) ||
+            !TryOptional(settings.HudVisibilityHotkey, out var visibilityToggle) ||
+            !TryOptional(settings.PreviousMainChannelHotkey, out var previous) ||
             !TryOptional(settings.NextMainChannelHotkey, out var next) ||
             !TryOptional(settings.GeneralTimerHotkey, out var generalTimer) ||
             !TryOptional(settings.GtaCompanionVisibilityHotkey, out var gtaCompanionVisibility) ||
             !TryOptional(settings.BusinessManagerVisibilityHotkey, out var businessManagerVisibility)) return false;
         var desired = new Dictionary<int, HotkeyGesture?>
         {
-            [VisibilityToggleId] = plan.VisibilityToggle,
-            [LockToggleId] = plan.LockToggle,
+            [VisibilityToggleId] = visibilityToggle,
+            [LockToggleId] = lockToggle,
             [PreviousChannelId] = previous,
             [NextChannelId] = next,
             [GeneralTimerId] = generalTimer,
@@ -100,10 +101,12 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 
     internal static HudHotkeyRegistrationPlan CreateRegistrationPlan(
         HotkeySetting lockSetting,
-        HotkeySetting visibilitySetting) =>
-        new(
-            ParseOrDefault(visibilitySetting, HotkeySetting.DefaultVisibilityToggle),
-            ParseOrDefault(lockSetting, HotkeySetting.DefaultLockToggle));
+        HotkeySetting visibilitySetting)
+    {
+        TryOptional(lockSetting, out var lockToggle);
+        TryOptional(visibilitySetting, out var visibilityToggle);
+        return new HudHotkeyRegistrationPlan(visibilityToggle, lockToggle);
+    }
 
     public bool TryRegister(int id, HotkeyGesture gesture)
     {
@@ -162,18 +165,6 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
         _bindings.Dispose();
     }
 
-    private static HotkeyGesture ParseOrDefault(
-        HotkeySetting configured,
-        HotkeySetting fallback)
-    {
-        if (!HotkeyGesture.TryParse(configured, out var gesture))
-        {
-            HotkeyGesture.TryParse(fallback, out gesture);
-        }
-
-        return gesture;
-    }
-
     private void RestoreBinding(int id, HotkeyGesture? previous)
     {
         if (previous is null)
@@ -195,7 +186,13 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 
     private void OnHotkeyPressed(int id)
     {
-        if (_disposed || !ShouldDispatch) return;
+        if (_disposed) return;
+        if (!ShouldDispatch)
+        {
+            if (_bindings.GetActiveGesture(id) is { } gesture)
+                GlobalHotkeyDispatchGate.TryCaptureRegisteredGesture(gesture);
+            return;
+        }
         if (id == PreviousChannelId) { ChannelStepRequested?.Invoke(-1); return; }
         if (id == NextChannelId) { ChannelStepRequested?.Invoke(1); return; }
         if (id == GeneralTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.General); return; }
@@ -237,5 +234,5 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 }
 
 internal sealed record HudHotkeyRegistrationPlan(
-    HotkeyGesture VisibilityToggle,
-    HotkeyGesture LockToggle);
+    HotkeyGesture? VisibilityToggle,
+    HotkeyGesture? LockToggle);

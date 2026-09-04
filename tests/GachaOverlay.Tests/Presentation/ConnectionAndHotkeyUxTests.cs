@@ -3,6 +3,7 @@ using GachaOverlay.App.Presentation;
 using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Logging;
+using GachaOverlay.Core.Settings;
 using GachaOverlay.Infrastructure.Localization;
 using GachaOverlay.Infrastructure.Settings;
 using GachaOverlay.Tests.TestSupport;
@@ -79,6 +80,40 @@ public sealed class ConnectionAndHotkeyUxTests
         Assert.True(fixture.Store.Current.HotkeysCustomized);
     }
 
+    [Fact]
+    public void BareF9_PersistsAndReloadsWithoutBeingTreatedAsUnassigned()
+    {
+        using var fixture = new ViewModelFixture();
+        fixture.ViewModel.VisibilityHotkeyText = "F9";
+        fixture.ViewModel.LockHotkeyText = "F10";
+
+        fixture.ViewModel.ApplyHotkeysCommand.Execute(null);
+        fixture.RecreateViewModel((_, _) => true);
+        var reloaded = fixture.ReloadSettingsFromDisk();
+
+        Assert.Equal("F9", fixture.ViewModel.VisibilityHotkeyText);
+        Assert.Equal("F9", Format(fixture.Store.Current.HudVisibilityHotkey));
+        Assert.Equal("F9", Format(reloaded.HudVisibilityHotkey));
+        Assert.Equal(HotkeyModifiers.None, Parse(fixture.ViewModel.VisibilityHotkeyText).Modifiers);
+    }
+
+    [Fact]
+    public void ExplicitlyClearedHudHotkeys_PersistAndReloadAsUnassigned()
+    {
+        using var fixture = new ViewModelFixture();
+        fixture.ViewModel.VisibilityHotkeyText = string.Empty;
+        fixture.ViewModel.LockHotkeyText = string.Empty;
+
+        fixture.ViewModel.ApplyHotkeysCommand.Execute(null);
+        fixture.RecreateViewModel((_, _) => true);
+        var reloaded = fixture.ReloadSettingsFromDisk();
+
+        Assert.Equal(string.Empty, fixture.ViewModel.VisibilityHotkeyText);
+        Assert.Equal(string.Empty, fixture.ViewModel.LockHotkeyText);
+        Assert.Equal(string.Empty, reloaded.HudVisibilityHotkey.Key);
+        Assert.Equal(string.Empty, reloaded.HudLockHotkey.Key);
+    }
+
     private static HotkeyGesture Parse(string text)
     {
         Assert.True(HotkeyGesture.TryParseDisplayText(text, out var gesture));
@@ -94,10 +129,12 @@ public sealed class ConnectionAndHotkeyUxTests
     private sealed class ViewModelFixture : IDisposable
     {
         private readonly TemporaryDirectory _directory = new();
+        private readonly string _settingsPath;
 
         public ViewModelFixture(string locale = SupportedLocales.English)
         {
-            Store = new JsonSettingsStore(_directory.File("settings.json"));
+            _settingsPath = _directory.File("settings.json");
+            Store = new JsonSettingsStore(_settingsPath);
             Store.Load();
             Localization = new ResourceLocalizationService(locale);
             RecreateViewModel((_, _) => true);
@@ -108,6 +145,8 @@ public sealed class ConnectionAndHotkeyUxTests
         public ResourceLocalizationService Localization { get; }
 
         public FoundationViewModel ViewModel { get; private set; } = null!;
+
+        public AppSettings ReloadSettingsFromDisk() => new JsonSettingsStore(_settingsPath).Load();
 
         public void RecreateViewModel(
             Func<HotkeySetting, HotkeySetting, bool> applyHotkeys)

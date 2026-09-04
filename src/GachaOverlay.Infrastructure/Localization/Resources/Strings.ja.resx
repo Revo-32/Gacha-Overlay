@@ -26,7 +26,7 @@
   <data name="SettingsModifierDragHint" xml:space="preserve"><value>既定ではオフです。この設定がオンで、ロック中の HUD が表示されている時だけ軽量マウスフックが動作します。</value></data>
   <data name="SettingsLockHotkey" xml:space="preserve"><value>ロック / 解除ホットキー</value></data>
   <data name="SettingsVisibilityHotkey" xml:space="preserve"><value>表示 / 非表示ホットキー</value></data>
-  <data name="SettingsHotkeyHint" xml:space="preserve"><value>例: F10 または Control+Shift+L。単文字キーには修飾キーが必要です。</value></data>
+  <data name="SettingsHotkeyHint" xml:space="preserve"><value>例: F10、K、Control+Shift+L。入力待機中にEscを押すと割り当てを解除します。</value></data>
   <data name="SettingsApplyHotkeys" xml:space="preserve"><value>ホットキーを適用</value></data>
   <data name="SettingsResetPlacement" xml:space="preserve"><value>HUD の位置とサイズをリセット</value></data>
   <data name="SettingsResetPosition" xml:space="preserve"><value>HUD の位置をリセット</value></data>

@@ -26,7 +26,7 @@
   <data name="SettingsModifierDragHint" xml:space="preserve"><value>기본값은 꺼짐입니다. 이 옵션을 켜고 잠긴 HUD가 보일 때만 가벼운 마우스 훅이 동작합니다.</value></data>
   <data name="SettingsLockHotkey" xml:space="preserve"><value>잠금 / 잠금 해제 단축키</value></data>
   <data name="SettingsVisibilityHotkey" xml:space="preserve"><value>표시 / 숨기기 단축키</value></data>
-  <data name="SettingsHotkeyHint" xml:space="preserve"><value>예: F10 또는 Control+Shift+L. 단일 문자 키에는 보조 키가 필요합니다.</value></data>
+  <data name="SettingsHotkeyHint" xml:space="preserve"><value>예: F10, K 또는 Control+Shift+L. 입력 대기 중 ESC를 누르면 매핑을 제거합니다.</value></data>
   <data name="SettingsApplyHotkeys" xml:space="preserve"><value>단축키 적용</value></data>
   <data name="SettingsResetPlacement" xml:space="preserve"><value>HUD 위치와 크기 초기화</value></data>
   <data name="SettingsResetPosition" xml:space="preserve"><value>HUD 위치 초기화</value></data>

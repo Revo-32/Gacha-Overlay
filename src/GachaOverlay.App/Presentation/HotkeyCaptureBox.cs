@@ -7,24 +7,68 @@ namespace GachaOverlay.App.Presentation;
 
 internal static class GlobalHotkeyDispatchGate
 {
+    private static readonly object SyncRoot = new();
     private static int _captureCount;
+    private static Action<HotkeyGesture>? _captureRegisteredGesture;
 
     public static bool IsSuppressed => Volatile.Read(ref _captureCount) > 0;
 
-    public static IDisposable Enter()
+    public static IDisposable Enter(Action<HotkeyGesture>? captureRegisteredGesture = null)
     {
         Interlocked.Increment(ref _captureCount);
-        return new Lease();
+        if (captureRegisteredGesture is not null)
+        {
+            lock (SyncRoot)
+            {
+                _captureRegisteredGesture = captureRegisteredGesture;
+            }
+        }
+
+        return new Lease(captureRegisteredGesture);
+    }
+
+    public static bool TryCaptureRegisteredGesture(HotkeyGesture gesture)
+    {
+        Action<HotkeyGesture>? capture;
+        lock (SyncRoot)
+        {
+            capture = _captureRegisteredGesture;
+        }
+
+        if (capture is null)
+        {
+            return false;
+        }
+
+        capture(gesture);
+        return true;
     }
 
     private sealed class Lease : IDisposable
     {
+        private readonly Action<HotkeyGesture>? _captureRegisteredGesture;
         private int _disposed;
+
+        public Lease(Action<HotkeyGesture>? captureRegisteredGesture) =>
+            _captureRegisteredGesture = captureRegisteredGesture;
 
         public void Dispose()
         {
             if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            {
+                if (_captureRegisteredGesture is not null)
+                {
+                    lock (SyncRoot)
+                    {
+                        if (_captureRegisteredGesture == GlobalHotkeyDispatchGate._captureRegisteredGesture)
+                        {
+                            GlobalHotkeyDispatchGate._captureRegisteredGesture = null;
+                        }
+                    }
+                }
+
                 Interlocked.Decrement(ref _captureCount);
+            }
         }
     }
 }
@@ -64,8 +108,9 @@ internal sealed class HotkeyCaptureModel
         if (key == Key.Escape)
         {
             IsCapturing = false;
-            DisplayText = HotkeyCaptureBox.FormatDisplay(_previous);
-            return new HotkeyCaptureResult(HotkeyCaptureResultKind.Cancel, _previous);
+            _pendingKey = null;
+            DisplayText = HotkeyCaptureBox.UnassignedText;
+            return new HotkeyCaptureResult(HotkeyCaptureResultKind.Clear, string.Empty);
         }
 
         if (key is Key.Delete or Key.Back)
@@ -94,6 +139,16 @@ internal sealed class HotkeyCaptureModel
         IsCapturing = false;
         _pendingKey = null;
         var value = _pendingGesture.ToString();
+        DisplayText = HotkeyCaptureBox.FormatDisplay(value);
+        return new HotkeyCaptureResult(HotkeyCaptureResultKind.Commit, value);
+    }
+
+    public HotkeyCaptureResult CaptureRegisteredGesture(HotkeyGesture gesture)
+    {
+        if (!IsCapturing || !gesture.IsValid) return default;
+        IsCapturing = false;
+        _pendingKey = null;
+        var value = gesture.ToString();
         DisplayText = HotkeyCaptureBox.FormatDisplay(value);
         return new HotkeyCaptureResult(HotkeyCaptureResultKind.Commit, value);
     }
@@ -177,7 +232,7 @@ public sealed class HotkeyCaptureBox : System.Windows.Controls.Button
         if (!_capture.IsCapturing)
         {
             _capture.Begin(HotkeyText);
-            _dispatchSuppression = GlobalHotkeyDispatchGate.Enter();
+            _dispatchSuppression = GlobalHotkeyDispatchGate.Enter(CaptureRegisteredGesture);
             Content = _capture.DisplayText;
         }
         Focus();
@@ -224,6 +279,18 @@ public sealed class HotkeyCaptureBox : System.Windows.Controls.Button
     }
 
     private void OnLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs args) => CancelCapture();
+
+    private void CaptureRegisteredGesture(HotkeyGesture gesture)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(() => CaptureRegisteredGesture(gesture));
+            return;
+        }
+
+        ApplyResult(_capture.CaptureRegisteredGesture(gesture));
+        Content = _capture.DisplayText;
+    }
 
     private void CancelCapture() => ApplyResult(_capture.Cancel());
 

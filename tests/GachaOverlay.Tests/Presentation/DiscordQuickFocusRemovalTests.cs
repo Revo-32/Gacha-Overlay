@@ -66,8 +66,8 @@ public sealed class DiscordQuickFocusRemovalTests
     {
         var settings = AppSettings.CreateDefault();
         var plan = GlobalHotkeyService.CreateRegistrationPlan(settings.HudLockHotkey, settings.HudVisibilityHotkey);
-        Assert.Equal("F9", plan.VisibilityToggle.ToSetting().Key);
-        Assert.Equal("F10", plan.LockToggle.ToSetting().Key);
+        Assert.Equal("F9", plan.VisibilityToggle!.Value.ToSetting().Key);
+        Assert.Equal("F10", plan.LockToggle!.Value.ToSetting().Key);
         Assert.Equal("", settings.PreviousMainChannelHotkey.Key);
         Assert.Equal("", settings.NextMainChannelHotkey.Key);
         var service = File.ReadAllText(Path.Combine(Root, "src", "GachaOverlay.App", "Services", "GlobalHotkeyService.cs"));

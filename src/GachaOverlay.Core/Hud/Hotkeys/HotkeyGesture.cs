@@ -28,8 +28,7 @@ public readonly record struct HotkeyGesture(HotkeyModifiers Modifiers, int Virtu
                        HotkeyModifiers.Control |
                        HotkeyModifiers.Shift |
                        HotkeyModifiers.Windows)) == 0 &&
-        IsSupportedVirtualKey(VirtualKey) &&
-        (Modifiers != HotkeyModifiers.None || VirtualKey is >= 0x70 and <= 0x87);
+        IsSupportedVirtualKey(VirtualKey);
 
     public HotkeySetting ToSetting() => new()
     {

@@ -19,15 +19,17 @@ public sealed class HotkeyTests
     [Theory]
     [InlineData("F9")]
     [InlineData("f10")]
-    public void Parser_AllowsBareFunctionKeys(string text)
+    [InlineData("K")]
+    [InlineData("1")]
+    public void Parser_AllowsBareSupportedKeys(string text)
     {
         Assert.True(HotkeyGesture.TryParseDisplayText(text, out var gesture));
         Assert.Equal(text.ToUpperInvariant(), gesture.ToString());
         Assert.Equal(HotkeyModifiers.None, gesture.Modifiers);
+        Assert.True(gesture.IsValid);
     }
 
     [Theory]
-    [InlineData("L")]
     [InlineData("Control+Mouse1")]
     [InlineData("Control+")]
     public void Parser_RejectsUnsafeOrUnsupportedGesture(string text)
@@ -100,16 +102,38 @@ public sealed class HotkeyTests
     }
 
     [Fact]
+    public void TwentyReassignmentCycles_LeaveExactlyOneActiveRegistration()
+    {
+        var registrar = new FakeRegistrar();
+        using var manager = new HotkeyBindingManager(registrar);
+        var f9 = Parse("F9");
+        var controlF9 = Parse("Control+F9");
+        var alt1 = Parse("Alt+1");
+        Assert.True(manager.Rebind(1, f9).Success);
+
+        for (var cycle = 0; cycle < 20; cycle++)
+        {
+            Assert.True(manager.Rebind(1, controlF9).Success);
+            Assert.True(manager.Rebind(1, alt1).Success);
+            Assert.True(manager.Rebind(1, f9).Success);
+        }
+
+        Assert.Equal(f9, manager.GetActiveGesture(1));
+        Assert.Equal(61, registrar.Calls.Count(call => call == "register:1"));
+        Assert.Equal(60, registrar.Calls.Count(call => call == "unregister:1"));
+    }
+
+    [Fact]
     public void RegistrationPlan_MapsVisibilityToBareF9AndLockToBareF10()
     {
         var plan = GlobalHotkeyService.CreateRegistrationPlan(
             HotkeySetting.DefaultLockToggle,
             HotkeySetting.DefaultVisibilityToggle);
 
-        Assert.Equal("F9", plan.VisibilityToggle.ToString());
-        Assert.Equal(HotkeyModifiers.None, plan.VisibilityToggle.Modifiers);
-        Assert.Equal("F10", plan.LockToggle.ToString());
-        Assert.Equal(HotkeyModifiers.None, plan.LockToggle.Modifiers);
+        Assert.Equal("F9", plan.VisibilityToggle!.Value.ToString());
+        Assert.Equal(HotkeyModifiers.None, plan.VisibilityToggle.Value.Modifiers);
+        Assert.Equal("F10", plan.LockToggle!.Value.ToString());
+        Assert.Equal(HotkeyModifiers.None, plan.LockToggle.Value.Modifiers);
     }
 
     [Fact]
@@ -119,8 +143,19 @@ public sealed class HotkeyTests
             Parse("Control+F8").ToSetting(),
             Parse("Alt+F7").ToSetting());
 
-        Assert.Equal("Alt+F7", plan.VisibilityToggle.ToString());
-        Assert.Equal("Control+F8", plan.LockToggle.ToString());
+        Assert.Equal("Alt+F7", plan.VisibilityToggle!.Value.ToString());
+        Assert.Equal("Control+F8", plan.LockToggle!.Value.ToString());
+    }
+
+    [Fact]
+    public void RegistrationPlan_PreservesExplicitlyUnassignedHudHotkeys()
+    {
+        var unassigned = new HotkeySetting { Key = string.Empty };
+
+        var plan = GlobalHotkeyService.CreateRegistrationPlan(unassigned, unassigned);
+
+        Assert.Null(plan.VisibilityToggle);
+        Assert.Null(plan.LockToggle);
     }
 
     private static HotkeyGesture Parse(string value)

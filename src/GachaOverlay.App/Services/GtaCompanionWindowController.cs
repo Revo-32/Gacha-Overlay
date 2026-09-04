@@ -125,7 +125,8 @@ internal sealed class GtaCompanionWindowController : IDisposable
         var anySection = _settings.GtaCompanionDailyEnabled ||
             _settings.GtaCompanionWeeklyEnabled ||
             _settings.GtaCompanionWeeklyEventsEnabled;
-        var show = _settings.GtaCompanionEnabled && _temporaryVisible && anySection;
+        var show = _settings.GtaCompanionEnabled && _temporaryVisible && anySection &&
+            _hudState.Current.EffectiveVisible;
         _viewModel.SetUnlocked(!_hudState.IsLocked);
         _window.SetSurfaceOpacity(_settings.GtaCompanionSurfaceOpacity);
         _interop.ApplyClickThrough(_hudState.IsLocked);

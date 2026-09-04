@@ -658,7 +658,7 @@ public sealed partial class M94ProductionRemoteModeTests
     }
 
     [Fact]
-    public async Task RecoveryAudit_FiveRefreshedSessionsRequireFreshCompleteEvidence()
+    public async Task RecoveryAudit_TwentyRefreshedSessionsReleaseOldSubscribersAndRequireFreshEvidence()
     {
         using var directory = new TemporaryDirectory();
         var store = CreateStore(directory, AppSettings.CreateDefault() with
@@ -667,7 +667,7 @@ public sealed partial class M94ProductionRemoteModeTests
             SalesTrackingEnabled = true,
         });
         using var audit = new RemoteRecoveryAudit("test");
-        var fakes = Enumerable.Range(0, 6).Select(_ => new FakeRecoveryRemoteClient()).ToArray();
+        var fakes = Enumerable.Range(0, 21).Select(_ => new FakeRecoveryRemoteClient()).ToArray();
         var clients = new Queue<FakeRecoveryRemoteClient>(fakes);
         var credentials = new MemoryCredentialStore("token");
         var pipeline = new DiscordMessagePipeline();
@@ -677,7 +677,7 @@ public sealed partial class M94ProductionRemoteModeTests
         coordinator.Start();
         string? epoch = null;
         long attempt = 0;
-        for (var cycle = 0; cycle <= 5; cycle++)
+        for (var cycle = 0; cycle <= 20; cycle++)
         {
             if (cycle > 0) { await coordinator.RefreshAsync(); }
             await WaitUntilAsync(() => audit.Current.Attempt > attempt && audit.Current.ChatStreamReady);

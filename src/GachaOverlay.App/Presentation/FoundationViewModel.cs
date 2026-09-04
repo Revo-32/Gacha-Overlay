@@ -209,7 +209,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _selectedSessionHost = settings.SelectedSessionHost;
         _hudModifierDragEnabled = settings.HudModifierDragEnabled;
         _selectedVisibilityMode = settings.HudVisibilityMode;
-        _lockHotkeyText = FormatHotkey(settings.HudLockHotkey, HotkeySetting.DefaultLockToggle);
+        _lockHotkeyText = FormatOptionalHotkey(settings.HudLockHotkey);
         _previousChannelHotkeyText = FormatOptionalHotkey(settings.PreviousMainChannelHotkey);
         _nextChannelHotkeyText = FormatOptionalHotkey(settings.NextMainChannelHotkey);
         _generalTimerHotkeyText = FormatOptionalHotkey(settings.GeneralTimerHotkey);
@@ -226,9 +226,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _gtaCompanionSurfaceOpacity = settings.GtaCompanionSurfaceOpacity;
         _gtaCompanionVisibilityHotkeyText = FormatOptionalHotkey(settings.GtaCompanionVisibilityHotkey);
         LoadBusinessSettings(settings);
-        _visibilityHotkeyText = FormatHotkey(
-            settings.HudVisibilityHotkey,
-            HotkeySetting.DefaultVisibilityToggle);
+        _visibilityHotkeyText = FormatOptionalHotkey(settings.HudVisibilityHotkey);
         _windowsAutoStart = settings.WindowsAutoStart;
         _visibilityModes = CreateVisibilityModes();
         _sessionHostOptions = CreateSessionHostOptions();
@@ -413,7 +411,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _selectedSessionHost = settings.SelectedSessionHost;
         _hudModifierDragEnabled = settings.HudModifierDragEnabled;
         _selectedVisibilityMode = settings.HudVisibilityMode;
-        _lockHotkeyText = FormatHotkey(settings.HudLockHotkey, HotkeySetting.DefaultLockToggle);
+        _lockHotkeyText = FormatOptionalHotkey(settings.HudLockHotkey);
         _previousChannelHotkeyText = FormatOptionalHotkey(settings.PreviousMainChannelHotkey);
         _nextChannelHotkeyText = FormatOptionalHotkey(settings.NextMainChannelHotkey);
         _generalTimerHotkeyText = FormatOptionalHotkey(settings.GeneralTimerHotkey);
@@ -430,9 +428,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _gtaCompanionSurfaceOpacity = settings.GtaCompanionSurfaceOpacity;
         _gtaCompanionVisibilityHotkeyText = FormatOptionalHotkey(settings.GtaCompanionVisibilityHotkey);
         LoadBusinessSettings(settings);
-        _visibilityHotkeyText = FormatHotkey(
-            settings.HudVisibilityHotkey,
-            HotkeySetting.DefaultVisibilityToggle);
+        _visibilityHotkeyText = FormatOptionalHotkey(settings.HudVisibilityHotkey);
         _windowsAutoStart = settings.WindowsAutoStart;
         _salesTrackingEnabled = settings.SalesTrackingEnabled;
         _salesShowCurrentSeller = settings.SalesShowCurrentSeller;
@@ -1504,8 +1500,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
 
     private void ApplyHotkeys()
     {
-        if (!HotkeyGesture.TryParseDisplayText(LockHotkeyText, out var lockGesture) ||
-            !HotkeyGesture.TryParseDisplayText(VisibilityHotkeyText, out var visibilityGesture) ||
+        if (!TryOptionalHotkey(LockHotkeyText, out var lockGesture) ||
+            !TryOptionalHotkey(VisibilityHotkeyText, out var visibilityGesture) ||
             !TryOptionalHotkey(PreviousChannelHotkeyText, out var previousChannel) ||
             !TryOptionalHotkey(NextChannelHotkeyText, out var nextChannel) ||
             !TryOptionalHotkey(GeneralTimerHotkeyText, out var generalTimer) ||
@@ -1521,8 +1517,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
 
         ApplyAndPersistHotkeys(_settingsStore.Current with
         {
-            HudLockHotkey = lockGesture.ToSetting(),
-            HudVisibilityHotkey = visibilityGesture.ToSetting(),
+            HudLockHotkey = lockGesture?.ToSetting() ?? new HotkeySetting { Key = "" },
+            HudVisibilityHotkey = visibilityGesture?.ToSetting() ?? new HotkeySetting { Key = "" },
             PreviousMainChannelHotkey = previousChannel?.ToSetting() ?? new HotkeySetting { Key = "" },
             NextMainChannelHotkey = nextChannel?.ToSetting() ?? new HotkeySetting { Key = "" },
             GeneralTimerHotkey = generalTimer?.ToSetting() ?? new HotkeySetting { Key = "" },
@@ -1597,8 +1593,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
 
     private void RefreshHotkeyText(AppSettings settings)
     {
-        LockHotkeyText = FormatHotkey(settings.HudLockHotkey, HotkeySetting.DefaultLockToggle);
-        VisibilityHotkeyText = FormatHotkey(settings.HudVisibilityHotkey, HotkeySetting.DefaultVisibilityToggle);
+        LockHotkeyText = FormatOptionalHotkey(settings.HudLockHotkey);
+        VisibilityHotkeyText = FormatOptionalHotkey(settings.HudVisibilityHotkey);
         PreviousChannelHotkeyText = FormatOptionalHotkey(settings.PreviousMainChannelHotkey);
         NextChannelHotkeyText = FormatOptionalHotkey(settings.NextMainChannelHotkey);
         GeneralTimerHotkeyText = FormatOptionalHotkey(settings.GeneralTimerHotkey);
@@ -2007,16 +2003,6 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         field = value;
         SaveAndApply(update);
         OnPropertyChanged(propertyName);
-    }
-
-    private static string FormatHotkey(HotkeySetting setting, HotkeySetting fallback)
-    {
-        if (!HotkeyGesture.TryParse(setting, out var gesture))
-        {
-            HotkeyGesture.TryParse(fallback, out gesture);
-        }
-
-        return gesture.ToString();
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>

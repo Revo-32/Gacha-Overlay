@@ -34,16 +34,23 @@ public sealed class BusinessManagerEngine : IDisposable
         new Dictionary<string, SharedTimerSnapshot>(StringComparer.Ordinal);
     private OnlinePlaytimeAvailability _availability = OnlinePlaytimeAvailability.Unknown;
     private int _updatesSincePersistence;
+    private bool _timerSetChangedDuringUpdate;
     private bool _disposed;
 
     public BusinessManagerEngine(SharedTimerRegistry timers)
     {
         _timers = timers ?? throw new ArgumentNullException(nameof(timers));
         _timers.Completed += OnCompleted;
-        _last = _timers.Update(OnlinePlaytimeAvailability.Unknown)
+        _last = _timers.Update(
+                OnlinePlaytimeAvailability.Unknown,
+                onlineProgress: null,
+                persistChanges: false)
             .ToDictionary(item => item.TimerId, StringComparer.Ordinal);
         ReconcilePersistedAcidBoost();
-        _last = _timers.Update(OnlinePlaytimeAvailability.Unknown)
+        _last = _timers.Update(
+                OnlinePlaytimeAvailability.Unknown,
+                onlineProgress: null,
+                persistChanges: false)
             .ToDictionary(item => item.TimerId, StringComparer.Ordinal);
     }
 
@@ -57,8 +64,12 @@ public sealed class BusinessManagerEngine : IDisposable
         ThrowIfDisposed();
         _availability = availability;
         var persist = ++_updatesSincePersistence >= PersistenceIntervalUpdates;
-        _timers.Update(availability, CalculateOnlineProgress, persist);
-        var snapshots = _timers.Update(availability, CalculateOnlineProgress, persistChanges: false);
+        _timerSetChangedDuringUpdate = false;
+        var snapshots = _timers.Update(availability, CalculateOnlineProgress, persist);
+        if (_timerSetChangedDuringUpdate)
+        {
+            snapshots = _timers.Update(availability, CalculateOnlineProgress, persistChanges: false);
+        }
         if (persist) _updatesSincePersistence = 0;
         _last = snapshots.ToDictionary(item => item.TimerId, StringComparer.Ordinal);
         RaiseEarlyAlerts(snapshots, NormalizeEarlyAlertMinutes(earlyAlertMinutes));
@@ -209,7 +220,7 @@ public sealed class BusinessManagerEngine : IDisposable
 
     private void Capture()
     {
-        _last = _timers.Update(_availability, CalculateOnlineProgress)
+        _last = _timers.Update(_availability, CalculateOnlineProgress, persistChanges: false)
             .ToDictionary(item => item.TimerId, StringComparer.Ordinal);
     }
 
@@ -412,6 +423,7 @@ public sealed class BusinessManagerEngine : IDisposable
     {
         if (completion.TimerId is BusinessTimerIds.AcidBoost or BusinessTimerIds.AcidBoostAllowance)
         {
+            _timerSetChangedDuringUpdate = true;
             var stoppedWindow = _timers.Stop(BusinessTimerIds.AcidBoost);
             var stoppedAllowance = _timers.Stop(BusinessTimerIds.AcidBoostAllowance);
             if (stoppedWindow || stoppedAllowance)
@@ -426,14 +438,17 @@ public sealed class BusinessManagerEngine : IDisposable
         if (completion.TimerId == BusinessTimerIds.Heist(BusinessHeistKind.CayoGroup) ||
             completion.TimerId == BusinessTimerIds.Heist(BusinessHeistKind.CayoSolo))
         {
+            _timerSetChangedDuringUpdate = true;
             StartWall(BusinessTimerIds.CayoHardMode, BusinessMechanicCatalog.CayoHardModeWindow);
         }
         else if (completion.TimerId == BusinessTimerIds.Heist(BusinessHeistKind.Kortz))
         {
+            _timerSetChangedDuringUpdate = true;
             StartWall(BusinessTimerIds.KortzHardMode, BusinessMechanicCatalog.KortzHardModeWindow);
         }
         else if (completion.TimerId is BusinessTimerIds.CayoHardMode or BusinessTimerIds.KortzHardMode)
         {
+            _timerSetChangedDuringUpdate = true;
             _timers.Stop(completion.TimerId);
             return;
         }

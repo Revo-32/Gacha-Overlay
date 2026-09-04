@@ -168,14 +168,17 @@ public sealed class M3BusinessAndAnimatedMediaTests
     }
 
     [Fact]
-    public void BusinessPersistence_DoesNotWriteEveryOneSecondUiTick_AndFlushesOnDispose()
+    public void BusinessPersistence_AvoidsRedundantStartupAndActionWrites_AndFlushesOnDispose()
     {
         var store = new MemoryTimerStore();
         var time = new ManualTimeProvider(DateTimeOffset.Parse("2026-09-04T00:00:00Z"));
         var engine = new BusinessManagerEngine(new SharedTimerRegistry(store, time));
+        Assert.Equal(0, store.SaveCount);
         engine.Update(OnlinePlaytimeAvailability.Online);
+        Assert.Equal(0, store.SaveCount);
         engine.StartBunker();
         var savesAfterAction = store.SaveCount;
+        Assert.Equal(1, savesAfterAction);
 
         for (var index = 0; index < 10; index++)
         {
@@ -186,6 +189,19 @@ public sealed class M3BusinessAndAnimatedMediaTests
         Assert.Equal(savesAfterAction, store.SaveCount);
         engine.Dispose();
         Assert.True(store.SaveCount > savesAfterAction);
+    }
+
+    [Fact]
+    public void BusinessUpdate_AdvancesSharedRegistryExactlyOncePerRefresh()
+    {
+        var time = new ManualTimeProvider(DateTimeOffset.Parse("2026-09-04T00:00:00Z"));
+        using var engine = new BusinessManagerEngine(
+            new SharedTimerRegistry(new MemoryTimerStore(), time));
+        var timestampReads = time.TimestampReadCount;
+
+        engine.Update(OnlinePlaytimeAvailability.Online);
+
+        Assert.Equal(timestampReads + 1, time.TimestampReadCount);
     }
 
     [Fact]
@@ -235,20 +251,39 @@ public sealed class M3BusinessAndAnimatedMediaTests
     }
 
     [Fact]
-    public void AnimationLifecycle_RepeatedRegistrationsReturnToZero()
+    public void AnimationLifecycle_TwentyDecodeAndDisposeCyclesReturnEveryOwnerToZero()
     {
-        var bytes = CreateTwoFrameGif();
-        var metrics = new RuntimeMetricsCollector();
-        using var scheduler = new MediaAnimationScheduler(Dispatcher.CurrentDispatcher, metrics, NullAppLogger.Instance);
-        for (var cycle = 0; cycle < 10; cycle++)
+        RunSta(() =>
         {
-            using (scheduler.Register(bytes, 64, _ => { }))
+            var bytes = CreateTwoFrameGif();
+            var metrics = new RuntimeMetricsCollector();
+            using var scheduler = new MediaAnimationScheduler(
+                Dispatcher.CurrentDispatcher,
+                metrics,
+                NullAppLogger.Instance);
+            for (var cycle = 0; cycle < 20; cycle++)
+            {
+                var decodedBefore = Counter(metrics, RuntimeMetricNames.MediaAnimationFrameDecoded);
+                using var registration = scheduler.Register(bytes, 64, _ => { });
                 Assert.Equal(1, metrics.Snapshot().Gauges[RuntimeMetricNames.MediaAnimationActivePlayers]);
-            Assert.Equal(0, metrics.Snapshot().Gauges[RuntimeMetricNames.MediaAnimationActivePlayers]);
-        }
+                PumpUntil(
+                    () => Counter(metrics, RuntimeMetricNames.MediaAnimationFrameDecoded) > decodedBefore,
+                    TimeSpan.FromSeconds(2));
+                registration.Dispose();
+                PumpUntil(
+                    () => Gauge(metrics, RuntimeMetricNames.MediaAnimationDecoderCount) == 0 &&
+                          Gauge(metrics, RuntimeMetricNames.MediaAnimationFrameBuffers) == 0,
+                    TimeSpan.FromSeconds(2));
+                Assert.Equal(0, Gauge(metrics, RuntimeMetricNames.MediaAnimationActivePlayers));
+            }
 
-        Assert.Equal(10, metrics.Snapshot().Counters[RuntimeMetricNames.MediaAnimationDisposals]);
-        Assert.Equal(0, metrics.Snapshot().Gauges[RuntimeMetricNames.MediaAnimationActivePlayers]);
+            Assert.Equal(20, Counter(metrics, RuntimeMetricNames.MediaAnimationDisposals));
+            Assert.True(Counter(metrics, RuntimeMetricNames.MediaAnimationFrameDecoded) >= 20);
+            Assert.Equal(0, Gauge(metrics, RuntimeMetricNames.MediaAnimationActivePlayers));
+            Assert.Equal(0, Gauge(metrics, RuntimeMetricNames.MediaAnimationDecoderCount));
+            Assert.Equal(0, Gauge(metrics, RuntimeMetricNames.MediaAnimationFrameBuffers));
+            Assert.Equal(0, Gauge(metrics, RuntimeMetricNames.MediaAnimationSchedulerActive));
+        });
     }
 
     [Fact]
@@ -261,6 +296,25 @@ public sealed class M3BusinessAndAnimatedMediaTests
         var decoded = DiscordMediaAssetService.DecodeSkiaFrame(data.ToArray(), 64, 0);
         Assert.Equal(1, decoded.FrameCount);
         Assert.True(decoded.Image.IsFrozen);
+    }
+
+    [Theory]
+    [InlineData(8193, 1, 1)]
+    [InlineData(8192, 8192, 1)]
+    [InlineData(1, 1, 2001)]
+    public void AnimatedMediaSafety_RejectsOversizedCanvasPixelCountAndFrameCount(
+        int width,
+        int height,
+        int frameCount)
+    {
+        var validate = typeof(DiscordMediaAssetService).GetMethod(
+            "ValidateMedia",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+
+        var failure = Assert.Throws<System.Reflection.TargetInvocationException>(() =>
+            validate.Invoke(null, [new SKImageInfo(width, height), frameCount]));
+
+        Assert.IsType<InvalidDataException>(failure.InnerException);
     }
 
     [Fact]
@@ -301,6 +355,53 @@ public sealed class M3BusinessAndAnimatedMediaTests
         return value;
     }
 
+    private static long Counter(RuntimeMetricsCollector metrics, string name) =>
+        metrics.Snapshot().Counters.GetValueOrDefault(name);
+
+    private static double Gauge(RuntimeMetricsCollector metrics, string name) =>
+        metrics.Snapshot().Gauges.GetValueOrDefault(name);
+
+    private static void PumpUntil(Func<bool> condition, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (!condition())
+        {
+            Assert.True(DateTime.UtcNow < deadline, "Dispatcher operation did not settle in time.");
+            var frame = new DispatcherFrame();
+            var timer = new DispatcherTimer(
+                TimeSpan.FromMilliseconds(10),
+                DispatcherPriority.Background,
+                (_, _) => frame.Continue = false,
+                Dispatcher.CurrentDispatcher);
+            timer.Start();
+            Dispatcher.PushFrame(frame);
+            timer.Stop();
+        }
+    }
+
+    private static void RunSta(Action action)
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)));
+        if (failure is not null)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+    }
+
     private sealed class MemoryTimerStore : ISharedTimerStore
     {
         private IReadOnlyList<SharedTimerPersistedEntry> _items = [];
@@ -317,7 +418,12 @@ public sealed class M3BusinessAndAnimatedMediaTests
         public ManualTimeProvider(DateTimeOffset utc) => _utc = utc;
         public override long TimestampFrequency => TimeSpan.TicksPerSecond;
         public override DateTimeOffset GetUtcNow() => _utc;
-        public override long GetTimestamp() => _timestamp;
+        public int TimestampReadCount { get; private set; }
+        public override long GetTimestamp()
+        {
+            TimestampReadCount++;
+            return _timestamp;
+        }
         public void Advance(TimeSpan elapsed) { _utc += elapsed; _timestamp += elapsed.Ticks; }
     }
 }

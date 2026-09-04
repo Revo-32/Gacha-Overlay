@@ -95,6 +95,7 @@ internal sealed class BusinessManagerWindowController : IDisposable
         var show = _settings.BusinessManagerEnabled && _temporaryVisible &&
             _hudState.Current.EffectiveVisible;
         _viewModel.SetUnlocked(!_hudState.IsLocked);
+        _viewModel.SetPresentationActive(show);
         _window.SetSurfaceOpacity(_settings.BusinessManagerSurfaceOpacity);
         _interop.ApplyClickThrough(_hudState.IsLocked);
         if (show && !_window.IsVisible) { _window.Show(); _interop.ApplyTopmost(); }

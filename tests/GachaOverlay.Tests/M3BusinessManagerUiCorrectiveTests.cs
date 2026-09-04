@@ -71,15 +71,24 @@ public sealed class M3BusinessManagerUiCorrectiveTests
 
         var row = viewModel.Sections.Single().Rows[0];
         var command = row.PrimaryCommand;
-        viewModel.Refresh();
+        var initialRebuilds = viewModel.PresentationRebuildCount;
+        for (var cycle = 0; cycle < 20; cycle++) viewModel.Refresh();
 
         Assert.Same(row, viewModel.Sections.Single().Rows[0]);
         Assert.Same(command, viewModel.Sections.Single().Rows[0].PrimaryCommand);
+        Assert.Equal(initialRebuilds, viewModel.PresentationRebuildCount);
 
         command.Execute(null);
         Assert.Same(row, viewModel.Sections.Single().Rows[0]);
         Assert.NotEqual("대기", row.Status);
         Assert.True(row.CanStop);
+
+        viewModel.SetPresentationActive(false);
+        for (var cycle = 0; cycle < 20; cycle++) viewModel.Refresh();
+        Assert.Equal(initialRebuilds, viewModel.PresentationRebuildCount);
+
+        viewModel.SetPresentationActive(true);
+        Assert.Equal(initialRebuilds + 1, viewModel.PresentationRebuildCount);
     }
 
     private static string ReadPresentation(string fileName) => File.ReadAllText(

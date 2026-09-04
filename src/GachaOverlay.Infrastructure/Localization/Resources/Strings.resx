@@ -61,7 +61,7 @@
   <data name="SettingsModifierDragHint" xml:space="preserve"><value>Off by default. The lightweight mouse hook runs only while this option is enabled and the locked HUD is visible.</value></data>
   <data name="SettingsLockHotkey" xml:space="preserve"><value>Lock / Unlock hotkey</value></data>
   <data name="SettingsVisibilityHotkey" xml:space="preserve"><value>Show / Hide hotkey</value></data>
-  <data name="SettingsHotkeyHint" xml:space="preserve"><value>Examples: F10 or Control+Shift+L. Bare letters require a modifier.</value></data>
+  <data name="SettingsHotkeyHint" xml:space="preserve"><value>Examples: F10, K, or Control+Shift+L. Press Esc while capturing to remove the mapping.</value></data>
   <data name="SettingsApplyHotkeys" xml:space="preserve"><value>Apply hotkeys</value></data>
   <data name="SettingsResetPlacement" xml:space="preserve"><value>Reset HUD position and size</value></data>
   <data name="SettingsResetPosition" xml:space="preserve"><value>Reset HUD position</value></data>
