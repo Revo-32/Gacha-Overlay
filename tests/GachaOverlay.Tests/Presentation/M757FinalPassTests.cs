@@ -20,12 +20,14 @@ public sealed class M757FinalPassTests
         AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
 
     [Fact]
-    public void Settings_HasExactlyTenCategoriesWithServerThirdAndDeveloperLast()
+    public void SettingsEnum_PreservesLegacyOrderAndIncludesTimerAndSalesHistory()
     {
         var values = Enum.GetValues<SettingsCategory>();
-        Assert.Equal(10, values.Length);
+        Assert.Equal(12, values.Length);
         Assert.Equal(SettingsCategory.Server, values[2]);
-        Assert.Equal(SettingsCategory.Developer, values[^1]);
+        Assert.Equal(9, (int)SettingsCategory.Developer);
+        Assert.Equal(SettingsCategory.Timers, values[^2]);
+        Assert.Equal(SettingsCategory.SalesHistory, values[^1]);
     }
 
     [Theory]

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 
 namespace GachaOverlay.Core.Diagnostics;
 
@@ -7,16 +8,27 @@ public sealed record ProcessMetricsSnapshot(
     DateTimeOffset CapturedAt,
     double UptimeSeconds,
     double? CpuPercent,
-    long WorkingSetBytes,
-    long PrivateBytes,
+    long TotalWorkingSetBytes,
+    long? PrivateWorkingSetBytes,
+    long PrivateCommitBytes,
     int? HandleCount,
     int ThreadCount,
-    long GcTotalMemoryBytes,
+    long ManagedHeapBytes,
     int Gen0Collections,
     int Gen1Collections,
     int Gen2Collections,
     int? GdiObjectCount,
-    int? UserObjectCount);
+    int? UserObjectCount)
+{
+    [JsonIgnore]
+    public long WorkingSetBytes => TotalWorkingSetBytes;
+
+    [JsonIgnore]
+    public long PrivateBytes => PrivateCommitBytes;
+
+    [JsonIgnore]
+    public long GcTotalMemoryBytes => ManagedHeapBytes;
+}
 
 public sealed class ProcessMetricsSampler
 {
@@ -60,6 +72,7 @@ public sealed class ProcessMetricsSampler
                 Math.Max(0, (now - _startedAt).TotalSeconds),
                 cpuPercent,
                 Math.Max(0, process.WorkingSet64),
+                TryGetPrivateWorkingSet(process.Handle),
                 Math.Max(0, process.PrivateMemorySize64),
                 TryRead(() => process.HandleCount),
                 Math.Max(0, TryRead(() => process.Threads.Count) ?? 0),
@@ -102,6 +115,56 @@ public sealed class ProcessMetricsSampler
         }
     }
 
+    private static long? TryGetPrivateWorkingSet(IntPtr processHandle)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return null;
+        }
+
+        try
+        {
+            var counters = new ProcessMemoryCountersEx2
+            {
+                Size = checked((uint)Marshal.SizeOf<ProcessMemoryCountersEx2>()),
+            };
+            return GetProcessMemoryInfo(processHandle, ref counters, counters.Size)
+                ? checked((long)counters.PrivateWorkingSetSize)
+                : null;
+        }
+        catch (Exception exception) when (
+            exception is DllNotFoundException or EntryPointNotFoundException or
+                OverflowException or TypeLoadException)
+        {
+            return null;
+        }
+    }
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint GetGuiResources(IntPtr hProcess, uint uiFlags);
+
+    [DllImport("psapi.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetProcessMemoryInfo(
+        IntPtr process,
+        ref ProcessMemoryCountersEx2 counters,
+        uint size);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ProcessMemoryCountersEx2
+    {
+        public uint Size;
+        public uint PageFaultCount;
+        public nuint PeakWorkingSetSize;
+        public nuint WorkingSetSize;
+        public nuint QuotaPeakPagedPoolUsage;
+        public nuint QuotaPagedPoolUsage;
+        public nuint QuotaPeakNonPagedPoolUsage;
+        public nuint QuotaNonPagedPoolUsage;
+        public nuint PagefileUsage;
+        public nuint PeakPagefileUsage;
+        public nuint PrivateUsage;
+        public nuint PrivateWorkingSetSize;
+        public ulong SharedCommitUsage;
+    }
 }

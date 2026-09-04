@@ -71,6 +71,7 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
     private string _roleIconText = string.Empty;
     private ImageSource? _roleIconImage;
     private string? _roleIconUrl;
+    private RoleIconPosition _roleIconPosition = RoleIconPosition.Left;
 
     public ChatMessageViewModel(
         ChatMessagePresentation presentation,
@@ -123,6 +124,7 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
             if (SetField(ref _roleIconText, value))
             {
                 OnPropertyChanged(nameof(HasRoleIconText));
+                NotifyRoleIconPlacementChanged();
             }
         }
     }
@@ -137,11 +139,32 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
             if (SetField(ref _roleIconImage, value))
             {
                 OnPropertyChanged(nameof(HasRoleIconImage));
+                NotifyRoleIconPlacementChanged();
             }
         }
     }
 
     public bool HasRoleIconImage => RoleIconImage is not null;
+
+    public bool ShowRoleIconLeft =>
+        _roleIconPosition == RoleIconPosition.Left && (HasRoleIconText || HasRoleIconImage);
+
+    public bool IsRoleIconAdjacentRight =>
+        _roleIconPosition == RoleIconPosition.AdjacentRight;
+
+    public bool UseAnchoredRoleIconLayout => !IsRoleIconAdjacentRight;
+
+    public bool ShowRoleIconAdjacentRight =>
+        IsRoleIconAdjacentRight && (HasRoleIconText || HasRoleIconImage);
+
+    public bool ShowRoleIconFarRight =>
+        _roleIconPosition == RoleIconPosition.FarRight && (HasRoleIconText || HasRoleIconImage);
+
+    public bool ShowRoleIconRight => ShowRoleIconAdjacentRight || ShowRoleIconFarRight;
+
+    public GridLength RoleIconNicknameColumnWidth => IsRoleIconAdjacentRight
+        ? GridLength.Auto
+        : new GridLength(1, GridUnitType.Star);
 
     public string? RoleIconUrl => _roleIconUrl;
 
@@ -505,6 +528,15 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
             FontSizeDip,
             settings.ChatLineHeightMultiplier);
         OnPropertyChanged(nameof(EmojiExtent));
+        if (_roleIconPosition != settings.ChatRoleIconPosition)
+        {
+            _roleIconPosition = settings.ChatRoleIconPosition;
+            NotifyRoleIconPlacementChanged();
+        }
+        foreach (var reaction in Reactions)
+        {
+            reaction.ApplySize(settings.ChatReactionSize);
+        }
         MessageMargin = new Thickness(0, 0, 0, Math.Max(0, settings.ChatMessageSpacing));
         OnPropertyChanged(nameof(MessageMaxHeight));
         var layout = ChatLayoutPresentation.Resolve(settings, responsiveLevel);
@@ -782,6 +814,17 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
+    private void NotifyRoleIconPlacementChanged()
+    {
+        OnPropertyChanged(nameof(ShowRoleIconLeft));
+        OnPropertyChanged(nameof(IsRoleIconAdjacentRight));
+        OnPropertyChanged(nameof(UseAnchoredRoleIconLayout));
+        OnPropertyChanged(nameof(ShowRoleIconAdjacentRight));
+        OnPropertyChanged(nameof(ShowRoleIconFarRight));
+        OnPropertyChanged(nameof(ShowRoleIconRight));
+        OnPropertyChanged(nameof(RoleIconNicknameColumnWidth));
+    }
+
     private static System.Windows.Media.Brush CreateNicknameBrush(uint? color)
         => ColorThemeManager.CreateDiscordRoleBrush(color);
 }
@@ -789,6 +832,9 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
 internal sealed class ChatReactionViewModel : INotifyPropertyChanged
 {
     private ImageSource? _image;
+    private double _imageExtent = ChatSettings.DefaultReactionSize;
+    private double _unicodeFontSize = 16;
+    private double _countFontSize = 12;
 
     public ChatReactionViewModel(DiscordMessageReaction reaction)
     {
@@ -806,6 +852,24 @@ internal sealed class ChatReactionViewModel : INotifyPropertyChanged
     public string Text { get; }
 
     public int Count { get; }
+
+    public double ImageExtent
+    {
+        get => _imageExtent;
+        private set => SetField(ref _imageExtent, value);
+    }
+
+    public double UnicodeFontSize
+    {
+        get => _unicodeFontSize;
+        private set => SetField(ref _unicodeFontSize, value);
+    }
+
+    public double CountFontSize
+    {
+        get => _countFontSize;
+        private set => SetField(ref _countFontSize, value);
+    }
 
     public ImageSource? Image
     {
@@ -827,6 +891,25 @@ internal sealed class ChatReactionViewModel : INotifyPropertyChanged
     public bool HasImage => Image is not null;
 
     public bool ShowText => Image is null;
+
+    public void ApplySize(double size)
+    {
+        var metrics = ChatReactionMetrics.FromMasterSize(size);
+        ImageExtent = metrics.ImageExtent;
+        UnicodeFontSize = metrics.UnicodeFontSize;
+        CountFontSize = metrics.CountFontSize;
+    }
+
+    private void SetField(ref double field, double value, [CallerMemberName] string? name = null)
+    {
+        if (Math.Abs(field - value) < 0.001)
+        {
+            return;
+        }
+
+        field = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 }
 
 internal sealed class ChatForwardMessageViewModel : INotifyPropertyChanged

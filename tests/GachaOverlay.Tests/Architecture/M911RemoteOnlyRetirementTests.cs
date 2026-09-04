@@ -127,7 +127,7 @@ public sealed class M911RemoteOnlyRetirementTests
 
         var loaded = new JsonSettingsStore(path).Load();
 
-        Assert.Equal(19, loaded.SchemaVersion);
+        Assert.Equal(20, loaded.SchemaVersion);
         Assert.Equal(SettingsCategory.Discord, loaded.LastSettingsCategory);
         Assert.Equal("https://overlay.example", loaded.RemoteBackendBaseUrl);
         Assert.Equal("1428747924229193828", loaded.RemoteSelectedChannelId);
@@ -202,7 +202,8 @@ public sealed class M911RemoteOnlyRetirementTests
         Assert.DoesNotContain("RedirectUri", combinedUx, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("SourceOptions", combinedUx, StringComparison.Ordinal);
         Assert.DoesNotContain("ServerTemplate", foundation, StringComparison.Ordinal);
-        Assert.Contains("StepCount = 3", onboardingViewModel, StringComparison.Ordinal);
+        Assert.Contains("StepCount = 2", onboardingViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsLanguageStep", onboardingViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("Rpc", diagnostics, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("DiscordProcess", diagnostics, StringComparison.OrdinalIgnoreCase);
     }

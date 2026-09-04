@@ -235,12 +235,12 @@ public sealed class JsonSettingsStore : ISettingsStore
 
     private AppSettings Normalize(AppSettings settings)
     {
-        var language = SupportedLocales.NormalizeOrEnglish(settings.Language);
+        var language = SupportedLocales.Korean;
         if (!string.Equals(language, settings.Language, StringComparison.OrdinalIgnoreCase))
         {
-            _logger.Warning(
+            _logger.Information(
                 "SETTINGS",
-                $"Unsupported locale '{settings.Language}' was replaced with English.");
+                $"Stored locale '{settings.Language}' was migrated to the Korean-only runtime.");
         }
 
         var sourceSchemaVersion = settings.SchemaVersion;
@@ -432,6 +432,13 @@ public sealed class JsonSettingsStore : ISettingsStore
                 settings.ChatLineHeightMultiplier),
             ChatMessageSpacing = ChatSettings.NormalizeMessageSpacing(
                 settings.ChatMessageSpacing),
+            ChatRoleIconPosition = Enum.IsDefined(settings.ChatRoleIconPosition)
+                ? settings.ChatRoleIconPosition
+                : RoleIconPosition.Left,
+            ChatReactionSize = ChatSettings.NormalizeReactionSize(
+                sourceSchemaVersion < 20
+                    ? ChatSettings.DefaultReactionSize
+                    : settings.ChatReactionSize),
             ChatMaxLines = ChatSettings.NormalizeMaxLines(settings.ChatMaxLines),
             ChatImageMode = Enum.IsDefined(settings.ChatImageMode)
                 ? settings.ChatImageMode
@@ -494,6 +501,7 @@ public sealed class JsonSettingsStore : ISettingsStore
         AppSettings source,
         AppSettings normalized) =>
         source.SchemaVersion < AppSettings.CurrentSchemaVersion ||
+        !string.Equals(source.Language, normalized.Language, StringComparison.OrdinalIgnoreCase) ||
         source.HotkeySettingsVersion < AppSettings.CurrentHotkeySettingsVersion ||
         source.ChatFontPreset == ChatFontPreset.KoPubWorldDotum ||
         !Enum.IsDefined(source.ColorTheme) ||
@@ -508,6 +516,8 @@ public sealed class JsonSettingsStore : ISettingsStore
         source.GeneralTimerMinutes != normalized.GeneralTimerMinutes ||
         source.BunkerTimerMinutes != normalized.BunkerTimerMinutes ||
         source.LsdTimerMinutes != normalized.LsdTimerMinutes ||
+        source.ChatRoleIconPosition != normalized.ChatRoleIconPosition ||
+        Math.Abs(source.ChatReactionSize - normalized.ChatReactionSize) > 0.001 ||
         source.SelectedSessionHost != normalized.SelectedSessionHost;
 
     private static bool IsKnownLegacyDefaultPair(

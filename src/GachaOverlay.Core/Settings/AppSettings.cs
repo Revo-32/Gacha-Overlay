@@ -14,7 +14,7 @@ public sealed record AppSettings
 {
     private static readonly Dictionary<string, double> EmptyScrollPositions =
         new(StringComparer.OrdinalIgnoreCase);
-    public const int CurrentSchemaVersion = 19;
+    public const int CurrentSchemaVersion = 20;
 
     public const int CurrentOnboardingVersion = 2;
 
@@ -22,7 +22,7 @@ public sealed record AppSettings
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
 
-    public string Language { get; init; } = SupportedLocales.English;
+    public string Language { get; init; } = SupportedLocales.Korean;
 
     public SettingsCategory LastSettingsCategory { get; init; } = SettingsCategory.General;
 
@@ -112,6 +112,10 @@ public sealed record AppSettings
         ChatSettings.DefaultLineHeightMultiplier;
 
     public double ChatMessageSpacing { get; init; } = ChatSettings.DefaultMessageSpacing;
+
+    public RoleIconPosition ChatRoleIconPosition { get; init; } = RoleIconPosition.Left;
+
+    public double ChatReactionSize { get; init; } = ChatSettings.DefaultReactionSize;
 
     public int ChatMaxLines { get; init; } = 2;
 
@@ -208,4 +212,5 @@ public enum SettingsCategory
     Diagnostics,
     Developer,
     Timers,
+    SalesHistory,
 }

@@ -45,11 +45,21 @@ public enum ChatStylePreset
     GtaLegacy,
 }
 
+public enum RoleIconPosition
+{
+    Left = 0,
+    AdjacentRight = 1,
+    FarRight = 2,
+}
+
 public static partial class ChatSettings
 {
     public const double DefaultFontSizePoints = 12;
     public const double DefaultLineHeightMultiplier = 1.42;
     public const double DefaultMessageSpacing = 1;
+    public const double MinimumReactionSize = 14;
+    public const double DefaultReactionSize = 18;
+    public const double MaximumReactionSize = 42;
 
     public static double NormalizeFontSize(double value) =>
         double.IsFinite(value) ? Math.Clamp(value, 8, 32) : DefaultFontSizePoints;
@@ -72,6 +82,13 @@ public static partial class ChatSettings
 
     public static double NormalizeMessageSpacing(double value) =>
         double.IsFinite(value) ? Math.Clamp(value, -2, 48) : DefaultMessageSpacing;
+
+    public static double NormalizeReactionSize(double value) =>
+        double.IsFinite(value)
+            ? Math.Round(
+                Math.Clamp(value, MinimumReactionSize, MaximumReactionSize),
+                MidpointRounding.AwayFromZero)
+            : DefaultReactionSize;
 
     public static string ResolveFontFamily(ChatFontPreset preset) =>
         ResolveTypography(preset).DisplayName;
@@ -115,6 +132,21 @@ public static partial class ChatSettings
             IsBundled: true),
     };
 
+}
+
+public sealed record ChatReactionMetrics(
+    double ImageExtent,
+    double UnicodeFontSize,
+    double CountFontSize)
+{
+    public static ChatReactionMetrics FromMasterSize(double value)
+    {
+        var size = ChatSettings.NormalizeReactionSize(value);
+        return new ChatReactionMetrics(
+            size,
+            Math.Round(size * (16d / 18d), 2),
+            Math.Min(21, Math.Round(12 + ((size - 18) * 0.4), 2)));
+    }
 }
 
 public sealed record ChatTypographyDefinition(

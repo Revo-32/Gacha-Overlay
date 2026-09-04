@@ -30,7 +30,7 @@ public sealed class M101PublicServiceTests
     {
         using var client = new DiscordSocketClient(DiscordGatewayPolicy.CreateSocketConfiguration());
         await client.SetCustomStatusAsync(BotCustomStatus.Text);
-        Assert.Equal("LS Overlay - 정상 가동 중", BotCustomStatus.Text);
+        Assert.Equal("LS Overlay - 24/7 가동 중", BotCustomStatus.Text);
         Assert.Equal(ActivityType.CustomStatus, client.Activity.Type);
         Assert.Equal(BotCustomStatus.Text, Assert.IsType<CustomStatusGame>(client.Activity).State);
         Assert.Equal(ConnectionState.Disconnected, client.ConnectionState);

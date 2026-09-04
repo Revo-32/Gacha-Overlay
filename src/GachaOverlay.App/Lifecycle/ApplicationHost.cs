@@ -43,6 +43,7 @@ internal sealed class ApplicationHost : IDisposable
     private GtaoTimerHudViewModel? _timerHudViewModel;
     private ISalesNotificationSoundService? _salesNotificationSoundService;
     private EffectiveSalesProductCatalogStore? _productCatalogStore;
+    private ISalesHistoryStore? _salesHistoryStore;
     private ProductMappingManagerWindow? _productMappingWindow;
     private SalesPreviewWindow? _salesPreviewWindow;
     private ColorThemeManager? _colorThemeManager;
@@ -50,7 +51,7 @@ internal sealed class ApplicationHost : IDisposable
     private OnboardingWindow? _onboardingWindow;
     private OnboardingViewModel? _onboardingViewModel;
     private readonly RuntimeMetricsCollector _runtimeMetrics = new();
-    private readonly ProcessMetricsSampler _processMetrics = new();
+    private ProcessMetricsTrendSampler _processMetricsTrend = new(startTimer: false);
     private LocalApplicationPaths? _paths;
     private DiagnosticBundleExporter? _diagnosticExporter;
     private CrashMetadataWriter? _crashMetadataWriter;
@@ -84,12 +85,14 @@ internal sealed class ApplicationHost : IDisposable
             throw new InvalidOperationException("The application host has already started.");
         }
 
+        _processMetricsTrend.Dispose();
+        _processMetricsTrend = new ProcessMetricsTrendSampler();
+
         var paths = new LocalApplicationPaths();
         _paths = paths;
         _fileLogger = new RollingFileLogger(paths.LogDirectory);
         _diagnosticExporter = new DiagnosticBundleExporter(Logger, _runtimeMetrics);
         _crashMetadataWriter = new CrashMetadataWriter(paths.CrashSummaryFilePath, Logger);
-        _ = _processMetrics.Sample();
         Logger.Information("APP", "Starting.");
         _ = new LegacyCredentialRetirementService(
             paths.LegacyDiscordClientSecretFilePath,
@@ -123,6 +126,11 @@ internal sealed class ApplicationHost : IDisposable
             paths.SalesProductCatalogFilePath,
             Logger);
         var productCatalog = _productCatalogStore.EffectiveCatalog;
+        var salesHistoryStore = new JsonSalesHistoryStore(
+            paths.SalesHistoryFilePath,
+            productCatalog.Products.Select(product => product.ProductId),
+            Logger);
+        _salesHistoryStore = salesHistoryStore;
 
         var hudState = new HudStateService(settings.HudVisibilityMode);
         var hudWindow = new HudWindow();
@@ -185,7 +193,8 @@ internal sealed class ApplicationHost : IDisposable
             hudWindow.Dispatcher,
             _runtimeMetrics,
             salesTurnNotifications,
-            mediaAssetService);
+            mediaAssetService,
+            salesHistoryStore);
         _salesCoordinator.Start();
         _hudController = new HudWindowController(
             hudWindow,
@@ -239,6 +248,11 @@ internal sealed class ApplicationHost : IDisposable
             _remoteChatCoordinator.ForgetCredentialAsync,
             _remoteChatCoordinator.RefreshAsync,
             _remoteChatCoordinator.SwitchChannelAsync);
+        var salesHistoryViewModel = new SalesHistoryViewModel(
+            salesHistoryStore,
+            productCatalog,
+            hudWindow.Dispatcher,
+            ConfirmSalesHistoryReset);
 
         _foundationViewModel = new FoundationViewModel(
             _settingsStore,
@@ -294,7 +308,8 @@ internal sealed class ApplicationHost : IDisposable
             testSalesTurnSound: () => _salesNotificationSoundService?.Play(
                 SalesTurnNotificationKind.Current,
                 _settingsStore!.Current.SalesTurnSoundVolume),
-            applyAllHotkeys: settings => _hudController?.TryApplyHotkeySettings(settings) == true);
+            applyAllHotkeys: settings => _hudController?.TryApplyHotkeySettings(settings) == true,
+            salesHistory: salesHistoryViewModel);
         _settingsWindowService = new SettingsWindowService(
             new UiDispatcherAdapter(_application.Dispatcher),
             () => new FoundationWindow
@@ -421,6 +436,7 @@ internal sealed class ApplicationHost : IDisposable
         Logger.Information("APP", "Exit.");
         _fileLogger?.Dispose();
         _fileLogger = null;
+        _processMetricsTrend.Dispose();
         _diagnosticExporter = null;
         _crashMetadataWriter = null;
         _paths = null;
@@ -868,9 +884,11 @@ internal sealed class ApplicationHost : IDisposable
 
     internal DiagnosticBundleRequest BuildDiagnosticRequest(string destinationPath)
     {
+        // Freeze the lightweight process series before any diagnostic JSON or log work.
+        var processTrend = _processMetricsTrend.Capture();
+        var process = processTrend.Current;
         var settings = _settingsStore?.Current ?? AppSettings.CreateDefault();
         var runtime = _runtimeMetrics.Snapshot();
-        var process = _processMetrics.Sample();
         var messageState = _lastRemoteMessageState;
         var remote = _remoteChatCoordinator?.Snapshot ??
             RemoteChatSnapshot.Disconnected(settings.RemoteBackendBaseUrl);
@@ -895,6 +913,23 @@ internal sealed class ApplicationHost : IDisposable
                 RuntimeVersion = Environment.Version.ToString(),
                 ProcessArchitecture = System.Runtime.InteropServices.RuntimeInformation
                     .ProcessArchitecture.ToString(),
+                ProcessMemory = new
+                {
+                    process.PrivateWorkingSetBytes,
+                    process.TotalWorkingSetBytes,
+                    process.PrivateCommitBytes,
+                    process.ManagedHeapBytes,
+                    process.HandleCount,
+                    process.ThreadCount,
+                },
+                MemoryMetricSemantics = new
+                {
+                    PrivateWorkingSetBytes = "Resident pages private to this process; closest diagnostic comparison to the ordinary Task Manager memory value.",
+                    TotalWorkingSetBytes = "All resident process pages, including pages that may be shared.",
+                    PrivateCommitBytes = "Private committed virtual memory; not a resident-memory value.",
+                    ManagedHeapBytes = ".NET managed heap only; not total process memory.",
+                },
+                ProcessTrend = processTrend.Summary,
                 CurrentLanguage = settings.Language,
                 CurrentTheme = settings.ColorTheme.ToString(),
                 Remote = new
@@ -923,7 +958,16 @@ internal sealed class ApplicationHost : IDisposable
                 CatalogLoaded = catalog.BuiltInLoaded,
             },
             ["sanitized-settings.json"] = SanitizedSettingsSnapshot.From(settings),
-            ["runtime-metrics.json"] = new { Runtime = runtime, Process = process },
+            ["runtime-metrics.json"] = new
+            {
+                Runtime = runtime,
+                Process = new
+                {
+                    Current = process,
+                    processTrend.Samples,
+                    Trend = processTrend.Summary,
+                },
+            },
             ["health-snapshot.json"] = new
             {
                 Remote = new
@@ -1041,6 +1085,27 @@ internal sealed class ApplicationHost : IDisposable
         _salesCoordinator?.ApplySettings(defaults);
         _foundationViewModel?.ReloadFromCurrentSettings();
         Logger.Information("SETTINGS", "All application settings reset by user request.");
+    }
+
+    private bool ConfirmSalesHistoryReset()
+    {
+        if (_localization is null)
+        {
+            return false;
+        }
+
+        var dialog = new ConfirmationDialog
+        {
+            Owner = SettingsOwnerWindow,
+            Title = _localization["SettingsSalesHistoryReset"],
+            DataContext = new
+            {
+                Message = _localization["SettingsSalesHistoryResetConfirm"],
+                CancelText = _localization["CommonCancel"],
+                ConfirmText = _localization["SettingsSalesHistoryResetConfirmButton"],
+            },
+        };
+        return dialog.ShowDialog() == true;
     }
 
     private void ApplyColorTheme(ColorThemeId theme)

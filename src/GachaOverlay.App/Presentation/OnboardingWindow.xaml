@@ -25,11 +25,6 @@
         <Border Grid.Row="1" Padding="24" CornerRadius="10" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <Grid>
-                    <StackPanel Visibility="{Binding IsLanguageStep, Converter={StaticResource BoolVisibility}}">
-                        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingLanguageTitle]}" />
-                        <TextBlock Margin="0,7,0,20" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingLanguageHint]}" TextWrapping="Wrap" />
-                        <ComboBox Width="280" HorizontalAlignment="Left" ItemsSource="{Binding Settings.Languages}" ItemTemplate="{StaticResource OptionTemplate}" SelectedValuePath="Code" SelectedValue="{Binding Settings.SelectedLanguage, Mode=TwoWay}" AutomationProperties.Name="{Binding Settings.Localization[Language]}" />
-                    </StackPanel>
                     <StackPanel Visibility="{Binding IsDiscordStep, Converter={StaticResource BoolVisibility}}">
                         <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingDiscordTitle]}" />
                         <TextBlock Margin="0,7,0,14" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingDiscordHint]}" TextWrapping="Wrap" />
@@ -50,8 +45,8 @@
                     <StackPanel Visibility="{Binding IsHudStep, Converter={StaticResource BoolVisibility}}">
                         <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Settings.Localization[OnboardingHudTitle]}" />
                         <TextBlock Margin="0,7,0,18" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Settings.Localization[OnboardingHudHint]}" TextWrapping="Wrap" />
-                        <TextBlock Margin="0,5" Text="F9 · HUD Show / Hide" />
-                        <TextBlock Margin="0,5" Text="F10 · Lock / Unlock" />
+                        <TextBlock Margin="0,5" Text="F9 · HUD 표시 / 숨기기" />
+                        <TextBlock Margin="0,5" Text="F10 · 잠금 / 잠금 해제" />
                         <TextBlock Margin="0,5" Text="{Binding Settings.Localization[OnboardingHudDragHint]}" />
                         <TextBlock Margin="0,5" Text="{Binding Settings.Localization[OnboardingHudClickThroughHint]}" />
                     </StackPanel>

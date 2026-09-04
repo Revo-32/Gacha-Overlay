@@ -502,4 +502,17 @@
   <data name="TimerBunkerNormal" xml:space="preserve"><value>Normal bunker meal · 130 min</value></data>
   <data name="TimerExpired" xml:space="preserve"><value>Ready</value></data>
   <data name="TimerMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
+  <data name="SettingsRoleIconPosition" xml:space="preserve"><value>Role icon position</value></data>
+  <data name="SettingsRoleIconLeft" xml:space="preserve"><value>Left of nickname</value></data>
+  <data name="SettingsRoleIconRight" xml:space="preserve"><value>Immediately after nickname</value></data>
+  <data name="SettingsRoleIconFarRight" xml:space="preserve"><value>Far right</value></data>
+  <data name="SettingsReactionSize" xml:space="preserve"><value>Reaction size</value></data>
+  <data name="SettingsCategorySalesHistory" xml:space="preserve"><value>My history</value></data>
+  <data name="SettingsSalesHistoryTitle" xml:space="preserve"><value>My history</value></data>
+  <data name="SettingsSalesHistoryDescription" xml:space="preserve"><value>Shows the last confirmed sold time for each product from your own sales posts.</value></data>
+  <data name="SettingsSalesHistoryRecent" xml:space="preserve"><value>Recent sales</value></data>
+  <data name="SettingsSalesHistoryReset" xml:space="preserve"><value>Clear sales history</value></data>
+  <data name="SettingsSalesHistoryResetConfirm" xml:space="preserve"><value>Clear every saved recent sales time?</value></data>
+  <data name="SettingsSalesHistoryResetConfirmButton" xml:space="preserve"><value>Clear</value></data>
+  <data name="CommonCancel" xml:space="preserve"><value>Cancel</value></data>
 </root>

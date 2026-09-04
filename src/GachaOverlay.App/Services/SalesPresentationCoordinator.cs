@@ -30,6 +30,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
     private readonly ISalesTurnNotificationObserver? _turnNotification;
     private readonly System.Windows.Threading.Dispatcher _dispatcher;
     private readonly DiscordMediaAssetService? _media;
+    private readonly SalesHistoryTransitionRecorder? _salesHistory;
     private readonly Dictionary<string, NormalizedDiscordMessage> _remoteSource =
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, SalesCompletionObservation> _remoteEvidence =
@@ -62,7 +63,8 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         System.Windows.Threading.Dispatcher dispatcher,
         IRuntimeMetrics? metrics = null,
         ISalesTurnNotificationObserver? turnNotification = null,
-        DiscordMediaAssetService? media = null)
+        DiscordMediaAssetService? media = null,
+        ISalesHistoryStore? salesHistory = null)
     {
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
@@ -77,6 +79,9 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         _turnNotification = turnNotification;
         _dispatcher = dispatcher;
         _media = media;
+        _salesHistory = salesHistory is null
+            ? null
+            : new SalesHistoryTransitionRecorder(salesHistory);
         _uiUpdates = new UiUpdateCoalescer(
             new DispatcherCallbackScheduler(dispatcher),
             requestCount =>
@@ -215,7 +220,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         }
 
         _engine.ApplyAuthoritativeWindowSnapshot(productionSource);
-        ApplyRemoteEvidence(bootstrap.CompletionObservations);
+        ApplyRemoteEvidence(bootstrap.CompletionObservations, recordHistory: false);
         _metrics?.Increment(RuntimeMetricNames.RemotePromotionSucceeded);
         _uiUpdates.Request();
         _logger.Information(
@@ -278,7 +283,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         _engine.ApplyAuthoritativeWindowSnapshot(productionSource);
         if (mutation.CompletionObservation is { } completion)
         {
-            ApplyRemoteEvidence(new[] { completion });
+            ApplyRemoteEvidence(new[] { completion }, recordHistory: true);
         }
 
         _uiUpdates.Request();
@@ -365,7 +370,8 @@ internal sealed class SalesPresentationCoordinator : IDisposable
     }
 
     private void ApplyRemoteEvidence(
-        IReadOnlyCollection<SalesCompletionObservation> observations)
+        IReadOnlyCollection<SalesCompletionObservation> observations,
+        bool recordHistory)
     {
         var complete = observations
             .Where(observation => observation.Coverage == SalesEvidenceCoverage.Complete)
@@ -397,12 +403,17 @@ internal sealed class SalesPresentationCoordinator : IDisposable
             ObservedMessageCount: complete.Length,
             SoldCount: complete.Count(item => item.IsSold),
             NotSoldCount: complete.Count(item => !item.IsSold));
-        ApplyObservationBatch(batch);
+        ApplyObservationBatch(batch, recordHistory);
     }
 
-    private void ApplyObservationBatch(SalesObservationBatch batch)
+    private void ApplyObservationBatch(SalesObservationBatch batch, bool recordHistory)
     {
         var previous = _engine.Current;
+        var historyCandidates = _salesHistory?.CapturePendingOwn(
+            recordHistory,
+            batch,
+            _engine.Records,
+            previous.AuthenticatedUserId) ?? [];
         var trustedSoldCurrent = batch.IsTrusted &&
             previous.CurrentSeller is not null &&
             batch.Observations.Any(observation =>
@@ -432,6 +443,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         try
         {
             _engine.ApplyObservationBatch(batch);
+            _salesHistory?.RecordConfirmedSold(historyCandidates, _engine.Records);
         }
         finally
         {

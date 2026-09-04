@@ -8,7 +8,7 @@ namespace GachaOverlay.App.Presentation;
 
 internal sealed class OnboardingViewModel : INotifyPropertyChanged, IDisposable
 {
-    public const int StepCount = 3;
+    public const int StepCount = 2;
     private readonly ISettingsStore _settingsStore;
     private readonly ILocalizationService _localization;
     private readonly Action _completed;
@@ -80,11 +80,9 @@ internal sealed class OnboardingViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    public bool IsLanguageStep => StepIndex == 0;
+    public bool IsDiscordStep => StepIndex == 0;
 
-    public bool IsDiscordStep => StepIndex == 1;
-
-    public bool IsHudStep => StepIndex == 2;
+    public bool IsHudStep => StepIndex == 1;
 
     private void Previous() => StepIndex--;
 
@@ -92,7 +90,7 @@ internal sealed class OnboardingViewModel : INotifyPropertyChanged, IDisposable
     {
         switch (StepIndex)
         {
-            case 1 when Settings.RemoteChatSettings?.IsReady != true:
+            case 0 when Settings.RemoteChatSettings?.IsReady != true:
                 ValidationMessage = _localization["OnboardingDiscordRequired"];
                 return Task.CompletedTask;
         }
@@ -123,10 +121,10 @@ internal sealed class OnboardingViewModel : INotifyPropertyChanged, IDisposable
     {
         if (settings.RemoteChatSettings?.IsReady != true)
         {
-            return 1;
+            return 0;
         }
 
-        return 2;
+        return 1;
     }
 
     private void RaiseStepProperties()
@@ -135,7 +133,6 @@ internal sealed class OnboardingViewModel : INotifyPropertyChanged, IDisposable
         {
             nameof(StepIndex),
             nameof(StepProgressText),
-            nameof(IsLanguageStep),
             nameof(IsDiscordStep),
             nameof(IsHudStep),
         })

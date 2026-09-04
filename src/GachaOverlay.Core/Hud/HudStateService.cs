@@ -1,6 +1,6 @@
 namespace GachaOverlay.Core.Hud;
 
-public sealed class HudStateService
+public sealed class HudStateService : Geometry.IGlobalHudLockSource
 {
     private readonly object _sync = new();
     private HudSessionState _current;
@@ -11,6 +11,10 @@ public sealed class HudStateService
     }
 
     public event Action<HudSessionState>? StateChanged;
+
+    public event Action<bool>? LockChanged;
+
+    public bool IsLocked => Current.IsLocked;
 
     public HudSessionState Current
     {
@@ -45,8 +49,10 @@ public sealed class HudStateService
     private void Update(Func<HudSessionState, HudSessionState> update)
     {
         HudSessionState next;
+        bool lockChanged;
         lock (_sync)
         {
+            var previous = _current;
             next = update(_current);
             if (next == _current)
             {
@@ -54,9 +60,14 @@ public sealed class HudStateService
             }
 
             _current = next;
+            lockChanged = previous.IsLocked != next.IsLocked;
         }
 
         StateChanged?.Invoke(next);
+        if (lockChanged)
+        {
+            LockChanged?.Invoke(next.IsLocked);
+        }
     }
 
     private static HudVisibilityMode NormalizeVisibilityMode(HudVisibilityMode mode) =>

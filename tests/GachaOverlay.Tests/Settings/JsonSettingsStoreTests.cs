@@ -14,7 +14,7 @@ namespace GachaOverlay.Tests.Settings;
 public sealed class JsonSettingsStoreTests
 {
     [Fact]
-    public void Load_WhenFileDoesNotExist_ReturnsEnglishDefaults()
+    public void Load_WhenFileDoesNotExist_ReturnsKoreanDefaults()
     {
         using var directory = new TemporaryDirectory();
         var store = new JsonSettingsStore(directory.File("settings.json"));
@@ -22,13 +22,13 @@ public sealed class JsonSettingsStoreTests
         var settings = store.Load();
 
         Assert.Equal(AppSettings.CurrentSchemaVersion, settings.SchemaVersion);
-        Assert.Equal(SupportedLocales.English, settings.Language);
+        Assert.Equal(SupportedLocales.Korean, settings.Language);
     }
 
     [Theory]
     [InlineData(SupportedLocales.Korean)]
     [InlineData(SupportedLocales.Japanese)]
-    public void SaveAndLoad_RoundTripsSupportedLanguage(string language)
+    public void SaveAndLoad_MigratesSupportedLanguageToKorean(string language)
     {
         using var directory = new TemporaryDirectory();
         var settingsPath = directory.File("settings.json");
@@ -38,7 +38,7 @@ public sealed class JsonSettingsStoreTests
         var loaded = new JsonSettingsStore(settingsPath).Load();
 
         Assert.True(saved);
-        Assert.Equal(language, loaded.Language);
+        Assert.Equal(SupportedLocales.Korean, loaded.Language);
         Assert.Equal(AppSettings.CurrentSchemaVersion, loaded.SchemaVersion);
     }
 
@@ -73,7 +73,7 @@ public sealed class JsonSettingsStoreTests
 
         var backup = new JsonSettingsStore(settingsPath + ".bak").Load();
         var primary = new JsonSettingsStore(settingsPath).Load();
-        Assert.Equal(SupportedLocales.English, backup.Language);
+        Assert.Equal(SupportedLocales.Korean, backup.Language);
         Assert.Equal(SupportedLocales.Korean, primary.Language);
         Assert.Empty(Directory.GetFiles(directory.Path, "*.tmp"));
     }
@@ -122,7 +122,7 @@ public sealed class JsonSettingsStoreTests
 
         Assert.False(saved);
         Assert.Equal(original, File.ReadAllText(settingsPath));
-        Assert.Equal(SupportedLocales.English, store.Current.Language);
+        Assert.Equal(SupportedLocales.Korean, store.Current.Language);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public sealed class JsonSettingsStoreTests
         });
 
         Assert.False(saved);
-        Assert.Equal(SupportedLocales.English, store.Current.Language);
+        Assert.Equal(SupportedLocales.Korean, store.Current.Language);
     }
 
     [Fact]

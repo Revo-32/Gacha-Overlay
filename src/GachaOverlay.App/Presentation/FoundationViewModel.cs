@@ -70,6 +70,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private int _chatMaxLines;
     private double _chatLineHeightMultiplier;
     private double _chatMessageSpacing;
+    private RoleIconPosition _selectedRoleIconPosition;
+    private double _chatReactionSize;
     private bool _chatShowImages;
     private ChatImageMode _selectedChatImageMode;
     private ChatImageSizeMode _selectedChatImageSizeMode;
@@ -96,6 +98,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private IReadOnlyList<ChatImageSizeModeOption> _chatImageSizeModes;
     private IReadOnlyList<ChatStylePresetOption> _chatStylePresets;
     private IReadOnlyList<ChatLineLimitOption> _chatMaxLineOptions;
+    private IReadOnlyList<RoleIconPositionOption> _roleIconPositions;
     private bool _disposed;
     private readonly Func<bool, bool> _applyWindowsAutoStart;
     private bool _windowsAutoStart;
@@ -134,7 +137,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         Func<Task<string>>? createDiagnosticBundle = null,
         RemoteChatSettingsViewModel? remoteChatSettings = null,
         Action? testSalesTurnSound = null,
-        Func<AppSettings, bool>? applyAllHotkeys = null)
+        Func<AppSettings, bool>? applyAllHotkeys = null,
+        SalesHistoryViewModel? salesHistory = null)
     {
         _settingsStore = settingsStore;
         Localization = localization;
@@ -154,6 +158,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _createDiagnosticBundle = createDiagnosticBundle ??
             (() => Task.FromResult(string.Empty));
         RemoteChatSettings = remoteChatSettings;
+        SalesHistory = salesHistory;
         _testSalesTurnSound = testSalesTurnSound ?? (() => { });
         _selectedLanguage = localization.CurrentLocale;
         var settings = settingsStore.Current;
@@ -197,6 +202,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _chatMaxLines = settings.ChatMaxLines;
         _chatLineHeightMultiplier = settings.ChatLineHeightMultiplier;
         _chatMessageSpacing = settings.ChatMessageSpacing;
+        _selectedRoleIconPosition = settings.ChatRoleIconPosition;
+        _chatReactionSize = settings.ChatReactionSize;
         _chatShowImages = settings.ChatShowImages;
         _selectedChatImageMode = settings.ChatImageMode;
         _selectedChatImageSizeMode = settings.ChatImageSizeMode;
@@ -219,6 +226,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _chatImageSizeModes = CreateChatImageSizeModes();
         _chatStylePresets = CreateChatStylePresets();
         _chatMaxLineOptions = CreateChatMaxLineOptions();
+        _roleIconPositions = CreateRoleIconPositions();
         _colorThemes = CreateColorThemes();
         HideToTrayCommand = new RelayCommand(hideWindow);
         ApplyHotkeysCommand = new RelayCommand(ApplyHotkeys);
@@ -310,6 +318,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     public ICommand CreateDiagnosticBundleCommand { get; }
 
     public RemoteChatSettingsViewModel? RemoteChatSettings { get; }
+
+    public SalesHistoryViewModel? SalesHistory { get; }
 
     public string AppVersionText => ResolveAppVersionText();
 
@@ -515,6 +525,12 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         private set { _chatMaxLineOptions = value; OnPropertyChanged(); }
     }
 
+    public IReadOnlyList<RoleIconPositionOption> RoleIconPositions
+    {
+        get => _roleIconPositions;
+        private set { _roleIconPositions = value; OnPropertyChanged(); }
+    }
+
     public ChatStylePreset SelectedChatStylePreset
     {
         get => _selectedChatStylePreset;
@@ -546,7 +562,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         get => _selectedLanguage;
         set
         {
-            var normalized = SupportedLocales.NormalizeOrEnglish(value);
+            var normalized = SupportedLocales.Korean;
             if (string.Equals(_selectedLanguage, normalized, StringComparison.Ordinal))
             {
                 return;
@@ -997,6 +1013,32 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    public RoleIconPosition SelectedRoleIconPosition
+    {
+        get => _selectedRoleIconPosition;
+        set
+        {
+            var normalized = Enum.IsDefined(value) ? value : RoleIconPosition.Left;
+            SetAndSave(
+                ref _selectedRoleIconPosition,
+                normalized,
+                settings => settings with { ChatRoleIconPosition = normalized });
+        }
+    }
+
+    public double ChatReactionSize
+    {
+        get => _chatReactionSize;
+        set
+        {
+            var normalized = ChatSettings.NormalizeReactionSize(value);
+            SetAndSave(
+                ref _chatReactionSize,
+                normalized,
+                settings => settings with { ChatReactionSize = normalized });
+        }
+    }
+
     public bool ChatShowImages
     {
         get => _chatShowImages;
@@ -1301,6 +1343,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _disposed = true;
         RemoteChatSettings?.Dispose();
         Localization.LanguageChanged -= OnLanguageChanged;
+        SalesHistory?.Dispose();
     }
 
     private void ApplyHotkeys()
@@ -1467,6 +1510,19 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             Localization["SettingsSessionHost2"]),
     };
 
+    private IReadOnlyList<RoleIconPositionOption> CreateRoleIconPositions() => new[]
+    {
+        new RoleIconPositionOption(
+            RoleIconPosition.Left,
+            Localization["SettingsRoleIconLeft"]),
+        new RoleIconPositionOption(
+            RoleIconPosition.AdjacentRight,
+            Localization["SettingsRoleIconRight"]),
+        new RoleIconPositionOption(
+            RoleIconPosition.FarRight,
+            Localization["SettingsRoleIconFarRight"]),
+    };
+
     private IReadOnlyList<SettingsCategoryOption> CreateSettingsCategories() => new[]
     {
         CreateCategory(SettingsCategory.General, "SettingsCategoryGeneral", "M12,2A10,10 0 1 0 12,22A10,10 0 1 0 12,2M12,7A5,5 0 1 1 12,17A5,5 0 1 1 12,7"),
@@ -1475,6 +1531,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         CreateCategory(SettingsCategory.Chat, "SettingsCategoryChat", "M4,4H20V16H9L4,20ZM8,8H16M8,12H14"),
         CreateCategory(SettingsCategory.Media, "SettingsCategoryMedia", "M3,5H21V19H3ZM6,16L10,12L13,15L16,10L20,16M8,9A1.5,1.5 0 1 1 8,6A1.5,1.5 0 1 1 8,9"),
         CreateCategory(SettingsCategory.Sales, "SettingsCategorySales", "M5,3H19V21H5ZM8,7H16M8,11H16M8,15H13M8,19H11"),
+        CreateCategory(SettingsCategory.SalesHistory, "SettingsCategorySalesHistory", "M4,4H20V20H4ZM8,8H16M8,12H16M8,16H13M17,15V19M15,17H19"),
         CreateCategory(SettingsCategory.Timers, "SettingsTimerTitle", "M12,3A9,9 0 1 0 12,21A9,9 0 1 0 12,3M12,7V12L15,14M9,2H15"),
         CreateCategory(SettingsCategory.Hotkeys, "SettingsCategoryHotkeys", "M3,6H21V18H3ZM6,10H8M10,10H12M14,10H16M18,10H19M6,14H8M10,14H17"),
         CreateCategory(SettingsCategory.Diagnostics, "SettingsCategoryDiagnostics", "M14.7,6.3A5,5 0 0 0 8.3,12.7L3.5,17.5L6.5,20.5L11.3,15.7A5,5 0 0 0 17.7,9.3L14,13L11,10Z"),
@@ -1621,6 +1678,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         ChatImageSizeModes = CreateChatImageSizeModes();
         ChatStylePresets = CreateChatStylePresets();
         ChatMaxLineOptions = CreateChatMaxLineOptions();
+        RoleIconPositions = CreateRoleIconPositions();
         ColorThemes = CreateColorThemes();
         RefreshThemeSelection();
         HotkeyValidationMessage = string.Empty;
@@ -1655,6 +1713,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _chatMessageOutlineThickness = settings.ChatMessageOutlineThickness;
         _chatLineHeightMultiplier = settings.ChatLineHeightMultiplier;
         _chatMessageSpacing = settings.ChatMessageSpacing;
+        _selectedRoleIconPosition = settings.ChatRoleIconPosition;
+        _chatReactionSize = settings.ChatReactionSize;
         _chatMaxLines = settings.ChatMaxLines;
         _chatShowImages = settings.ChatShowImages;
         _selectedChatImageMode = settings.ChatImageMode;
@@ -1686,6 +1746,8 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             nameof(ChatOutlineThickness),
             nameof(ChatLineHeightMultiplier),
             nameof(ChatMessageSpacing),
+            nameof(SelectedRoleIconPosition),
+            nameof(ChatReactionSize),
             nameof(ChatMaxLines),
             nameof(ChatShowImages),
             nameof(SelectedChatImageMode),

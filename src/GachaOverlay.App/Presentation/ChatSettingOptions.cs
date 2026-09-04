@@ -25,6 +25,8 @@ internal sealed record ChatImageSizeModeOption(ChatImageSizeMode Value, string D
 
 internal sealed record ChatLineLimitOption(int Value, string DisplayText);
 
+internal sealed record RoleIconPositionOption(RoleIconPosition Value, string DisplayText);
+
 internal sealed class ChatStylePresetOption : INotifyPropertyChanged
 {
     private bool _isSelected;

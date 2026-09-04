@@ -545,8 +545,6 @@ public sealed class OptionDisplayTests
         Assert.Equal(0, onboarding.StepIndex);
         onboarding.NextCommand.Execute(null);
         Assert.Equal(1, onboarding.StepIndex);
-        onboarding.NextCommand.Execute(null);
-        Assert.Equal(2, onboarding.StepIndex);
         onboarding.FinishCommand.Execute(null);
 
         Assert.True(completed);

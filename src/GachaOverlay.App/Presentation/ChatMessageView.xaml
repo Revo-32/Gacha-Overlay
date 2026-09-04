@@ -17,14 +17,14 @@
                     CornerRadius="8"
                     IsHitTestVisible="False">
                 <StackPanel Orientation="Horizontal">
-                    <Image Width="18" Height="18" Source="{Binding Image}"
+                    <Image Width="{Binding ImageExtent}" Height="{Binding ImageExtent}" Source="{Binding Image}"
                            Stretch="Uniform" VerticalAlignment="Center"
                            Visibility="{Binding HasImage, Converter={StaticResource BoolVisibility}}" />
-                    <TextBlock FontSize="16" VerticalAlignment="Center"
+                    <TextBlock FontSize="{Binding UnicodeFontSize}" VerticalAlignment="Center"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Text="{Binding Text}"
                                Visibility="{Binding ShowText, Converter={StaticResource BoolVisibility}}" />
-                    <TextBlock Margin="4,0,0,0" FontSize="12" VerticalAlignment="Center"
+                    <TextBlock Margin="4,0,0,0" FontSize="{Binding CountFontSize}" VerticalAlignment="Center"
                                Foreground="{DynamicResource TextMutedBrush}"
                                Text="{Binding Count}" />
                 </StackPanel>
@@ -120,14 +120,23 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="0,0,4,0" VerticalAlignment="Center"
-                                       FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
-                                       Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
-                            <Image Width="16" Height="16" Margin="0,0,4,0"
-                                   Source="{Binding RoleIconImage}" Stretch="Uniform"
-                                   Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="{Binding RoleIconNicknameColumnWidth}" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal"
+                                        Visibility="{Binding ShowRoleIconLeft, Converter={StaticResource BoolVisibility}}">
+                                <TextBlock Margin="0,0,4,0" VerticalAlignment="Center"
+                                           FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
+                                           Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
+                                <Image Width="16" Height="16" Margin="0,0,4,0"
+                                       Source="{Binding RoleIconImage}" Stretch="Uniform"
+                                       Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                            </StackPanel>
                             <local:CrispOutlinedText x:Name="BalancedNickname"
+                                                 Grid.Column="1"
                                                  FontFamily="{Binding NicknameFontFamily}"
                                                  FontSize="{Binding FontSizeDip}"
                                                  FontWeight="{Binding NicknameFontWeight}"
@@ -137,8 +146,27 @@
                                                  OutlineBrush="{DynamicResource ChatOutlineBrush}"
                                                  OutlineEnabled="{Binding ShowNicknameOutline}"
                                                  OutlineThickness="{Binding NicknameOutlineThickness}"
-                                                 Text="{Binding AuthorName}" />
-                        </StackPanel>
+                                                 Text="{Binding AuthorName}"
+                                                 TextTrimming="CharacterEllipsis">
+                                <local:CrispOutlinedText.Style>
+                                    <Style TargetType="{x:Type local:CrispOutlinedText}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRoleIconAdjacentRight}" Value="True">
+                                                <Setter Property="MaxWidth" Value="360" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </local:CrispOutlinedText.Style>
+                            </local:CrispOutlinedText>
+                            <StackPanel Grid.Column="2" Margin="4,0,0,0" Orientation="Horizontal"
+                                        Visibility="{Binding ShowRoleIconRight, Converter={StaticResource BoolVisibility}}">
+                                <TextBlock VerticalAlignment="Center" FontSize="{Binding FontSizeDip}"
+                                           Text="{Binding RoleIconText}"
+                                           Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
+                                <Image Width="16" Height="16" Source="{Binding RoleIconImage}" Stretch="Uniform"
+                                       Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                            </StackPanel>
+                        </Grid>
                         <TextBlock Grid.Column="1"
                                    Margin="8,0,0,0"
                                    VerticalAlignment="Center"
@@ -197,14 +225,22 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,5,0" Orientation="Horizontal"
-                                Visibility="{Binding ShowAuthorHeader, Converter={StaticResource BoolVisibility}}">
-                        <TextBlock Margin="0,0,3,0" FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
-                                   Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
-                        <Image Width="15" Height="15" Margin="0,0,3,0" Source="{Binding RoleIconImage}"
-                               Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                    <Grid Grid.Column="0" MaxWidth="180" Margin="0,0,5,0"
+                          Visibility="{Binding ShowAuthorHeader, Converter={StaticResource BoolVisibility}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="{Binding RoleIconNicknameColumnWidth}" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding ShowRoleIconLeft, Converter={StaticResource BoolVisibility}}">
+                            <TextBlock Margin="0,0,3,0" FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
+                                       Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
+                            <Image Width="15" Height="15" Margin="0,0,3,0" Source="{Binding RoleIconImage}"
+                                   Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                        </StackPanel>
                         <local:CrispOutlinedText x:Name="CompactNickname"
-                                             Grid.Column="0"
+                                             Grid.Column="1"
                                              FontFamily="{Binding NicknameFontFamily}"
                                              FontSize="{Binding FontSizeDip}"
                                              FontWeight="{Binding NicknameFontWeight}"
@@ -214,8 +250,26 @@
                                              OutlineBrush="{DynamicResource ChatOutlineBrush}"
                                              OutlineEnabled="{Binding ShowNicknameOutline}"
                                              OutlineThickness="{Binding NicknameOutlineThickness}"
-                                             Text="{Binding AuthorName, StringFormat={}{0}:}" />
-                    </StackPanel>
+                                             Text="{Binding AuthorName, StringFormat={}{0}:}"
+                                             TextTrimming="CharacterEllipsis">
+                            <local:CrispOutlinedText.Style>
+                                <Style TargetType="{x:Type local:CrispOutlinedText}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRoleIconAdjacentRight}" Value="True">
+                                            <Setter Property="MaxWidth" Value="150" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:CrispOutlinedText.Style>
+                        </local:CrispOutlinedText>
+                        <StackPanel Grid.Column="2" Margin="3,0,0,0" Orientation="Horizontal"
+                                    Visibility="{Binding ShowRoleIconRight, Converter={StaticResource BoolVisibility}}">
+                            <TextBlock FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
+                                       Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
+                            <Image Width="15" Height="15" Source="{Binding RoleIconImage}"
+                                   Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                        </StackPanel>
+                    </Grid>
                     <StackPanel Grid.Column="1">
                         <TextBlock Margin="0,1,0,2"
                                    FontFamily="{Binding MessageFontFamily}"
@@ -265,14 +319,22 @@
                         <ColumnDefinition Width="Auto" MaxWidth="120" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,5,0" Orientation="Horizontal"
-                                Visibility="{Binding ShowAuthorHeader, Converter={StaticResource BoolVisibility}}">
-                        <TextBlock Margin="0,0,3,0" FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
-                                   Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
-                        <Image Width="15" Height="15" Margin="0,0,3,0" Source="{Binding RoleIconImage}"
-                               Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                    <Grid Grid.Column="0" Margin="0,0,5,0"
+                          Visibility="{Binding ShowAuthorHeader, Converter={StaticResource BoolVisibility}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="{Binding RoleIconNicknameColumnWidth}" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding ShowRoleIconLeft, Converter={StaticResource BoolVisibility}}">
+                            <TextBlock Margin="0,0,3,0" FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
+                                       Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
+                            <Image Width="15" Height="15" Margin="0,0,3,0" Source="{Binding RoleIconImage}"
+                                   Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                        </StackPanel>
                         <local:CrispOutlinedText x:Name="UltraCompactNickname"
-                                             Grid.Column="0"
+                                             Grid.Column="1"
                                              FontFamily="{Binding NicknameFontFamily}"
                                              FontSize="{Binding FontSizeDip}"
                                              FontWeight="{Binding NicknameFontWeight}"
@@ -283,8 +345,25 @@
                                              OutlineEnabled="{Binding ShowNicknameOutline}"
                                              OutlineThickness="{Binding NicknameOutlineThickness}"
                                              Text="{Binding AuthorName, StringFormat={}{0}:}"
-                                             TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
+                                             TextTrimming="CharacterEllipsis">
+                            <local:CrispOutlinedText.Style>
+                                <Style TargetType="{x:Type local:CrispOutlinedText}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRoleIconAdjacentRight}" Value="True">
+                                            <Setter Property="MaxWidth" Value="90" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:CrispOutlinedText.Style>
+                        </local:CrispOutlinedText>
+                        <StackPanel Grid.Column="2" Margin="3,0,0,0" Orientation="Horizontal"
+                                    Visibility="{Binding ShowRoleIconRight, Converter={StaticResource BoolVisibility}}">
+                            <TextBlock FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
+                                       Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
+                            <Image Width="15" Height="15" Source="{Binding RoleIconImage}"
+                                   Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                        </StackPanel>
+                    </Grid>
                     <local:CrispOutlinedText x:Name="UltraCompactBody"
                                              Grid.Column="1"
                                              Tokens="{Binding Tokens}"

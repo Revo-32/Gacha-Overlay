@@ -467,4 +467,17 @@
   <data name="TimerBunkerNormal" xml:space="preserve"><value>通常補給 · 130分</value></data>
   <data name="TimerExpired" xml:space="preserve"><value>完了</value></data>
   <data name="TimerMinutesFormat" xml:space="preserve"><value>{0}分</value></data>
+  <data name="SettingsRoleIconPosition" xml:space="preserve"><value>ロールアイコンの位置</value></data>
+  <data name="SettingsRoleIconLeft" xml:space="preserve"><value>ニックネームの左</value></data>
+  <data name="SettingsRoleIconRight" xml:space="preserve"><value>ニックネームのすぐ右</value></data>
+  <data name="SettingsRoleIconFarRight" xml:space="preserve"><value>右端</value></data>
+  <data name="SettingsReactionSize" xml:space="preserve"><value>リアクションのサイズ</value></data>
+  <data name="SettingsCategorySalesHistory" xml:space="preserve"><value>自分の履歴</value></data>
+  <data name="SettingsSalesHistoryTitle" xml:space="preserve"><value>自分の履歴</value></data>
+  <data name="SettingsSalesHistoryDescription" xml:space="preserve"><value>自分の販売投稿で確認された最後の販売時刻を商品別に表示します。</value></data>
+  <data name="SettingsSalesHistoryRecent" xml:space="preserve"><value>最近の販売</value></data>
+  <data name="SettingsSalesHistoryReset" xml:space="preserve"><value>販売履歴を消去</value></data>
+  <data name="SettingsSalesHistoryResetConfirm" xml:space="preserve"><value>保存された最近の販売時刻をすべて消去しますか？</value></data>
+  <data name="SettingsSalesHistoryResetConfirmButton" xml:space="preserve"><value>消去</value></data>
+  <data name="CommonCancel" xml:space="preserve"><value>キャンセル</value></data>
 </root>
