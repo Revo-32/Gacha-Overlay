@@ -117,6 +117,22 @@ public sealed class M10SalesNormalizationTests
     }
 
     [Fact]
+    public void UnknownEmojiIdNeverBorrowsKnownProductIdentityFromItsName()
+    {
+        var result = Parse("", new DiscordCustomEmoji("999999999999999999", "BUNKER", false));
+        Assert.Empty(result.Products);
+        Assert.Equal(SaleParseStatus.Unknown, result.Status);
+    }
+
+    [Fact]
+    public void ExactCanonicalEmojiNameMayFallbackOnlyWhenIdIsUnavailable()
+    {
+        var bunker = Catalog.ResolveCanonical(Guild, "벙커", "ko")!;
+        var result = Parse("", new DiscordCustomEmoji(string.Empty, bunker.EmojiName, false));
+        Assert.Equal("벙커", Assert.Single(result.Products).DisplayName);
+    }
+
+    [Fact]
     public void SourceIsBoundedAndExcludedFromSerializedDiagnostics()
     {
         var result = Parse(new string('가', 8000));

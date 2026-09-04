@@ -64,6 +64,13 @@ public sealed record ChatMessagePresentation(
     long Generation,
     int Revision)
 {
+    public string AuthorId { get; init; } = string.Empty;
+
+    public DiscordAuthorStyle? AuthorStyle { get; init; }
+
+    public IReadOnlyList<DiscordMessageReaction> Reactions { get; init; } =
+        Array.Empty<DiscordMessageReaction>();
+
     public DiscordDisplayNameSource AuthorNameSource { get; init; } =
         DiscordDisplayNameSource.Unknown;
 
@@ -206,6 +213,9 @@ public sealed partial class ChatPresentationSynchronizer
             generation,
             revision)
         {
+            AuthorId = message.AuthorId,
+            AuthorStyle = message.AuthorStyle,
+            Reactions = message.Reactions,
             AuthorNameSource = author.Source,
             FallbackKind = message.FallbackKind,
             RemoteMetadata = message.RemoteMetadata,
@@ -408,6 +418,12 @@ public sealed partial class ChatPresentationSynchronizer
         message.AuthorDisplayName,
         message.AuthorGuildNickname,
         message.AuthorDisplayNameSource,
+        message.AuthorStyle?.ColorRoleId,
+        message.AuthorStyle?.Color,
+        message.AuthorStyle?.IconRoleId,
+        message.AuthorStyle?.Icon?.Kind,
+        message.AuthorStyle?.Icon?.Value,
+        message.AuthorStyle?.Icon?.Url,
         message.GuildId,
         message.Content,
         message.FallbackKind,
@@ -421,6 +437,7 @@ public sealed partial class ChatPresentationSynchronizer
         string.Join('|', message.Attachments.Select(x => $"{x.AttachmentId}:{x.Url}:{x.ProxyUrl}:{x.ContentType}")),
         string.Join('|', message.Embeds.Select(x => $"{x.ImageUrl}:{x.ThumbnailUrl}")),
         string.Join('|', message.Stickers.Select(x => $"{x.StickerId}:{x.Name}:{x.FormatType}:{x.AssetUrl}")),
+        string.Join('|', message.Reactions.Select(x => $"{x.Emoji.EmojiId}:{x.Emoji.Name}:{x.Emoji.Animated}:{x.Count}")),
         message.RemoteMetadata?.MessageType,
         CreateReplyFingerprint(message.RemoteMetadata?.Reply),
         message.RemoteMetadata?.Poll?.Question,

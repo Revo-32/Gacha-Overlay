@@ -47,4 +47,8 @@ public sealed record DiscordMessagePatch
     public OptionalValue<DiscordMessageFallbackKind> FallbackKind { get; init; }
 
     public OptionalValue<DiscordRemoteMessageMetadata?> RemoteMetadata { get; init; }
+
+    public OptionalValue<DiscordAuthorStyle?> AuthorStyle { get; init; }
+
+    public OptionalValue<IReadOnlyList<DiscordMessageReaction>> Reactions { get; init; }
 }

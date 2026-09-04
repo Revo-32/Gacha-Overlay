@@ -465,7 +465,7 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         {
             if (_guildFilter.Accepts(role.Guild.Id))
             {
-                _remoteChat?.InvalidateGuildAuthorization(role.Guild.Id);
+                _remoteChat?.ReceiveRoleCatalogChanged(role.Guild.Id);
             }
         });
 
@@ -476,8 +476,7 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         {
             if (_guildFilter.Accepts(after.Guild.Id))
             {
-                _remoteChat?.InvalidateGuildAuthorization(after.Guild.Id);
-                _remoteChat?.InvalidateAuthor(after.Guild.Id, after.Id);
+                _remoteChat?.ReceiveMemberRolesChanged(after.Guild.Id, after.Id);
             }
         });
 
@@ -537,6 +536,11 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         IEmote? emote) => HandleSafelyAsync(eventName, async () =>
         {
             PublishReaction(operation, messageId, channel, userId, emote);
+            if (_remoteChat is not null)
+            {
+                await _remoteChat.ReceiveUpdateAsync(channel.Id, messageId)
+                    .ConfigureAwait(false);
+            }
             if (_remoteSales is not null && TryResolveTargetGuild(channel, out var guildId))
             {
                 await _remoteSales.ReceiveReactionChangedAsync(

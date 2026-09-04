@@ -167,6 +167,7 @@
   <data name="SettingsQueueDetailSurfaceOpacity" xml:space="preserve"><value>대기열 상세 표면 투명도</value></data>
   <data name="SettingsFontPretendard" xml:space="preserve"><value>Pretendard</value></data>
   <data name="SettingsFontWantedSans" xml:space="preserve"><value>Wanted Sans</value></data>
+  <data name="SettingsFontChosunGulim" xml:space="preserve"><value>조선굴림체</value></data>
   <data name="SettingsPresetClean" xml:space="preserve"><value>Clean</value></data>
   <data name="SettingsPresetCleanDescription" xml:space="preserve"><value>균형 잡힌 간격과 선명한 Pretendard 본문 스타일입니다.</value></data>
   <data name="SettingsNicknameOutlineThickness" xml:space="preserve"><value>닉네임 윤곽선 두께</value></data>
@@ -452,4 +453,17 @@
   <data name="HudHealthError" xml:space="preserve"><value>연결할 수 없습니다. 설정에서 확인하세요.</value></data>
   <data name="HudHealthChannelRequired" xml:space="preserve"><value>설정에서 사용 가능한 채팅 채널을 선택하세요</value></data>
   <data name="HudHealthConnecting" xml:space="preserve"><value>연결 중…</value></data>
+  <data name="SettingsTimerTitle" xml:space="preserve"><value>인게임 타이머</value></data>
+  <data name="SettingsTimerDescription" xml:space="preserve"><value>슬롯별 시간을 하나 선택하고 필요한 경우 전역 단축키를 지정하세요.</value></data>
+  <data name="SettingsTimerGeneral" xml:space="preserve"><value>일반</value></data>
+  <data name="SettingsTimerBunker" xml:space="preserve"><value>벙커 보급</value></data>
+  <data name="SettingsTimerLsd" xml:space="preserve"><value>LSD 보급</value></data>
+  <data name="SettingsTimerHotkeyHint" xml:space="preserve"><value>타이머 단축키는 기본 미지정입니다. 지정한 단축키를 누르면 해당 슬롯만 시작하거나 다시 시작합니다.</value></data>
+  <data name="TimerGeneralShort" xml:space="preserve"><value>일반</value></data>
+  <data name="TimerBunkerShort" xml:space="preserve"><value>벙커</value></data>
+  <data name="TimerLsdShort" xml:space="preserve"><value>LSD</value></data>
+  <data name="TimerBunkerMansion" xml:space="preserve"><value>맨션벙밥 · 40분</value></data>
+  <data name="TimerBunkerNormal" xml:space="preserve"><value>노말벙밥 · 130분</value></data>
+  <data name="TimerExpired" xml:space="preserve"><value>완료</value></data>
+  <data name="TimerMinutesFormat" xml:space="preserve"><value>{0}분</value></data>
 </root>

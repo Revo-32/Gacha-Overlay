@@ -94,6 +94,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                     _viewModel.RequestScrollToLatest();
                 }
             }
+
+            RegroupConsecutiveAuthors();
         }
         finally
         {
@@ -157,6 +159,12 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             foreach (var token in item.Tokens)
             {
                 token.Image = null;
+            }
+
+            item.RoleIconImage = null;
+            foreach (var reaction in item.Reactions)
+            {
+                reaction.Image = null;
             }
 
             if (_presentations.TryGetValue(item.MessageId, out var presentation))
@@ -316,6 +324,19 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             _ = EnrichEmojiAsync(item, token, identity);
         }
 
+        if (item.RoleIconImage is null &&
+            Uri.TryCreate(item.RoleIconUrl, UriKind.Absolute, out var roleIconUri) &&
+            roleIconUri.Scheme == Uri.UriSchemeHttps)
+        {
+            _ = EnrichRoleIconAsync(item, roleIconUri.AbsoluteUri, identity);
+        }
+
+        foreach (var reaction in item.Reactions.Where(reaction =>
+                     !string.IsNullOrWhiteSpace(reaction.EmojiId) && reaction.Image is null))
+        {
+            _ = EnrichReactionEmojiAsync(item, reaction, identity);
+        }
+
         if (item.ShowImages && item.Thumbnail is null && presentation.Media.Count > 0)
         {
             _ = EnrichThumbnailAsync(item, presentation.Media[0].Url, identity);
@@ -404,6 +425,60 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                 if (item.IsCurrent(identity) && _items.ContainsKey(item.MessageId))
                 {
                     item.Thumbnail = image;
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task EnrichRoleIconAsync(
+        ChatMessageViewModel item,
+        string url,
+        ChatEnrichmentIdentity identity)
+    {
+        try
+        {
+            var image = await _media.GetThumbnailAsync(url, item.EnrichmentToken);
+            if (image is null)
+            {
+                return;
+            }
+
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (item.IsCurrent(identity) && _items.ContainsKey(item.MessageId))
+                {
+                    item.RoleIconImage = image;
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task EnrichReactionEmojiAsync(
+        ChatMessageViewModel item,
+        ChatReactionViewModel reaction,
+        ChatEnrichmentIdentity identity)
+    {
+        try
+        {
+            var image = await _media.GetEmojiAsync(reaction.EmojiId!, item.EnrichmentToken);
+            if (image is null)
+            {
+                return;
+            }
+
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (item.IsCurrent(identity) &&
+                    _items.ContainsKey(item.MessageId) &&
+                    item.Reactions.Contains(reaction))
+                {
+                    reaction.Image = image;
                 }
             });
         }
@@ -552,6 +627,16 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         }
 
         _viewModel.PreviewImage = item.Thumbnail;
+    }
+
+    private void RegroupConsecutiveAuthors()
+    {
+        var headers = ChatAuthorGrouping.ResolveHeaders(
+            _viewModel.Messages.Select(item => item.AuthorId));
+        for (var index = 0; index < _viewModel.Messages.Count; index++)
+        {
+            _viewModel.Messages[index].ShowAuthorHeader = headers[index];
+        }
     }
 
     private static FormattedText Measure(

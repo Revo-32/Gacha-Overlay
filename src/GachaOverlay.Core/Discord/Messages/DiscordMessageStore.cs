@@ -150,6 +150,8 @@ public sealed class DiscordMessageStore
             RemoteMetadata = patch.RemoteMetadata.HasValue
                 ? patch.RemoteMetadata.Value
                 : null,
+            AuthorStyle = patch.AuthorStyle.HasValue ? patch.AuthorStyle.Value : null,
+            Reactions = Copy(patch.Reactions, Array.Empty<DiscordMessageReaction>()),
         };
         return true;
     }
@@ -206,6 +208,12 @@ public sealed class DiscordMessageStore
             RemoteMetadata = patch.RemoteMetadata.HasValue
                 ? patch.RemoteMetadata.Value
                 : existing.RemoteMetadata,
+            AuthorStyle = patch.AuthorStyle.HasValue
+                ? patch.AuthorStyle.Value
+                : existing.AuthorStyle,
+            Reactions = patch.Reactions.HasValue
+                ? patch.Reactions.Value.ToArray()
+                : existing.Reactions,
         };
 
     private static IReadOnlyList<T> Copy<T>(

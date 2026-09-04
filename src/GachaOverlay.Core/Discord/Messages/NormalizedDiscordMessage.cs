@@ -32,4 +32,9 @@ public sealed record NormalizedDiscordMessage(
     public DiscordMessageFallbackKind FallbackKind { get; init; }
 
     public DiscordRemoteMessageMetadata? RemoteMetadata { get; init; }
+
+    public DiscordAuthorStyle? AuthorStyle { get; init; }
+
+    public IReadOnlyList<DiscordMessageReaction> Reactions { get; init; } =
+        Array.Empty<DiscordMessageReaction>();
 }

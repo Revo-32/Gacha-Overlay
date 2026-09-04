@@ -46,3 +46,17 @@ Bundled original file: WantedSansVariable.ttf
 License: SIL Open Font License 1.1 (OFL-1.1.txt)
 
 The original variable font files are bundled without modification.
+
+조선굴림체 (Chosun Gulim)
+-------------------------
+Copyright / source: 조선일보 (The Chosun Ilbo)
+Official source: https://event.chosun.com/100/100font.html
+Official package: https://fontdown.chosun.com/100/ChosunGu.zip
+Bundled original file: ChosunGu.TTF
+
+The official distribution page states that the Chosun exclusive fonts are
+provided free of charge to individual and corporate users, may be copied and
+redistributed to others without charge, and must not be modified and sold.
+The original font file is bundled without modification.
+Official ZIP SHA-256: AD1449CE785FE1B476F7693FF2F41B98E63AED74E754FEBBC219612D4E0A8872
+Bundled TTF SHA-256: D6FAB61A754BC7BFD0E5E4259B3AB4156F0386A0ADA0679329A31D130F38DA81

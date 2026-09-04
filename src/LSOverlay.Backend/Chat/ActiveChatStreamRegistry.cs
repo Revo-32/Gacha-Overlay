@@ -290,6 +290,33 @@ internal sealed class ActiveChatStreamRegistry
         }
     }
 
+    public int PublishResyncRequiredForGuild(ulong guildId) =>
+        PublishResyncRequiredWhere(stream => stream.Descriptor.GuildId == guildId);
+
+    public int PublishResyncRequiredForAuthor(ulong guildId, ulong authorId) =>
+        PublishResyncRequiredWhere(stream =>
+            stream.Descriptor.GuildId == guildId &&
+            stream.Messages.Values.Any(message => message.Author?.UserId == authorId));
+
+    private int PublishResyncRequiredWhere(Func<StreamState, bool> predicate)
+    {
+        lock (_sync)
+        {
+            var count = 0;
+            foreach (var stream in _streams.Values.Where(predicate))
+            {
+                PublishCore(stream, NewEnvelope(
+                    stream,
+                    OverlayTransportProtocol.ChatResyncRequired,
+                    0,
+                    null));
+                count++;
+            }
+
+            return count;
+        }
+    }
+
     public bool RemoveChannel(ulong channelId)
     {
         lock (_sync)

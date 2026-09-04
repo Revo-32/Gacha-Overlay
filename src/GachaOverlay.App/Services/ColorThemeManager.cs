@@ -74,6 +74,19 @@ internal sealed class ColorThemeManager
         return brush;
     }
 
+    internal static SolidColorBrush CreateDiscordRoleBrush(uint? rgb)
+    {
+        var color = rgb is > 0
+            ? MediaColor.FromRgb(
+                (byte)((rgb.Value >> 16) & 0xff),
+                (byte)((rgb.Value >> 8) & 0xff),
+                (byte)(rgb.Value & 0xff))
+            : ResolveColor(SemanticColorToken.ChatNickname);
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
+
     private static MediaColor ParseColor(string value) =>
         (MediaColor)System.Windows.Media.ColorConverter.ConvertFromString(value);
 }

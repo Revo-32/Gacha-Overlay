@@ -193,6 +193,20 @@ internal sealed class RemoteChatService
     public void InvalidateAuthor(ulong guildId, ulong authorId) =>
         _authors.Invalidate(guildId, authorId);
 
+    public void ReceiveRoleCatalogChanged(ulong guildId)
+    {
+        _authorization.InvalidateGuild(guildId);
+        _authors.InvalidateGuild(guildId);
+        _streams.PublishResyncRequiredForGuild(guildId);
+    }
+
+    public void ReceiveMemberRolesChanged(ulong guildId, ulong authorId)
+    {
+        _authorization.InvalidateGuild(guildId);
+        _authors.Invalidate(guildId, authorId);
+        _streams.PublishResyncRequiredForAuthor(guildId, authorId);
+    }
+
     public void ReceiveChannelDeleted(ulong guildId, ulong channelId)
     {
         _authorization.InvalidateGuild(guildId);

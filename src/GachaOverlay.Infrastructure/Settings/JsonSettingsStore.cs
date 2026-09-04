@@ -3,6 +3,7 @@ using System.Text.Json;
 using GachaOverlay.Core.Hud;
 using GachaOverlay.Core.Chat;
 using GachaOverlay.Core.Hud.Hotkeys;
+using GachaOverlay.Core.Timers;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Logging;
 using GachaOverlay.Core.Settings;
@@ -309,6 +310,9 @@ public sealed class JsonSettingsStore : ISettingsStore
         }
         var previousChannelHotkey = Optional(settings.PreviousMainChannelHotkey);
         var nextChannelHotkey = Optional(settings.NextMainChannelHotkey);
+        var generalTimerHotkey = Optional(settings.GeneralTimerHotkey);
+        var bunkerTimerHotkey = Optional(settings.BunkerTimerHotkey);
+        var lsdTimerHotkey = Optional(settings.LsdTimerHotkey);
 
         var geometry = settings.HudWindowGeometry;
         if (geometry is not null && !geometry.Rectangle.IsFiniteAndPositive)
@@ -396,6 +400,15 @@ public sealed class JsonSettingsStore : ISettingsStore
             HudVisibilityHotkey = visibilityHotkey,
             PreviousMainChannelHotkey = previousChannelHotkey,
             NextMainChannelHotkey = nextChannelHotkey,
+            GeneralTimerHotkey = generalTimerHotkey,
+            BunkerTimerHotkey = bunkerTimerHotkey,
+            LsdTimerHotkey = lsdTimerHotkey,
+            GeneralTimerMinutes = GtaoTimerPresets.Normalize(
+                GtaoTimerSlot.General, settings.GeneralTimerMinutes),
+            BunkerTimerMinutes = GtaoTimerPresets.Normalize(
+                GtaoTimerSlot.Bunker, settings.BunkerTimerMinutes),
+            LsdTimerMinutes = GtaoTimerPresets.Normalize(
+                GtaoTimerSlot.Lsd, settings.LsdTimerMinutes),
             HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
             HotkeysCustomized = hotkeysCustomized,
             HudVisibilityMode = visibilityMode,
@@ -489,6 +502,12 @@ public sealed class JsonSettingsStore : ISettingsStore
         source.OnboardingVersion != normalized.OnboardingVersion ||
         source.HudLockHotkey != normalized.HudLockHotkey ||
         source.HudVisibilityHotkey != normalized.HudVisibilityHotkey ||
+        source.GeneralTimerHotkey != normalized.GeneralTimerHotkey ||
+        source.BunkerTimerHotkey != normalized.BunkerTimerHotkey ||
+        source.LsdTimerHotkey != normalized.LsdTimerHotkey ||
+        source.GeneralTimerMinutes != normalized.GeneralTimerMinutes ||
+        source.BunkerTimerMinutes != normalized.BunkerTimerMinutes ||
+        source.LsdTimerMinutes != normalized.LsdTimerMinutes ||
         source.SelectedSessionHost != normalized.SelectedSessionHost;
 
     private static bool IsKnownLegacyDefaultPair(

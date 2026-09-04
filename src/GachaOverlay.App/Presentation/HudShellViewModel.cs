@@ -22,12 +22,14 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
         ILocalizationService localization,
         ChatViewModel chat,
         SalesQueueViewModel sales,
-        SessionHudViewModel session)
+        SessionHudViewModel session,
+        GtaoTimerHudViewModel timers)
     {
         _localization = localization;
         Chat = chat;
         Sales = sales;
         Session = session;
+        Timers = timers;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -39,6 +41,8 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
     public SalesQueueViewModel Sales { get; }
 
     public SessionHudViewModel Session { get; }
+
+    public GtaoTimerHudViewModel Timers { get; }
 
     public string Title
     {
@@ -86,6 +90,7 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
     {
         ArgumentNullException.ThrowIfNull(settings);
         Session.ApplySettings(settings);
+        Timers.ApplySettings(settings);
         if (_minimalHudMode == settings.MinimalHudMode)
         {
             return;

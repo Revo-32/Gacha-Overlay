@@ -40,6 +40,7 @@ internal sealed class ApplicationHost : IDisposable
     private IGuildDisplayNameResolver? _displayNameResolver;
     private SalesPresentationCoordinator? _salesCoordinator;
     private SessionHudViewModel? _sessionHudViewModel;
+    private GtaoTimerHudViewModel? _timerHudViewModel;
     private ISalesNotificationSoundService? _salesNotificationSoundService;
     private EffectiveSalesProductCatalogStore? _productCatalogStore;
     private ProductMappingManagerWindow? _productMappingWindow;
@@ -128,13 +129,19 @@ internal sealed class ApplicationHost : IDisposable
         var chatViewModel = new ChatViewModel();
         var salesViewModel = new SalesQueueViewModel(_localization);
         var sessionViewModel = new SessionHudViewModel(_localization, settings);
+        var timerViewModel = new GtaoTimerHudViewModel(
+            _localization,
+            settings,
+            hudWindow.Dispatcher);
+        _timerHudViewModel = timerViewModel;
         sessionViewModel.UpdateRemoteState(true, SessionRemoteState.Awaiting);
         _sessionHudViewModel = sessionViewModel;
         var hudViewModel = new HudShellViewModel(
             _localization,
             chatViewModel,
             salesViewModel,
-            sessionViewModel);
+            sessionViewModel,
+            timerViewModel);
         var typographyResolver = new ChatTypographyResolver(Logger);
         var chatCoordinator = new ChatPresentationCoordinator(
             chatViewModel,
@@ -208,6 +215,7 @@ internal sealed class ApplicationHost : IDisposable
             recoveryAudit: _recoveryAudit,
             channelPolicy: MainChannelPolicy.Apply);
         _hudController.ChannelStepRequested += OnChannelStepRequested;
+        _hudController.TimerStartRequested += OnTimerStartRequested;
         salesViewModel.ConfigureStatusAction(
             _remoteChatCoordinator.SetSalesStatusAsync);
         _remoteChatCoordinator.MessageStateChanged += OnRemoteMessageStateChanged;
@@ -355,11 +363,14 @@ internal sealed class ApplicationHost : IDisposable
         _salesCoordinator = null;
         _salesNotificationSoundService?.Dispose();
         _salesNotificationSoundService = null;
+        _timerHudViewModel?.Dispose();
+        _timerHudViewModel = null;
         _sessionHudViewModel = null;
 
         if (_remoteChatCoordinator is not null)
         {
             if (_hudController is not null) _hudController.ChannelStepRequested -= OnChannelStepRequested;
+            if (_hudController is not null) _hudController.TimerStartRequested -= OnTimerStartRequested;
             _remoteChatCoordinator.MessageStateChanged -= OnRemoteMessageStateChanged;
             _remoteChatCoordinator.PresenceBootstrapReady -= OnRemotePresenceBootstrapReady;
             _remoteChatCoordinator.HostPresenceChanged -= OnRemoteHostPresenceChanged;
@@ -461,6 +472,9 @@ internal sealed class ApplicationHost : IDisposable
         var target = MainChannelPolicy.Step(snapshot.Channels, snapshot.SelectedChannelId, direction);
         if (target is not null) _ = coordinator.SwitchChannelAsync(target);
     }
+
+    private void OnTimerStartRequested(GachaOverlay.Core.Timers.GtaoTimerSlot slot) =>
+        DispatchToUi(() => _timerHudViewModel?.Start(slot));
 
     private void OnChannelSwitchCommitted(string label) =>
         DispatchToUi(() => _hudController?.NotifyCommittedChannel(label));

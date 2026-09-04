@@ -4,6 +4,7 @@ using GachaOverlay.Core.Hud;
 using GachaOverlay.Core.Hud.Geometry;
 using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Themes;
+using GachaOverlay.Core.Timers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -13,11 +14,11 @@ public sealed record AppSettings
 {
     private static readonly Dictionary<string, double> EmptyScrollPositions =
         new(StringComparer.OrdinalIgnoreCase);
-    public const int CurrentSchemaVersion = 18;
+    public const int CurrentSchemaVersion = 19;
 
     public const int CurrentOnboardingVersion = 2;
 
-    public const int CurrentHotkeySettingsVersion = 1;
+    public const int CurrentHotkeySettingsVersion = 2;
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
 
@@ -66,6 +67,18 @@ public sealed record AppSettings
 
     public HotkeySetting PreviousMainChannelHotkey { get; init; } = new() { Key = "" };
     public HotkeySetting NextMainChannelHotkey { get; init; } = new() { Key = "" };
+
+    public HotkeySetting GeneralTimerHotkey { get; init; } = new() { Key = "" };
+
+    public HotkeySetting BunkerTimerHotkey { get; init; } = new() { Key = "" };
+
+    public HotkeySetting LsdTimerHotkey { get; init; } = new() { Key = "" };
+
+    public int GeneralTimerMinutes { get; init; } = GtaoTimerPresets.General[0];
+
+    public int BunkerTimerMinutes { get; init; } = GtaoTimerPresets.Bunker[0];
+
+    public int LsdTimerMinutes { get; init; } = GtaoTimerPresets.Lsd[0];
 
     public int HotkeySettingsVersion { get; init; } = CurrentHotkeySettingsVersion;
 

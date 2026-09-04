@@ -9,6 +9,7 @@ using GachaOverlay.Core.Discord.Messages;
 using GachaOverlay.Core.Hud;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Settings;
+using GachaOverlay.App.Services;
 
 namespace GachaOverlay.App.Presentation;
 
@@ -64,6 +65,12 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
     private double _lineHeight;
     private Thickness _messageMargin;
     private int _typographyRevision;
+    private bool _showAuthorHeader = true;
+    private System.Windows.Media.Brush _nicknameBrush =
+        ColorThemeManager.CreateDiscordRoleBrush(null);
+    private string _roleIconText = string.Empty;
+    private ImageSource? _roleIconImage;
+    private string? _roleIconUrl;
 
     public ChatMessageViewModel(
         ChatMessagePresentation presentation,
@@ -86,11 +93,59 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
 
     public ObservableCollection<ChatForwardMessageViewModel> ForwardedMessages { get; } = new();
 
+    public ObservableCollection<ChatReactionViewModel> Reactions { get; } = new();
+
     public ICommand PreviewCommand { get; }
 
     public CancellationToken EnrichmentToken => _enrichmentCancellation.Token;
 
     public string AuthorName { get => _authorName; private set => SetField(ref _authorName, value); }
+
+    public string AuthorId { get; private set; } = string.Empty;
+
+    public bool ShowAuthorHeader
+    {
+        get => _showAuthorHeader;
+        set => SetField(ref _showAuthorHeader, value);
+    }
+
+    public System.Windows.Media.Brush NicknameBrush
+    {
+        get => _nicknameBrush;
+        private set => SetField(ref _nicknameBrush, value);
+    }
+
+    public string RoleIconText
+    {
+        get => _roleIconText;
+        private set
+        {
+            if (SetField(ref _roleIconText, value))
+            {
+                OnPropertyChanged(nameof(HasRoleIconText));
+            }
+        }
+    }
+
+    public bool HasRoleIconText => !string.IsNullOrWhiteSpace(RoleIconText);
+
+    public ImageSource? RoleIconImage
+    {
+        get => _roleIconImage;
+        set
+        {
+            if (SetField(ref _roleIconImage, value))
+            {
+                OnPropertyChanged(nameof(HasRoleIconImage));
+            }
+        }
+    }
+
+    public bool HasRoleIconImage => RoleIconImage is not null;
+
+    public string? RoleIconUrl => _roleIconUrl;
+
+    public bool HasReactions => Reactions.Count > 0;
 
     public string PlainText { get => _plainText; private set => SetField(ref _plainText, value); }
 
@@ -377,6 +432,17 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
         Revision = presentation.Revision;
         Generation = presentation.Generation;
         AuthorName = presentation.AuthorName;
+        AuthorId = presentation.AuthorId;
+        OnPropertyChanged(nameof(AuthorId));
+        NicknameBrush = CreateNicknameBrush(presentation.AuthorStyle?.Color);
+        var roleIcon = presentation.AuthorStyle?.Icon;
+        RoleIconText = string.Equals(roleIcon?.Kind, "unicode", StringComparison.OrdinalIgnoreCase)
+            ? roleIcon?.Value ?? string.Empty
+            : string.Empty;
+        _roleIconUrl = string.Equals(roleIcon?.Kind, "image", StringComparison.OrdinalIgnoreCase)
+            ? roleIcon?.Url
+            : null;
+        RoleIconImage = null;
         _sourceTokens = presentation.Tokens.ToArray();
         _fallbackKind = presentation.FallbackKind;
         _remoteMetadata = presentation.RemoteMetadata;
@@ -399,7 +465,14 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
             ForwardedMessages.Add(new ChatForwardMessageViewModel(forwarded, _localization));
         }
 
+        Reactions.Clear();
+        foreach (var reaction in presentation.Reactions.Where(item => item.Count > 0))
+        {
+            Reactions.Add(new ChatReactionViewModel(reaction));
+        }
+
         OnPropertyChanged(nameof(HasForwardedMessages));
+        OnPropertyChanged(nameof(HasReactions));
         OnPropertyChanged(nameof(UltraCompactSummaryText));
         OnPropertyChanged(nameof(ShowUltraCompactSummary));
         RefreshStickerFallback();
@@ -708,6 +781,52 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    private static System.Windows.Media.Brush CreateNicknameBrush(uint? color)
+        => ColorThemeManager.CreateDiscordRoleBrush(color);
+}
+
+internal sealed class ChatReactionViewModel : INotifyPropertyChanged
+{
+    private ImageSource? _image;
+
+    public ChatReactionViewModel(DiscordMessageReaction reaction)
+    {
+        EmojiId = reaction.Emoji.EmojiId;
+        Text = string.IsNullOrWhiteSpace(reaction.Emoji.EmojiId)
+            ? reaction.Emoji.Name
+            : $":{reaction.Emoji.Name}:";
+        Count = reaction.Count;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public string? EmojiId { get; }
+
+    public string Text { get; }
+
+    public int Count { get; }
+
+    public ImageSource? Image
+    {
+        get => _image;
+        set
+        {
+            if (ReferenceEquals(_image, value))
+            {
+                return;
+            }
+
+            _image = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Image)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasImage)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowText)));
+        }
+    }
+
+    public bool HasImage => Image is not null;
+
+    public bool ShowText => Image is null;
 }
 
 internal sealed class ChatForwardMessageViewModel : INotifyPropertyChanged

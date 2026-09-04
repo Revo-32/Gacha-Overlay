@@ -202,6 +202,7 @@
   <data name="SettingsQueueDetailSurfaceOpacity" xml:space="preserve"><value>Queue detail surface opacity</value></data>
   <data name="SettingsFontPretendard" xml:space="preserve"><value>Pretendard</value></data>
   <data name="SettingsFontWantedSans" xml:space="preserve"><value>Wanted Sans</value></data>
+  <data name="SettingsFontChosunGulim" xml:space="preserve"><value>Chosun Gulim</value></data>
   <data name="SettingsPresetClean" xml:space="preserve"><value>Clean</value></data>
   <data name="SettingsPresetCleanDescription" xml:space="preserve"><value>Balanced spacing and a crisp Pretendard body.</value></data>
   <data name="SettingsNicknameOutlineThickness" xml:space="preserve"><value>Nickname outline thickness</value></data>
@@ -487,4 +488,17 @@
   <data name="HudHealthError" xml:space="preserve"><value>Connection unavailable. Check Settings.</value></data>
   <data name="HudHealthChannelRequired" xml:space="preserve"><value>Select an available chat channel in Settings</value></data>
   <data name="HudHealthConnecting" xml:space="preserve"><value>Connecting…</value></data>
+  <data name="SettingsTimerTitle" xml:space="preserve"><value>In-game timers</value></data>
+  <data name="SettingsTimerDescription" xml:space="preserve"><value>Choose one duration per slot and assign an optional global hotkey.</value></data>
+  <data name="SettingsTimerGeneral" xml:space="preserve"><value>General</value></data>
+  <data name="SettingsTimerBunker" xml:space="preserve"><value>Bunker supplies</value></data>
+  <data name="SettingsTimerLsd" xml:space="preserve"><value>LSD supplies</value></data>
+  <data name="SettingsTimerHotkeyHint" xml:space="preserve"><value>Timer hotkeys are unassigned by default. Pressing an assigned hotkey starts or restarts only that slot.</value></data>
+  <data name="TimerGeneralShort" xml:space="preserve"><value>General</value></data>
+  <data name="TimerBunkerShort" xml:space="preserve"><value>Bunker</value></data>
+  <data name="TimerLsdShort" xml:space="preserve"><value>LSD</value></data>
+  <data name="TimerBunkerMansion" xml:space="preserve"><value>Mansion bunker meal · 40 min</value></data>
+  <data name="TimerBunkerNormal" xml:space="preserve"><value>Normal bunker meal · 130 min</value></data>
+  <data name="TimerExpired" xml:space="preserve"><value>Ready</value></data>
+  <data name="TimerMinutesFormat" xml:space="preserve"><value>{0} min</value></data>
 </root>

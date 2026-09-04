@@ -7,6 +7,8 @@ using GachaOverlay.Core.Chat;
 
 namespace GachaOverlay.App.Presentation;
 
+internal sealed record TimerPresetOption(int Minutes, string DisplayText);
+
 internal sealed record ChatLayoutModeOption(ChatLayoutMode Value, string DisplayText);
 
 internal sealed record ChatFontPresetOption(

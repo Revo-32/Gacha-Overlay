@@ -167,6 +167,7 @@
   <data name="SettingsQueueDetailSurfaceOpacity" xml:space="preserve"><value>キュー詳細表面の不透明度</value></data>
   <data name="SettingsFontPretendard" xml:space="preserve"><value>Pretendard</value></data>
   <data name="SettingsFontWantedSans" xml:space="preserve"><value>Wanted Sans</value></data>
+  <data name="SettingsFontChosunGulim" xml:space="preserve"><value>朝鮮グリム体</value></data>
   <data name="SettingsPresetClean" xml:space="preserve"><value>Clean</value></data>
   <data name="SettingsPresetCleanDescription" xml:space="preserve"><value>バランスのよい間隔と鮮明な Pretendard 本文です。</value></data>
   <data name="SettingsNicknameOutlineThickness" xml:space="preserve"><value>ニックネームの輪郭線</value></data>
@@ -452,4 +453,17 @@
   <data name="HudHealthError" xml:space="preserve"><value>接続できません。設定を確認してください。</value></data>
   <data name="HudHealthChannelRequired" xml:space="preserve"><value>設定で利用可能なチャンネルを選択してください</value></data>
   <data name="HudHealthConnecting" xml:space="preserve"><value>接続中…</value></data>
+  <data name="SettingsTimerTitle" xml:space="preserve"><value>ゲーム内タイマー</value></data>
+  <data name="SettingsTimerDescription" xml:space="preserve"><value>スロットごとの時間と任意のグローバルショートカットを設定します。</value></data>
+  <data name="SettingsTimerGeneral" xml:space="preserve"><value>一般</value></data>
+  <data name="SettingsTimerBunker" xml:space="preserve"><value>バンカー補給</value></data>
+  <data name="SettingsTimerLsd" xml:space="preserve"><value>LSD補給</value></data>
+  <data name="SettingsTimerHotkeyHint" xml:space="preserve"><value>タイマーのショートカットは初期状態では未設定です。押すとそのスロットだけを開始または再開します。</value></data>
+  <data name="TimerGeneralShort" xml:space="preserve"><value>一般</value></data>
+  <data name="TimerBunkerShort" xml:space="preserve"><value>バンカー</value></data>
+  <data name="TimerLsdShort" xml:space="preserve"><value>LSD</value></data>
+  <data name="TimerBunkerMansion" xml:space="preserve"><value>マンション補給 · 40分</value></data>
+  <data name="TimerBunkerNormal" xml:space="preserve"><value>通常補給 · 130分</value></data>
+  <data name="TimerExpired" xml:space="preserve"><value>完了</value></data>
+  <data name="TimerMinutesFormat" xml:space="preserve"><value>{0}分</value></data>
 </root>

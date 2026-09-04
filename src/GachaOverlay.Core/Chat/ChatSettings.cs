@@ -25,6 +25,7 @@ public enum ChatFontPreset
     Pretendard = 2,
     Cafe24ProSlim = 3,
     WantedSans = 4,
+    ChosunGulim = 5,
 }
 
 public enum ChatFontRoleWeight
@@ -96,6 +97,13 @@ public static partial class ChatSettings
             "Cafe24 PRO Slim",
             ChatFontRoleWeight.Bold,
             "Cafe24 PRO Slim",
+            ChatFontRoleWeight.Normal,
+            IsBundled: true),
+        ChatFontPreset.ChosunGulim => new ChatTypographyDefinition(
+            "조선굴림체",
+            "조선굴림체",
+            ChatFontRoleWeight.Normal,
+            "조선굴림체",
             ChatFontRoleWeight.Normal,
             IsBundled: true),
         _ => new ChatTypographyDefinition(

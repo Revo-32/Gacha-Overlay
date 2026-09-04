@@ -10,6 +10,7 @@ using GachaOverlay.Core.Hud;
 using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Chat;
 using GachaOverlay.Core.Themes;
+using GachaOverlay.Core.Timers;
 
 namespace GachaOverlay.App.Presentation;
 
@@ -23,6 +24,12 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private readonly Func<AppSettings, bool> _applyAllHotkeys;
     private string _previousChannelHotkeyText = string.Empty;
     private string _nextChannelHotkeyText = string.Empty;
+    private string _generalTimerHotkeyText = string.Empty;
+    private string _bunkerTimerHotkeyText = string.Empty;
+    private string _lsdTimerHotkeyText = string.Empty;
+    private int _generalTimerMinutes;
+    private int _bunkerTimerMinutes;
+    private int _lsdTimerMinutes;
     private readonly Func<SalesFeatureHealthSnapshot> _getSalesHealthSnapshot;
     private readonly Func<ManualSalesResyncResult> _manualSalesResync;
     private readonly Action _clearMediaCache;
@@ -165,6 +172,12 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _lockHotkeyText = FormatHotkey(settings.HudLockHotkey, HotkeySetting.DefaultLockToggle);
         _previousChannelHotkeyText = FormatOptionalHotkey(settings.PreviousMainChannelHotkey);
         _nextChannelHotkeyText = FormatOptionalHotkey(settings.NextMainChannelHotkey);
+        _generalTimerHotkeyText = FormatOptionalHotkey(settings.GeneralTimerHotkey);
+        _bunkerTimerHotkeyText = FormatOptionalHotkey(settings.BunkerTimerHotkey);
+        _lsdTimerHotkeyText = FormatOptionalHotkey(settings.LsdTimerHotkey);
+        _generalTimerMinutes = settings.GeneralTimerMinutes;
+        _bunkerTimerMinutes = settings.BunkerTimerMinutes;
+        _lsdTimerMinutes = settings.LsdTimerMinutes;
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
@@ -349,6 +362,12 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _lockHotkeyText = FormatHotkey(settings.HudLockHotkey, HotkeySetting.DefaultLockToggle);
         _previousChannelHotkeyText = FormatOptionalHotkey(settings.PreviousMainChannelHotkey);
         _nextChannelHotkeyText = FormatOptionalHotkey(settings.NextMainChannelHotkey);
+        _generalTimerHotkeyText = FormatOptionalHotkey(settings.GeneralTimerHotkey);
+        _bunkerTimerHotkeyText = FormatOptionalHotkey(settings.BunkerTimerHotkey);
+        _lsdTimerHotkeyText = FormatOptionalHotkey(settings.LsdTimerHotkey);
+        _generalTimerMinutes = settings.GeneralTimerMinutes;
+        _bunkerTimerMinutes = settings.BunkerTimerMinutes;
+        _lsdTimerMinutes = settings.LsdTimerMinutes;
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
@@ -704,6 +723,73 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     {
         get => _nextChannelHotkeyText;
         set { _nextChannelHotkeyText = value; OnPropertyChanged(); }
+    }
+
+    public string GeneralTimerHotkeyText
+    {
+        get => _generalTimerHotkeyText;
+        set { _generalTimerHotkeyText = value; OnPropertyChanged(); }
+    }
+
+    public string BunkerTimerHotkeyText
+    {
+        get => _bunkerTimerHotkeyText;
+        set { _bunkerTimerHotkeyText = value; OnPropertyChanged(); }
+    }
+
+    public string LsdTimerHotkeyText
+    {
+        get => _lsdTimerHotkeyText;
+        set { _lsdTimerHotkeyText = value; OnPropertyChanged(); }
+    }
+
+    public IReadOnlyList<TimerPresetOption> GeneralTimerPresets =>
+        GtaoTimerPresets.General.Select(value => new TimerPresetOption(
+            value,
+            string.Format(Localization["TimerMinutesFormat"], value))).ToArray();
+
+    public IReadOnlyList<TimerPresetOption> BunkerTimerPresets =>
+    [
+        new(40, Localization["TimerBunkerMansion"]),
+        new(130, Localization["TimerBunkerNormal"]),
+    ];
+
+    public IReadOnlyList<TimerPresetOption> LsdTimerPresets =>
+        GtaoTimerPresets.Lsd.Select(value => new TimerPresetOption(
+            value,
+            string.Format(Localization["TimerMinutesFormat"], value))).ToArray();
+
+    public int GeneralTimerMinutes
+    {
+        get => _generalTimerMinutes;
+        set
+        {
+            var normalized = GtaoTimerPresets.Normalize(GtaoTimerSlot.General, value);
+            SetAndSave(ref _generalTimerMinutes, normalized,
+                settings => settings with { GeneralTimerMinutes = normalized });
+        }
+    }
+
+    public int BunkerTimerMinutes
+    {
+        get => _bunkerTimerMinutes;
+        set
+        {
+            var normalized = GtaoTimerPresets.Normalize(GtaoTimerSlot.Bunker, value);
+            SetAndSave(ref _bunkerTimerMinutes, normalized,
+                settings => settings with { BunkerTimerMinutes = normalized });
+        }
+    }
+
+    public int LsdTimerMinutes
+    {
+        get => _lsdTimerMinutes;
+        set
+        {
+            var normalized = GtaoTimerPresets.Normalize(GtaoTimerSlot.Lsd, value);
+            SetAndSave(ref _lsdTimerMinutes, normalized,
+                settings => settings with { LsdTimerMinutes = normalized });
+        }
     }
 
     private static string FormatOptionalHotkey(HotkeySetting? setting) =>
@@ -1173,6 +1259,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(ProductCatalogSummaryText));
         OnPropertyChanged(nameof(ProductOverrideCountText));
         OnPropertyChanged(nameof(ProductCatalogLoadStatusText));
+        OnPropertyChanged(nameof(BunkerTimerPresets));
+        OnPropertyChanged(nameof(GeneralTimerPresets));
+        OnPropertyChanged(nameof(LsdTimerPresets));
         OnPropertyChanged(nameof(HasProductOverrides));
     }
 
@@ -1207,10 +1296,14 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         if (!HotkeyGesture.TryParseDisplayText(LockHotkeyText, out var lockGesture) ||
             !HotkeyGesture.TryParseDisplayText(VisibilityHotkeyText, out var visibilityGesture) ||
             !TryOptionalHotkey(PreviousChannelHotkeyText, out var previousChannel) ||
-            !TryOptionalHotkey(NextChannelHotkeyText, out var nextChannel))
+            !TryOptionalHotkey(NextChannelHotkeyText, out var nextChannel) ||
+            !TryOptionalHotkey(GeneralTimerHotkeyText, out var generalTimer) ||
+            !TryOptionalHotkey(BunkerTimerHotkeyText, out var bunkerTimer) ||
+            !TryOptionalHotkey(LsdTimerHotkeyText, out var lsdTimer))
         { HotkeyValidationMessage = Localization["SettingsHotkeyInvalid"]; return; }
 
-        var assigned = new HotkeyGesture?[] { lockGesture, visibilityGesture, previousChannel, nextChannel }
+        var assigned = new HotkeyGesture?[]
+            { lockGesture, visibilityGesture, previousChannel, nextChannel, generalTimer, bunkerTimer, lsdTimer }
             .Where(value => value.HasValue).Select(value => value!.Value).ToArray();
         if (assigned.Distinct().Count() != assigned.Length)
         { HotkeyValidationMessage = Localization["SettingsHotkeyDuplicate"]; return; }
@@ -1221,6 +1314,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             HudVisibilityHotkey = visibilityGesture.ToSetting(),
             PreviousMainChannelHotkey = previousChannel?.ToSetting() ?? new HotkeySetting { Key = "" },
             NextMainChannelHotkey = nextChannel?.ToSetting() ?? new HotkeySetting { Key = "" },
+            GeneralTimerHotkey = generalTimer?.ToSetting() ?? new HotkeySetting { Key = "" },
+            BunkerTimerHotkey = bunkerTimer?.ToSetting() ?? new HotkeySetting { Key = "" },
+            LsdTimerHotkey = lsdTimer?.ToSetting() ?? new HotkeySetting { Key = "" },
             HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
             HotkeysCustomized = true,
         });
@@ -1241,6 +1337,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         HudVisibilityHotkey = HotkeySetting.DefaultVisibilityToggle,
         PreviousMainChannelHotkey = new HotkeySetting { Key = "" },
         NextMainChannelHotkey = new HotkeySetting { Key = "" },
+        GeneralTimerHotkey = new HotkeySetting { Key = "" },
+        BunkerTimerHotkey = new HotkeySetting { Key = "" },
+        LsdTimerHotkey = new HotkeySetting { Key = "" },
         HotkeySettingsVersion = AppSettings.CurrentHotkeySettingsVersion,
         HotkeysCustomized = false,
     });
@@ -1256,6 +1355,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             HudVisibilityHotkey = desired.HudVisibilityHotkey,
             PreviousMainChannelHotkey = desired.PreviousMainChannelHotkey,
             NextMainChannelHotkey = desired.NextMainChannelHotkey,
+            GeneralTimerHotkey = desired.GeneralTimerHotkey,
+            BunkerTimerHotkey = desired.BunkerTimerHotkey,
+            LsdTimerHotkey = desired.LsdTimerHotkey,
             HotkeySettingsVersion = desired.HotkeySettingsVersion,
             HotkeysCustomized = desired.HotkeysCustomized,
         }))
@@ -1276,6 +1378,9 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         VisibilityHotkeyText = FormatHotkey(settings.HudVisibilityHotkey, HotkeySetting.DefaultVisibilityToggle);
         PreviousChannelHotkeyText = FormatOptionalHotkey(settings.PreviousMainChannelHotkey);
         NextChannelHotkeyText = FormatOptionalHotkey(settings.NextMainChannelHotkey);
+        GeneralTimerHotkeyText = FormatOptionalHotkey(settings.GeneralTimerHotkey);
+        BunkerTimerHotkeyText = FormatOptionalHotkey(settings.BunkerTimerHotkey);
+        LsdTimerHotkeyText = FormatOptionalHotkey(settings.LsdTimerHotkey);
     }
 
     private void RequestManualSalesResync()
@@ -1383,6 +1488,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         CreateFontOption(ChatFontPreset.Kimm, Localization["SettingsFontKimm"]),
         CreateFontOption(ChatFontPreset.WantedSans, Localization["SettingsFontWantedSans"]),
         CreateFontOption(ChatFontPreset.Cafe24ProSlim, Localization["SettingsFontCafe24ProSlim"]),
+        CreateFontOption(ChatFontPreset.ChosunGulim, Localization["SettingsFontChosunGulim"]),
     };
 
     private IReadOnlyList<ChatStylePresetOption> CreateChatStylePresets() => new[]

@@ -57,6 +57,7 @@ internal sealed class ChatTypographyResolver
             ChatFontPreset.Pretendard => ResolvePretendard(),
             ChatFontPreset.Cafe24ProSlim => ResolveCafe24(),
             ChatFontPreset.WantedSans => ResolveWantedSans(),
+            ChatFontPreset.ChosunGulim => ResolveChosunGulim(),
             _ => ResolveKimm(),
         };
         _cache.Add(normalized, resolved);
@@ -125,6 +126,16 @@ internal sealed class ChatTypographyResolver
             ResolveBundled("Wanted Sans Variable", "Wanted Sans Variable", FontWeights.Medium, "Wanted Sans Medium"));
     }
 
+    private ResolvedChatTypography ResolveChosunGulim()
+    {
+        var definition = ChatSettings.ResolveTypography(ChatFontPreset.ChosunGulim);
+        return new ResolvedChatTypography(
+            ChatFontPreset.ChosunGulim,
+            definition.DisplayName,
+            ResolveBundled("조선굴림체", "조선굴림체", FontWeights.Normal, "조선굴림체"),
+            ResolveBundled("조선굴림체", "조선굴림체", FontWeights.Normal, "조선굴림체"));
+    }
+
     private ResolvedChatFontRole ResolveBundled(
         string wpfFamilyName,
         string metadataFamilyName,
@@ -164,6 +175,7 @@ internal sealed class ChatTypographyResolver
         ChatFontPreset.Pretendard => "Clean",
         ChatFontPreset.WantedSans => "HighReadability",
         ChatFontPreset.Cafe24ProSlim => "GtaLegacy",
+        ChatFontPreset.ChosunGulim => "ChosunGulim",
         _ => "Modern",
     };
 }

@@ -185,6 +185,10 @@ public sealed class RemoteChatIngressAdapter : IDisposable
                 DiscordMessageFallbackKind.None),
             RemoteMetadata = OptionalValue<DiscordRemoteMessageMetadata?>.From(
                 MapRemoteMetadata(message)),
+            AuthorStyle = OptionalValue<DiscordAuthorStyle?>.From(
+                MapAuthorStyle(author?.RoleStyle)),
+            Reactions = OptionalValue<IReadOnlyList<DiscordMessageReaction>>.From(
+                message.Reactions.Select(MapReaction).ToArray()),
         };
     }
 
@@ -310,6 +314,24 @@ public sealed class RemoteChatIngressAdapter : IDisposable
         emoji.Id?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
         emoji.Name,
         emoji.IsAnimated);
+
+    private static DiscordAuthorStyle? MapAuthorStyle(ChatAuthorStyle? style) =>
+        style is null
+            ? null
+            : new DiscordAuthorStyle(
+                style.ColorRoleId?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                style.Color,
+                style.IconRoleId?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                style.Icon is null
+                    ? null
+                    : new DiscordRoleIcon(
+                        style.Icon.Kind,
+                        style.Icon.Value,
+                        style.Icon.Url));
+
+    private static DiscordMessageReaction MapReaction(ChatReaction reaction) => new(
+        MapEmoji(reaction.Emoji),
+        reaction.Count);
 
     private static DiscordComponentMetadata MapComponent(ChatComponent component) => new(
         component.Type,

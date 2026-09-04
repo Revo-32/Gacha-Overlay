@@ -137,7 +137,10 @@ internal sealed partial class DiscordChatMessageNormalizer
                 Array.Empty<ChatForwardSnapshot>(),
             reference,
             message.Components.Select(MapComponent).ToArray(),
-            userMessage?.Poll is { } poll ? MapPoll(poll) : null);
+            userMessage?.Poll is { } poll ? MapPoll(poll) : null)
+        {
+            Reactions = MapReactions(message.Reactions),
+        };
     }
 
     private sealed record IndexedMessage(int Index, IMessage Message);
@@ -226,6 +229,17 @@ internal sealed partial class DiscordChatMessageNormalizer
             custom.Url),
         _ => new ChatEmoji(null, emote.Name, false),
     };
+
+    internal static IReadOnlyList<ChatReaction> MapReactions(
+        IReadOnlyDictionary<IEmote, ReactionMetadata> reactions) => reactions
+        .Where(pair => pair.Value.ReactionCount > 0)
+        .Select(pair => new ChatReaction(
+            MapEmoji(pair.Key)!,
+            pair.Value.ReactionCount))
+        .OrderBy(reaction => reaction.Emoji.Id.HasValue ? 1 : 0)
+        .ThenBy(reaction => reaction.Emoji.Id ?? 0)
+        .ThenBy(reaction => reaction.Emoji.Name, StringComparer.Ordinal)
+        .ToArray();
 
     private static ChatAttachment MapAttachment(IAttachment attachment, ulong messageFlags)
     {

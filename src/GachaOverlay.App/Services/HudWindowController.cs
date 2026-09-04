@@ -10,6 +10,7 @@ using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Localization;
 using GachaOverlay.Core.Logging;
 using GachaOverlay.Core.Settings;
+using GachaOverlay.Core.Timers;
 
 namespace GachaOverlay.App.Services;
 
@@ -75,7 +76,9 @@ internal sealed class HudWindowController : IDisposable
 
     public event Action<HudSessionState>? StateApplied;
     public event Action<int>? ChannelStepRequested;
+    public event Action<GtaoTimerSlot>? TimerStartRequested;
     private void OnChannelStep(int direction) => ChannelStepRequested?.Invoke(direction);
+    private void OnTimerStart(GtaoTimerSlot slot) => TimerStartRequested?.Invoke(slot);
 
     public HudSessionState State => _stateService.Current;
 
@@ -96,6 +99,7 @@ internal sealed class HudWindowController : IDisposable
         _hotkeys.LockToggleRequested += OnLockToggleRequested;
         _hotkeys.VisibilityToggleRequested += OnVisibilityToggleRequested;
         _hotkeys.ChannelStepRequested += OnChannelStep;
+        _hotkeys.TimerStartRequested += OnTimerStart;
         _gameMonitor.ForegroundChanged += OnGameForegroundChanged;
         _modifierDrag.DragCompleted += OnModifierDragCompleted;
         _localization.LanguageChanged += OnLanguageChanged;
@@ -202,7 +206,10 @@ internal sealed class HudWindowController : IDisposable
             if (old.HudLockHotkey != settings.HudLockHotkey ||
                 old.HudVisibilityHotkey != settings.HudVisibilityHotkey ||
                 old.PreviousMainChannelHotkey != settings.PreviousMainChannelHotkey ||
-                old.NextMainChannelHotkey != settings.NextMainChannelHotkey)
+                old.NextMainChannelHotkey != settings.NextMainChannelHotkey ||
+                old.GeneralTimerHotkey != settings.GeneralTimerHotkey ||
+                old.BunkerTimerHotkey != settings.BunkerTimerHotkey ||
+                old.LsdTimerHotkey != settings.LsdTimerHotkey)
             {
                 _hotkeys.Bind(settings);
             }
@@ -235,6 +242,7 @@ internal sealed class HudWindowController : IDisposable
         _hotkeys.LockToggleRequested -= OnLockToggleRequested;
         _hotkeys.VisibilityToggleRequested -= OnVisibilityToggleRequested;
         _hotkeys.ChannelStepRequested -= OnChannelStep;
+        _hotkeys.TimerStartRequested -= OnTimerStart;
         _gameMonitor.ForegroundChanged -= OnGameForegroundChanged;
         _modifierDrag.DragCompleted -= OnModifierDragCompleted;
         _localization.LanguageChanged -= OnLanguageChanged;

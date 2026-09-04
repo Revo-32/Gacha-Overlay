@@ -127,13 +127,31 @@ public sealed record ChatAuthor(
     string? DisplayName,
     string? GuildNickname,
     bool IsBot,
-    bool IsWebhook);
+    bool IsWebhook)
+{
+    public ChatAuthorStyle? RoleStyle { get; init; }
+}
+
+public sealed record ChatAuthorStyle(
+    ulong? ColorRoleId,
+    uint? Color,
+    ulong? IconRoleId,
+    ChatRoleIcon? Icon);
+
+public sealed record ChatRoleIcon(
+    string Kind,
+    string Value,
+    string? Url = null);
 
 public sealed record ChatEmoji(
     ulong? Id,
     string Name,
     bool IsAnimated,
     string? Url = null);
+
+public sealed record ChatReaction(
+    ChatEmoji Emoji,
+    int Count);
 
 public sealed record ChatMention(
     string Kind,
@@ -264,7 +282,11 @@ public sealed record ChatMessage(
     IReadOnlyList<ChatForwardSnapshot> ForwardedSnapshots,
     ChatMessageReference? Reference,
     IReadOnlyList<ChatComponent> Components,
-    ChatPoll? Poll);
+    ChatPoll? Poll)
+{
+    public IReadOnlyList<ChatReaction> Reactions { get; init; } =
+        Array.Empty<ChatReaction>();
+}
 
 public sealed record ChatMutationEnvelope(
     int ProtocolVersion,

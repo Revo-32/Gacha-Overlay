@@ -36,13 +36,22 @@ internal static class M10UiVerification
             var localization = new ResourceLocalizationService("ko");
             var store = new SyntheticSettingsStore();
             var typography = new ChatTypographyResolver(NullAppLogger.Instance);
+            var chosun = typography.Resolve(ChatFontPreset.ChosunGulim);
+            if (chosun.Nickname.IsFallback || chosun.Message.IsFallback)
+            {
+                throw new InvalidOperationException("Bundled Chosun Gulim typography did not resolve.");
+            }
             var chat = new ChatViewModel { IsHudUnlocked = true };
             var sales = new SalesQueueViewModel(localization);
             sales.ConfigureStatusAction((_, _, _) => Task.FromResult<SalesStatusActionResponse?>(null));
             sales.ApplyRemoteStatusContext(new Dictionary<string, SalesCompletionObservation>(), EffectiveSalesSource.RemotePrimary);
             var session = new SessionHudViewModel(localization, store.Current);
-            var shell = new HudShellViewModel(localization, chat, sales, session);
+            using var timers = new GtaoTimerHudViewModel(localization, store.Current, app.Dispatcher);
+            var shell = new HudShellViewModel(localization, chat, sales, session, timers);
             shell.ApplySettings(store.Current);
+            timers.Start(GachaOverlay.Core.Timers.GtaoTimerSlot.General);
+            timers.Start(GachaOverlay.Core.Timers.GtaoTimerSlot.Bunker);
+            timers.Start(GachaOverlay.Core.Timers.GtaoTimerSlot.Lsd);
             shell.Update(new(false, true, HudVisibilityMode.Always, true, true), "Live", "Live", null);
             session.UpdateRemoteState(true, SessionRemoteState.Live);
             session.ApplyBootstrap(new(OverlayTransportProtocol.Version, "synthetic", 0, 7,
@@ -51,10 +60,28 @@ internal static class M10UiVerification
             for (var i = 0; i < 9; i++)
             {
                 var content = i % 2 == 0 ? "테스트 메시지입니다. 메인 채팅과 판매 목록을 확인합니다." : "M10 · Chat readability / 한글 · 日本語";
-                var row = new ChatMessageViewModel(new((i + 1).ToString(), names[i % names.Length], DateTimeOffset.UtcNow,
+                var authorIndex = i / 2 % names.Length;
+                var presentation = new ChatMessagePresentation(
+                    (i + 1).ToString(), names[authorIndex], DateTimeOffset.UtcNow,
                     new[] { new ChatToken(ChatTokenKind.Text, content) }, content,
-                    Array.Empty<ChatMediaCandidate>(), Array.Empty<ChatStickerPresentation>(), 0, false, 1, 1),
+                    Array.Empty<ChatMediaCandidate>(), Array.Empty<ChatStickerPresentation>(), 0, false, 1, 1)
+                {
+                    AuthorId = $"author-{authorIndex}",
+                    AuthorStyle = authorIndex == 0
+                        ? new DiscordAuthorStyle("role-color", 0xF0B232, "role-icon",
+                            new DiscordRoleIcon("unicode", "⭐"))
+                        : null,
+                    Reactions = i == 0
+                        ? new[]
+                        {
+                            new DiscordMessageReaction(new DiscordCustomEmoji(string.Empty, "👍", false), 3),
+                            new DiscordMessageReaction(new DiscordCustomEmoji("123", "party", false), 2),
+                        }
+                        : Array.Empty<DiscordMessageReaction>(),
+                };
+                var row = new ChatMessageViewModel(presentation,
                     localization, _ => { });
+                row.ShowAuthorHeader = i == 0 || authorIndex != (i - 1) / 2 % names.Length;
                 row.ApplySettings(store.Current, ChatResponsiveLevel.Full, typography.Resolve(store.Current.ChatFontPreset));
                 chatRows.Add(row);
                 chat.Messages.Add(row);
@@ -117,6 +144,14 @@ internal static class M10UiVerification
                 settingsWindow.Show();
                 await LayoutAsync(settingsWindow);
                 Capture(settingsWindow, Path.Combine(output, "settings-" + category + ".png"));
+                if (category == SettingsCategory.Hotkeys &&
+                    settingsWindow.FindName("CategoryScrollViewer") is System.Windows.Controls.ScrollViewer scroll)
+                {
+                    scroll.ScrollToEnd();
+                    await LayoutAsync(settingsWindow);
+                    Capture(settingsWindow, Path.Combine(output, "settings-Hotkeys-Timers.png"));
+                    scroll.ScrollToHome();
+                }
                 settingsWindow.Hide();
             }
             stage = "Onboarding";

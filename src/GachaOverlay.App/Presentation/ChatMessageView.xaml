@@ -5,8 +5,30 @@
              ClipToBounds="False"
              SnapsToDevicePixels="True"
              UseLayoutRounding="True">
+    <!-- ChatNicknameBrush is the white no-role fallback; per-message role colors override it. -->
     <UserControl.Resources>
         <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
+        <DataTemplate x:Key="ReactionTemplate">
+            <Border Margin="0,3,4,0"
+                    Padding="5,2"
+                    Background="{DynamicResource SurfaceRaisedBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    IsHitTestVisible="False">
+                <StackPanel Orientation="Horizontal">
+                    <Image Width="14" Height="14" Source="{Binding Image}"
+                           Stretch="Uniform"
+                           Visibility="{Binding HasImage, Converter={StaticResource BoolVisibility}}" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                               Text="{Binding Text}"
+                               Visibility="{Binding ShowText, Converter={StaticResource BoolVisibility}}" />
+                    <TextBlock Margin="4,0,0,0" FontSize="11"
+                               Foreground="{DynamicResource TextMutedBrush}"
+                               Text="{Binding Count}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
         <DataTemplate x:Key="ForwardMessageTemplate">
             <Border Margin="0,3,0,4"
                     Padding="8,6"
@@ -89,24 +111,33 @@
                 Background="Transparent"
                 ClipToBounds="False"
                 CornerRadius="4">
-            <Grid ClipToBounds="False">
+            <StackPanel ClipToBounds="False">
                 <StackPanel Visibility="{Binding IsBalanced, Converter={StaticResource BoolVisibility}}">
-                    <Grid ClipToBounds="False">
+                    <Grid ClipToBounds="False"
+                          Visibility="{Binding ShowAuthorHeader, Converter={StaticResource BoolVisibility}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <local:CrispOutlinedText x:Name="BalancedNickname"
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Margin="0,0,4,0" VerticalAlignment="Center"
+                                       FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
+                                       Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
+                            <Image Width="16" Height="16" Margin="0,0,4,0"
+                                   Source="{Binding RoleIconImage}" Stretch="Uniform"
+                                   Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                            <local:CrispOutlinedText x:Name="BalancedNickname"
                                                  FontFamily="{Binding NicknameFontFamily}"
                                                  FontSize="{Binding FontSizeDip}"
                                                  FontWeight="{Binding NicknameFontWeight}"
-                                                 Foreground="{DynamicResource ChatNicknameBrush}"
+                                                 Foreground="{Binding NicknameBrush}"
                                                  IsHitTestVisible="False"
                                                  LineHeight="{Binding LineHeight}"
                                                  OutlineBrush="{DynamicResource ChatOutlineBrush}"
                                                  OutlineEnabled="{Binding ShowNicknameOutline}"
                                                  OutlineThickness="{Binding NicknameOutlineThickness}"
                                                  Text="{Binding AuthorName}" />
+                        </StackPanel>
                         <TextBlock Grid.Column="1"
                                    Margin="8,0,0,0"
                                    VerticalAlignment="Center"
@@ -165,19 +196,25 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <local:CrispOutlinedText x:Name="CompactNickname"
+                    <StackPanel Grid.Column="0" Margin="0,0,5,0" Orientation="Horizontal"
+                                Visibility="{Binding ShowAuthorHeader, Converter={StaticResource BoolVisibility}}">
+                        <TextBlock Margin="0,0,3,0" FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
+                                   Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
+                        <Image Width="15" Height="15" Margin="0,0,3,0" Source="{Binding RoleIconImage}"
+                               Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                        <local:CrispOutlinedText x:Name="CompactNickname"
                                              Grid.Column="0"
-                                             Margin="0,0,5,0"
                                              FontFamily="{Binding NicknameFontFamily}"
                                              FontSize="{Binding FontSizeDip}"
                                              FontWeight="{Binding NicknameFontWeight}"
-                                             Foreground="{DynamicResource ChatNicknameBrush}"
+                                             Foreground="{Binding NicknameBrush}"
                                              IsHitTestVisible="False"
                                              LineHeight="{Binding LineHeight}"
                                              OutlineBrush="{DynamicResource ChatOutlineBrush}"
                                              OutlineEnabled="{Binding ShowNicknameOutline}"
                                              OutlineThickness="{Binding NicknameOutlineThickness}"
                                              Text="{Binding AuthorName, StringFormat={}{0}:}" />
+                    </StackPanel>
                     <StackPanel Grid.Column="1">
                         <TextBlock Margin="0,1,0,2"
                                    FontFamily="{Binding MessageFontFamily}"
@@ -227,13 +264,18 @@
                         <ColumnDefinition Width="Auto" MaxWidth="120" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <local:CrispOutlinedText x:Name="UltraCompactNickname"
+                    <StackPanel Grid.Column="0" Margin="0,0,5,0" Orientation="Horizontal"
+                                Visibility="{Binding ShowAuthorHeader, Converter={StaticResource BoolVisibility}}">
+                        <TextBlock Margin="0,0,3,0" FontSize="{Binding FontSizeDip}" Text="{Binding RoleIconText}"
+                                   Visibility="{Binding HasRoleIconText, Converter={StaticResource BoolVisibility}}" />
+                        <Image Width="15" Height="15" Margin="0,0,3,0" Source="{Binding RoleIconImage}"
+                               Visibility="{Binding HasRoleIconImage, Converter={StaticResource BoolVisibility}}" />
+                        <local:CrispOutlinedText x:Name="UltraCompactNickname"
                                              Grid.Column="0"
-                                             Margin="0,0,5,0"
                                              FontFamily="{Binding NicknameFontFamily}"
                                              FontSize="{Binding FontSizeDip}"
                                              FontWeight="{Binding NicknameFontWeight}"
-                                             Foreground="{DynamicResource ChatNicknameBrush}"
+                                             Foreground="{Binding NicknameBrush}"
                                              IsHitTestVisible="False"
                                              LineHeight="{Binding LineHeight}"
                                              OutlineBrush="{DynamicResource ChatOutlineBrush}"
@@ -241,6 +283,7 @@
                                              OutlineThickness="{Binding NicknameOutlineThickness}"
                                              Text="{Binding AuthorName, StringFormat={}{0}:}"
                                              TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
                     <local:CrispOutlinedText x:Name="UltraCompactBody"
                                              Grid.Column="1"
                                              Tokens="{Binding Tokens}"
@@ -272,7 +315,14 @@
                                TextWrapping="NoWrap"
                                Visibility="{Binding ShowUltraCompactSummary, Converter={StaticResource BoolVisibility}}" />
                 </Grid>
-            </Grid>
+                <ItemsControl ItemsSource="{Binding Reactions}"
+                              ItemTemplate="{StaticResource ReactionTemplate}"
+                              Visibility="{Binding HasReactions, Converter={StaticResource BoolVisibility}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>

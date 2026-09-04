@@ -27,6 +27,7 @@
     <Resource Include="Assets\Fonts\Cafe24PROSlimFit.ttf" />
     <Resource Include="Assets\Fonts\PretendardVariable.ttf" />
     <Resource Include="Assets\Fonts\WantedSansVariable.ttf" />
+    <Resource Include="Assets\Fonts\ChosunGu.TTF" />
     <Content Include="Assets\Fonts\KIMM_Bold.ttf"
              Condition="'$(PublishSingleFile)' != 'true'"
              CopyToOutputDirectory="PreserveNewest" />
@@ -43,6 +44,9 @@
              Condition="'$(PublishSingleFile)' != 'true'"
              CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Fonts\WantedSansVariable.ttf"
+             Condition="'$(PublishSingleFile)' != 'true'"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Fonts\ChosunGu.TTF"
              Condition="'$(PublishSingleFile)' != 'true'"
              CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Fonts\ThirdPartyNotices\**\*"

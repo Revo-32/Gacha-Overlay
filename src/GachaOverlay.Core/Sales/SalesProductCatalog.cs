@@ -133,8 +133,11 @@ public sealed class SalesProductCatalog
         var indexes = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var emoji in emojis)
         {
-            var definition = FindByEmojiId(guildId, emoji.EmojiId) ??
-                FindByEmojiName(guildId, emoji.Name);
+            var definition = FindByEmojiId(guildId, emoji.EmojiId);
+            if (definition is null && string.IsNullOrWhiteSpace(emoji.EmojiId))
+            {
+                definition = FindByEmojiName(guildId, emoji.Name);
+            }
             if (definition is null)
             {
                 continue;

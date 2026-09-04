@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using GachaOverlay.Core.Hud.Hotkeys;
 using GachaOverlay.Core.Logging;
 using GachaOverlay.Core.Settings;
+using GachaOverlay.Core.Timers;
 
 namespace GachaOverlay.App.Services;
 
@@ -12,6 +13,9 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
     private const int VisibilityToggleId = 0x5A02;
     private const int PreviousChannelId = 0x5A03;
     private const int NextChannelId = 0x5A04;
+    private const int GeneralTimerId = 0x5B01;
+    private const int BunkerTimerId = 0x5B02;
+    private const int LsdTimerId = 0x5B03;
     private AppSettings _lastSettings = AppSettings.CreateDefault();
     private const uint ModNoRepeat = 0x4000;
 
@@ -34,18 +38,26 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
 
     public event Action<int>? ChannelStepRequested;
 
+    public event Action<GtaoTimerSlot>? TimerStartRequested;
+
     public bool Bind(AppSettings settings)
     {
         if (_disposed) return false;
         var plan = CreateRegistrationPlan(settings.HudLockHotkey, settings.HudVisibilityHotkey);
         if (!TryOptional(settings.PreviousMainChannelHotkey, out var previous) ||
-            !TryOptional(settings.NextMainChannelHotkey, out var next)) return false;
+            !TryOptional(settings.NextMainChannelHotkey, out var next) ||
+            !TryOptional(settings.GeneralTimerHotkey, out var generalTimer) ||
+            !TryOptional(settings.BunkerTimerHotkey, out var bunkerTimer) ||
+            !TryOptional(settings.LsdTimerHotkey, out var lsdTimer)) return false;
         var desired = new Dictionary<int, HotkeyGesture?>
         {
             [VisibilityToggleId] = plan.VisibilityToggle,
             [LockToggleId] = plan.LockToggle,
             [PreviousChannelId] = previous,
             [NextChannelId] = next,
+            [GeneralTimerId] = generalTimer,
+            [BunkerTimerId] = bunkerTimer,
+            [LsdTimerId] = lsdTimer,
         };
         var assigned = desired.Values.Where(value => value.HasValue).Select(value => value!.Value).ToArray();
         if (assigned.Distinct().Count() != assigned.Length) return false;
@@ -182,6 +194,9 @@ internal sealed class GlobalHotkeyService : IGlobalHotkeyRegistrar, IDisposable
         if (_disposed) return;
         if (id == PreviousChannelId) { ChannelStepRequested?.Invoke(-1); return; }
         if (id == NextChannelId) { ChannelStepRequested?.Invoke(1); return; }
+        if (id == GeneralTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.General); return; }
+        if (id == BunkerTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.Bunker); return; }
+        if (id == LsdTimerId) { TimerStartRequested?.Invoke(GtaoTimerSlot.Lsd); return; }
         if (id == LockToggleId)
         {
             _logger.Information("HOTKEY", "Trigger LockToggle.");
