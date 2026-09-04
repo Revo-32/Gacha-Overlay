@@ -99,7 +99,7 @@
   <data name="SettingsFontResolvedSystem" xml:space="preserve"><value>현재 적용: {0} · 설치된 시스템 글꼴</value></data>
   <data name="SettingsFontResolvedFallback" xml:space="preserve"><value>대체 글꼴 사용 중: {0} · {1} 설치 필요</value></data>
   <data name="SettingsChatLineHeight" xml:space="preserve"><value>줄 높이</value></data>
-  <data name="SettingsChatMessageSpacing" xml:space="preserve"><value>메시지 간격</value></data>
+  <data name="SettingsChatMessageSpacing" xml:space="preserve"><value>작성자 간격</value></data>
   <data name="ChatStickerFallbackUnnamed" xml:space="preserve"><value>[스티커]</value></data>
   <data name="ChatForwardFallback" xml:space="preserve"><value>[전달된 메시지]</value></data>
   <data name="ChatMessageFallback" xml:space="preserve"><value>[메시지]</value></data>
@@ -459,6 +459,7 @@
   <data name="SettingsTimerBunker" xml:space="preserve"><value>벙커 보급</value></data>
   <data name="SettingsTimerLsd" xml:space="preserve"><value>LSD 보급</value></data>
   <data name="SettingsTimerHotkeyHint" xml:space="preserve"><value>타이머 단축키는 기본 미지정입니다. 지정한 단축키를 누르면 해당 슬롯만 시작하거나 다시 시작합니다.</value></data>
+  <data name="SettingsTimerCompletionSound" xml:space="preserve"><value>타이머 완료 알림음</value></data>
   <data name="TimerGeneralShort" xml:space="preserve"><value>일반</value></data>
   <data name="TimerBunkerShort" xml:space="preserve"><value>벙커</value></data>
   <data name="TimerLsdShort" xml:space="preserve"><value>LSD</value></data>

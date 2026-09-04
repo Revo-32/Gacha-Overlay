@@ -17,13 +17,14 @@
                     CornerRadius="8"
                     IsHitTestVisible="False">
                 <StackPanel Orientation="Horizontal">
-                    <Image Width="14" Height="14" Source="{Binding Image}"
-                           Stretch="Uniform"
+                    <Image Width="18" Height="18" Source="{Binding Image}"
+                           Stretch="Uniform" VerticalAlignment="Center"
                            Visibility="{Binding HasImage, Converter={StaticResource BoolVisibility}}" />
-                    <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                    <TextBlock FontSize="16" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                Text="{Binding Text}"
                                Visibility="{Binding ShowText, Converter={StaticResource BoolVisibility}}" />
-                    <TextBlock Margin="4,0,0,0" FontSize="11"
+                    <TextBlock Margin="4,0,0,0" FontSize="12" VerticalAlignment="Center"
                                Foreground="{DynamicResource TextMutedBrush}"
                                Text="{Binding Count}" />
                 </StackPanel>

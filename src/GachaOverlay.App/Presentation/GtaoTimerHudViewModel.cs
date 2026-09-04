@@ -13,6 +13,7 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
 {
     private readonly ILocalizationService _localization;
     private readonly GtaoTimerEngine _engine = new();
+    private readonly HashSet<GtaoTimerSlot> _completedSlots = new();
     private readonly DispatcherTimer _refreshTimer;
     private AppSettings _settings;
     private bool _isVisible;
@@ -33,6 +34,8 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public event Action? CompletionSoundRequested;
 
     public ObservableCollection<GtaoTimerHudItemViewModel> Items { get; } = new();
 
@@ -58,6 +61,7 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
             GtaoTimerSlot.Lsd => _settings.LsdTimerMinutes,
             _ => throw new ArgumentOutOfRangeException(nameof(slot)),
         };
+        _completedSlots.Remove(slot);
         _engine.Start(slot, TimeSpan.FromMinutes(minutes), Now());
         if (!_refreshTimer.IsEnabled) _refreshTimer.Start();
         Refresh();
@@ -72,6 +76,8 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
     private void Refresh()
     {
         var snapshots = _engine.Read(Now());
+        var completionDetected = snapshots.Any(snapshot =>
+            snapshot.IsExpired && _completedSlots.Add(snapshot.Slot));
         var next = snapshots.Select(snapshot => new GtaoTimerHudItemViewModel(
             snapshot.Slot,
             Label(snapshot.Slot),
@@ -81,6 +87,10 @@ internal sealed class GtaoTimerHudViewModel : INotifyPropertyChanged, IDisposabl
         foreach (var item in next) Items.Add(item);
         IsVisible = Items.Count > 0;
         if (!IsVisible) _refreshTimer.Stop();
+        if (completionDetected && _settings.TimerCompletionSoundEnabled)
+        {
+            CompletionSoundRequested?.Invoke();
+        }
     }
 
     private string Label(GtaoTimerSlot slot) => _localization[slot switch

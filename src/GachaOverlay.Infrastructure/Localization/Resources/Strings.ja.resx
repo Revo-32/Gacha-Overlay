@@ -99,7 +99,7 @@
   <data name="SettingsFontResolvedSystem" xml:space="preserve"><value>現在適用中: {0} · インストール済みシステムフォント</value></data>
   <data name="SettingsFontResolvedFallback" xml:space="preserve"><value>代替フォントを使用中: {0} · {1} のインストールが必要です</value></data>
   <data name="SettingsChatLineHeight" xml:space="preserve"><value>行の高さ</value></data>
-  <data name="SettingsChatMessageSpacing" xml:space="preserve"><value>メッセージ間隔</value></data>
+  <data name="SettingsChatMessageSpacing" xml:space="preserve"><value>投稿者間隔</value></data>
   <data name="ChatStickerFallbackUnnamed" xml:space="preserve"><value>[ステッカー]</value></data>
   <data name="ChatForwardFallback" xml:space="preserve"><value>[転送メッセージ]</value></data>
   <data name="ChatMessageFallback" xml:space="preserve"><value>[メッセージ]</value></data>
@@ -459,6 +459,7 @@
   <data name="SettingsTimerBunker" xml:space="preserve"><value>バンカー補給</value></data>
   <data name="SettingsTimerLsd" xml:space="preserve"><value>LSD補給</value></data>
   <data name="SettingsTimerHotkeyHint" xml:space="preserve"><value>タイマーのショートカットは初期状態では未設定です。押すとそのスロットだけを開始または再開します。</value></data>
+  <data name="SettingsTimerCompletionSound" xml:space="preserve"><value>タイマー完了通知音</value></data>
   <data name="TimerGeneralShort" xml:space="preserve"><value>一般</value></data>
   <data name="TimerBunkerShort" xml:space="preserve"><value>バンカー</value></data>
   <data name="TimerLsdShort" xml:space="preserve"><value>LSD</value></data>

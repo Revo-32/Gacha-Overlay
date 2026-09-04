@@ -30,6 +30,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private int _generalTimerMinutes;
     private int _bunkerTimerMinutes;
     private int _lsdTimerMinutes;
+    private bool _timerCompletionSoundEnabled;
     private readonly Func<SalesFeatureHealthSnapshot> _getSalesHealthSnapshot;
     private readonly Func<ManualSalesResyncResult> _manualSalesResync;
     private readonly Action _clearMediaCache;
@@ -178,6 +179,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _generalTimerMinutes = settings.GeneralTimerMinutes;
         _bunkerTimerMinutes = settings.BunkerTimerMinutes;
         _lsdTimerMinutes = settings.LsdTimerMinutes;
+        _timerCompletionSoundEnabled = settings.TimerCompletionSoundEnabled;
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
@@ -368,6 +370,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _generalTimerMinutes = settings.GeneralTimerMinutes;
         _bunkerTimerMinutes = settings.BunkerTimerMinutes;
         _lsdTimerMinutes = settings.LsdTimerMinutes;
+        _timerCompletionSoundEnabled = settings.TimerCompletionSoundEnabled;
         _visibilityHotkeyText = FormatHotkey(
             settings.HudVisibilityHotkey,
             HotkeySetting.DefaultVisibilityToggle);
@@ -790,6 +793,15 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             SetAndSave(ref _lsdTimerMinutes, normalized,
                 settings => settings with { LsdTimerMinutes = normalized });
         }
+    }
+
+    public bool TimerCompletionSoundEnabled
+    {
+        get => _timerCompletionSoundEnabled;
+        set => SetAndSave(
+            ref _timerCompletionSoundEnabled,
+            value,
+            settings => settings with { TimerCompletionSoundEnabled = value });
     }
 
     private static string FormatOptionalHotkey(HotkeySetting? setting) =>
@@ -1463,6 +1475,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         CreateCategory(SettingsCategory.Chat, "SettingsCategoryChat", "M4,4H20V16H9L4,20ZM8,8H16M8,12H14"),
         CreateCategory(SettingsCategory.Media, "SettingsCategoryMedia", "M3,5H21V19H3ZM6,16L10,12L13,15L16,10L20,16M8,9A1.5,1.5 0 1 1 8,6A1.5,1.5 0 1 1 8,9"),
         CreateCategory(SettingsCategory.Sales, "SettingsCategorySales", "M5,3H19V21H5ZM8,7H16M8,11H16M8,15H13M8,19H11"),
+        CreateCategory(SettingsCategory.Timers, "SettingsTimerTitle", "M12,3A9,9 0 1 0 12,21A9,9 0 1 0 12,3M12,7V12L15,14M9,2H15"),
         CreateCategory(SettingsCategory.Hotkeys, "SettingsCategoryHotkeys", "M3,6H21V18H3ZM6,10H8M10,10H12M14,10H16M18,10H19M6,14H8M10,14H17"),
         CreateCategory(SettingsCategory.Diagnostics, "SettingsCategoryDiagnostics", "M14.7,6.3A5,5 0 0 0 8.3,12.7L3.5,17.5L6.5,20.5L11.3,15.7A5,5 0 0 0 17.7,9.3L14,13L11,10Z"),
         CreateCategory(SettingsCategory.Developer, "SettingsCategoryDeveloper", "M9,3H15L16,7L20,9V15L16,17L15,21H9L8,17L4,15V9L8,7ZM12,9A3,3 0 1 0 12,15A3,3 0 1 0 12,9"),

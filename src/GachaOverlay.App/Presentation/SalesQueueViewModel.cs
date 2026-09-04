@@ -717,6 +717,10 @@ internal sealed class SalesQueueDetailItem : INotifyPropertyChanged
     {
         CreatedAt = createdAt;
         DetailSource = detailSource;
+        DetailTokens = ChatPresentationSynchronizer
+            .TokenizeDiscordMarkup(detailSource ?? string.Empty)
+            .Select(token => new ChatTokenViewModel(token))
+            .ToArray();
         IsNextSelf = isNextSelf;
         Position = position;
         MessageId = messageId;
@@ -737,6 +741,7 @@ internal sealed class SalesQueueDetailItem : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     public DateTimeOffset? CreatedAt { get; }
     public string? DetailSource { get; }
+    public IReadOnlyList<ChatTokenViewModel> DetailTokens { get; }
     public bool HasDetailSource => !string.IsNullOrWhiteSpace(DetailSource);
     public bool IsNextSelf { get; }
     public bool IsCurrentSelf => IsSelf && IsCurrent;

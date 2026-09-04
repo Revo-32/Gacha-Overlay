@@ -134,7 +134,7 @@
   <data name="SettingsFontResolvedSystem" xml:space="preserve"><value>Currently applied: {0} · installed system font</value></data>
   <data name="SettingsFontResolvedFallback" xml:space="preserve"><value>Using fallback: {0} · install {1} to use the requested font</value></data>
   <data name="SettingsChatLineHeight" xml:space="preserve"><value>Line height</value></data>
-  <data name="SettingsChatMessageSpacing" xml:space="preserve"><value>Message spacing</value></data>
+  <data name="SettingsChatMessageSpacing" xml:space="preserve"><value>Author spacing</value></data>
   <data name="ChatStickerFallbackUnnamed" xml:space="preserve"><value>[Sticker]</value></data>
   <data name="ChatForwardFallback" xml:space="preserve"><value>[Forwarded message]</value></data>
   <data name="ChatMessageFallback" xml:space="preserve"><value>[Message]</value></data>
@@ -494,6 +494,7 @@
   <data name="SettingsTimerBunker" xml:space="preserve"><value>Bunker supplies</value></data>
   <data name="SettingsTimerLsd" xml:space="preserve"><value>LSD supplies</value></data>
   <data name="SettingsTimerHotkeyHint" xml:space="preserve"><value>Timer hotkeys are unassigned by default. Pressing an assigned hotkey starts or restarts only that slot.</value></data>
+  <data name="SettingsTimerCompletionSound" xml:space="preserve"><value>Timer completion sound</value></data>
   <data name="TimerGeneralShort" xml:space="preserve"><value>General</value></data>
   <data name="TimerBunkerShort" xml:space="preserve"><value>Bunker</value></data>
   <data name="TimerLsdShort" xml:space="preserve"><value>LSD</value></data>

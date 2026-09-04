@@ -47,7 +47,7 @@ def build(repo: Path, output: Path):
         canvas.setFont("Body", 8.5)
         canvas.setFillColor(colors.HexColor("#566960"))
         canvas.drawString(44, A4[1] - 34, "LS Overlay | 사용자 안내서")
-        canvas.drawRightString(A4[0] - 44, 25, f"2.0.0-rc.1  |  {doc.page}")
+        canvas.drawRightString(A4[0] - 44, 25, f"2.0.0-rc.2  |  {doc.page}")
         canvas.restoreState()
 
     story = []
@@ -68,7 +68,7 @@ def build(repo: Path, output: Path):
                     story.append(Paragraph(markup(line), item if re.match(r"(- |\d+\. )", line) else body))
     output.parent.mkdir(parents=True, exist_ok=True)
     doc = SimpleDocTemplate(str(output), pagesize=A4, leftMargin=44, rightMargin=44,
-                            topMargin=62, bottomMargin=48, title="LS Overlay 2.0.0-rc.1 사용자 안내서",
+                            topMargin=62, bottomMargin=48, title="LS Overlay 2.0.0-rc.2 사용자 안내서",
                             author="LS Overlay", subject="한국어 사용자 안내서")
     doc.build(story, onFirstPage=furniture, onLaterPages=furniture)
     reader = PdfReader(output)

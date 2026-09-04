@@ -129,6 +129,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                 StartEnrichment(item, presentation);
             }
         }
+
+        RegroupConsecutiveAuthors();
     }
 
     internal ResolvedChatTypography CurrentTypography => _typography;
@@ -633,9 +635,20 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     {
         var headers = ChatAuthorGrouping.ResolveHeaders(
             _viewModel.Messages.Select(item => item.AuthorId));
+        var authorSpacing = Math.Max(0, _settings.ChatMessageSpacing);
         for (var index = 0; index < _viewModel.Messages.Count; index++)
         {
-            _viewModel.Messages[index].ShowAuthorHeader = headers[index];
+            var message = _viewModel.Messages[index];
+            var isNewAuthorMessage = headers[index];
+            var hasNextMessage = index + 1 < _viewModel.Messages.Count;
+            var nextMessageStartsNewGroup = hasNextMessage && headers[index + 1];
+
+            message.ShowAuthorHeader = isNewAuthorMessage;
+            message.MessageMargin = new Thickness(
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: nextMessageStartsNewGroup ? authorSpacing : 0);
         }
     }
 

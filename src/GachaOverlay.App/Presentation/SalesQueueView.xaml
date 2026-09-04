@@ -178,7 +178,17 @@
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0">
                                     <TextBlock FontSize="10" Opacity="0.7" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding RelativeAge}"/>
-                                    <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding DetailSource}" TextWrapping="Wrap" MaxHeight="80" TextTrimming="CharacterEllipsis" Visibility="{Binding HasDetailSource, Converter={StaticResource BoolVisibility}}"/>
+                                    <local:CrispOutlinedText Margin="0,3,0,0"
+                                                               FontSize="12"
+                                                               EmojiExtent="16"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                                               IsHitTestVisible="False"
+                                                               MaxHeight="80"
+                                                               OutlineEnabled="False"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               TextWrapping="Wrap"
+                                                               Tokens="{Binding DetailTokens}"
+                                                               Visibility="{Binding HasDetailSource, Converter={StaticResource BoolVisibility}}"/>
                                 </StackPanel>
                             </Grid>
                             </Border>

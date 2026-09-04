@@ -143,9 +143,10 @@ internal sealed class ApplicationHost : IDisposable
             sessionViewModel,
             timerViewModel);
         var typographyResolver = new ChatTypographyResolver(Logger);
+        var mediaAssetService = new DiscordMediaAssetService(Logger, _runtimeMetrics);
         var chatCoordinator = new ChatPresentationCoordinator(
             chatViewModel,
-            new DiscordMediaAssetService(Logger, _runtimeMetrics),
+            mediaAssetService,
             _localization,
             Logger,
             settings,
@@ -166,6 +167,7 @@ internal sealed class ApplicationHost : IDisposable
             hudWindow.Dispatcher,
             paths.NotificationToneDirectory,
             Logger);
+        timerViewModel.CompletionSoundRequested += OnTimerCompletionSoundRequested;
         var salesTurnNotifications = new SalesTurnNotificationCoordinator(
             () => _settingsStore!.Current,
             _salesNotificationSoundService,
@@ -182,7 +184,8 @@ internal sealed class ApplicationHost : IDisposable
             settings,
             hudWindow.Dispatcher,
             _runtimeMetrics,
-            salesTurnNotifications);
+            salesTurnNotifications,
+            mediaAssetService);
         _salesCoordinator.Start();
         _hudController = new HudWindowController(
             hudWindow,
@@ -361,6 +364,10 @@ internal sealed class ApplicationHost : IDisposable
 
         _salesCoordinator?.Dispose();
         _salesCoordinator = null;
+        if (_timerHudViewModel is not null)
+        {
+            _timerHudViewModel.CompletionSoundRequested -= OnTimerCompletionSoundRequested;
+        }
         _salesNotificationSoundService?.Dispose();
         _salesNotificationSoundService = null;
         _timerHudViewModel?.Dispose();
@@ -475,6 +482,12 @@ internal sealed class ApplicationHost : IDisposable
 
     private void OnTimerStartRequested(GachaOverlay.Core.Timers.GtaoTimerSlot slot) =>
         DispatchToUi(() => _timerHudViewModel?.Start(slot));
+
+    private void OnTimerCompletionSoundRequested()
+    {
+        _salesNotificationSoundService?.Play(SalesTurnNotificationKind.Current, 50);
+        Logger.Information("TIMER-SOUND", "Timer completion notification requested.");
+    }
 
     private void OnChannelSwitchCommitted(string label) =>
         DispatchToUi(() => _hudController?.NotifyCommittedChannel(label));

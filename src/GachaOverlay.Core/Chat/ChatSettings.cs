@@ -71,7 +71,7 @@ public static partial class ChatSettings
         double.IsFinite(value) ? Math.Clamp(value, 1.0, 1.65) : DefaultLineHeightMultiplier;
 
     public static double NormalizeMessageSpacing(double value) =>
-        double.IsFinite(value) ? Math.Clamp(value, -2, 6) : DefaultMessageSpacing;
+        double.IsFinite(value) ? Math.Clamp(value, -2, 48) : DefaultMessageSpacing;
 
     public static string ResolveFontFamily(ChatFontPreset preset) =>
         ResolveTypography(preset).DisplayName;

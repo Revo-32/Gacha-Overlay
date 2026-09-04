@@ -28,6 +28,8 @@ internal sealed class SalesPresentationCoordinator : IDisposable
     private readonly UiUpdateCoalescer _uiUpdates;
     private readonly IRuntimeMetrics? _metrics;
     private readonly ISalesTurnNotificationObserver? _turnNotification;
+    private readonly System.Windows.Threading.Dispatcher _dispatcher;
+    private readonly DiscordMediaAssetService? _media;
     private readonly Dictionary<string, NormalizedDiscordMessage> _remoteSource =
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, SalesCompletionObservation> _remoteEvidence =
@@ -49,6 +51,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
     private DateTimeOffset? _remoteSalesReadyAt;
     private bool _started;
     private bool _disposed;
+    private CancellationTokenSource? _detailEmojiCancellation;
 
     public SalesPresentationCoordinator(
         SalesStateEngine engine,
@@ -58,7 +61,8 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         AppSettings initialSettings,
         System.Windows.Threading.Dispatcher dispatcher,
         IRuntimeMetrics? metrics = null,
-        ISalesTurnNotificationObserver? turnNotification = null)
+        ISalesTurnNotificationObserver? turnNotification = null,
+        DiscordMediaAssetService? media = null)
     {
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
@@ -71,6 +75,8 @@ internal sealed class SalesPresentationCoordinator : IDisposable
             : RemoteSalesPresentationPhase.Disabled;
         _metrics = metrics;
         _turnNotification = turnNotification;
+        _dispatcher = dispatcher;
+        _media = media;
         _uiUpdates = new UiUpdateCoalescer(
             new DispatcherCallbackScheduler(dispatcher),
             requestCount =>
@@ -350,6 +356,9 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         }
 
         _disposed = true;
+        var cancellation = Interlocked.Exchange(ref _detailEmojiCancellation, null);
+        cancellation?.Cancel();
+        cancellation?.Dispose();
         _engine.SnapshotChanged -= OnSnapshotChanged;
         _localization.LanguageChanged -= OnLanguageChanged;
         _uiUpdates.Dispose();
@@ -550,6 +559,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
             health,
             ProductionServerProfile.SalesChannelName,
             change);
+        StartDetailEmojiEnrichment();
         var presentation = _viewModel.Presentation;
         try
         {
@@ -576,6 +586,58 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         if (elapsed >= TimeSpan.FromMilliseconds(50))
         {
             _metrics?.Increment(RuntimeMetricNames.DispatcherLongOperations);
+        }
+    }
+
+    private void StartDetailEmojiEnrichment()
+    {
+        var cancellation = Interlocked.Exchange(
+            ref _detailEmojiCancellation,
+            _media is null ? null : new CancellationTokenSource());
+        cancellation?.Cancel();
+        cancellation?.Dispose();
+        if (_media is null || _detailEmojiCancellation is null)
+        {
+            return;
+        }
+
+        var token = _detailEmojiCancellation.Token;
+        foreach (var item in _viewModel.DetailItems)
+        {
+            foreach (var detailToken in item.DetailTokens.Where(detailToken =>
+                         detailToken.Kind == GachaOverlay.Core.Chat.ChatTokenKind.CustomEmoji &&
+                         !string.IsNullOrWhiteSpace(detailToken.Identity)))
+            {
+                _ = EnrichDetailEmojiAsync(item, detailToken, token);
+            }
+        }
+    }
+
+    private async Task EnrichDetailEmojiAsync(
+        SalesQueueDetailItem item,
+        ChatTokenViewModel token,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var image = await _media!.GetEmojiAsync(token.Identity!, cancellationToken);
+            if (image is null || cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            await _dispatcher.InvokeAsync(() =>
+            {
+                if (!cancellationToken.IsCancellationRequested &&
+                    _viewModel.DetailItems.Contains(item) &&
+                    item.DetailTokens.Contains(token))
+                {
+                    token.Image = image;
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
         }
     }
 

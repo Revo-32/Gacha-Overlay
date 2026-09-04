@@ -80,6 +80,8 @@ public sealed record AppSettings
 
     public int LsdTimerMinutes { get; init; } = GtaoTimerPresets.Lsd[0];
 
+    public bool TimerCompletionSoundEnabled { get; init; } = true;
+
     public int HotkeySettingsVersion { get; init; } = CurrentHotkeySettingsVersion;
 
     public bool HotkeysCustomized { get; init; }
@@ -205,4 +207,5 @@ public enum SettingsCategory
     Hotkeys,
     Diagnostics,
     Developer,
+    Timers,
 }

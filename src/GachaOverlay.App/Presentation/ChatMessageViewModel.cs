@@ -343,7 +343,7 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
         private set => SetField(ref _typographyRevision, value);
     }
 
-    public Thickness MessageMargin { get => _messageMargin; private set => SetField(ref _messageMargin, value); }
+    public Thickness MessageMargin { get => _messageMargin; internal set => SetField(ref _messageMargin, value); }
 
     public double MessageMaxHeight => LineHeight * (IsUltraCompact ? 1 : MaxLines);
 

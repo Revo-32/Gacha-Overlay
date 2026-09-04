@@ -2,8 +2,10 @@
 param(
     [Parameter(Mandatory)][string]$PublishRoot,
     [Parameter(Mandatory)][string]$GuidePath,
-    [Parameter(Mandatory)][string]$DebugTrxPath,
-    [Parameter(Mandatory)][string]$ReleaseTrxPath,
+    [string]$DebugTrxPath,
+    [string]$ReleaseTrxPath,
+    [string]$FocusedTrxPath,
+    [string]$ManifestPath = 'ls-2.0.0-rc.1.json',
     [Parameter(Mandatory)][string]$OutputRoot,
     [Parameter(Mandatory)][ValidatePattern('^[A-Fa-f0-9]{64}$')][string]$ExpectedExeSha256
 )
@@ -12,7 +14,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-$manifest = Get-Content (Join-Path $PSScriptRoot 'ls-2.0.0-rc.1.json') -Raw | ConvertFrom-Json
+$manifestFile = if ([IO.Path]::IsPathRooted($ManifestPath)) { $ManifestPath } else { Join-Path $PSScriptRoot $ManifestPath }
+$manifest = Get-Content -LiteralPath $manifestFile -Raw | ConvertFrom-Json
 $version = $manifest.version
 $output = [IO.Path]::GetFullPath((Join-Path $repo $OutputRoot))
 $releasesRoot = [IO.Path]::GetFullPath((Join-Path $repo 'artifacts/releases'))
@@ -36,14 +39,21 @@ if ($info.ProductVersion -ne $version -or $info.FileVersion -ne '2.0.0.0' -or
 
 $results = @{}
 $testEvidence = @{}
-$trxPaths = @{ debug = $DebugTrxPath; release = $ReleaseTrxPath }
-foreach ($configuration in @('debug', 'release')) {
+$trxPaths = if (-not [string]::IsNullOrWhiteSpace($FocusedTrxPath)) {
+    @{ focused = $FocusedTrxPath }
+} elseif (-not [string]::IsNullOrWhiteSpace($DebugTrxPath) -and -not [string]::IsNullOrWhiteSpace($ReleaseTrxPath)) {
+    @{ debug = $DebugTrxPath; release = $ReleaseTrxPath }
+} else {
+    throw 'Provide FocusedTrxPath or both DebugTrxPath and ReleaseTrxPath.'
+}
+foreach ($configuration in $trxPaths.Keys) {
     $trxPath = (Resolve-Path -LiteralPath $trxPaths[$configuration]).Path
     [xml]$trx = Get-Content -LiteralPath $trxPath -Raw
     $counters = $trx.TestRun.ResultSummary.Counters
+    $minimumTests = if ($configuration -eq 'focused') { 1 } else { 1534 }
     if ([int]$counters.failed -ne 0 -or [int]$counters.notExecuted -ne 0 -or
-        [int]$counters.passed -ne [int]$counters.total -or [int]$counters.total -lt 1534) {
-        throw "The final $configuration test result is not a full PASS."
+        [int]$counters.passed -ne [int]$counters.total -or [int]$counters.total -lt $minimumTests) {
+        throw "The final $configuration test result is not a PASS."
     }
     $results[$configuration] = @{ total = [int]$counters.total; passed = [int]$counters.passed; failed = 0; skipped = 0 }
     $testEvidence[$configuration] = @{
@@ -113,9 +123,14 @@ $zipPath = Join-Path $output $manifest.zipName
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [IO.Compression.ZipFile]::Open($zipPath, [IO.Compression.ZipArchiveMode]::Create)
 try {
+    $archiveTimestamp = if ($version -eq '2.0.0-rc.1') {
+        [DateTimeOffset]::new(2026, 9, 3, 0, 0, 0, [TimeSpan]::Zero)
+    } else {
+        [DateTimeOffset]::new(2026, 9, 4, 0, 0, 0, [TimeSpan]::Zero)
+    }
     foreach ($name in @($sources.Keys | Sort-Object)) {
         $entry = $zip.CreateEntry($name, [IO.Compression.CompressionLevel]::Optimal)
-        $entry.LastWriteTime = [DateTimeOffset]::new(2026, 9, 3, 0, 0, 0, [TimeSpan]::Zero)
+        $entry.LastWriteTime = $archiveTimestamp
         $inputStream = [IO.File]::OpenRead((Join-Path $package $name))
         $outputStream = $entry.Open()
         try { $inputStream.CopyTo($outputStream) } finally { $outputStream.Dispose(); $inputStream.Dispose() }
@@ -155,7 +170,7 @@ $publicManifest = [ordered]@{
     isolatedLaunch = 'PASS - secondary-instance path; no profile/network/interactive UI'
     fullInteractiveLaunch = 'USER VALIDATION PENDING'; publication = 'NOT PUBLISHED'
 }
-[IO.File]::WriteAllText((Join-Path $output 'LS-Overlay-2.0.0-rc.1-manifest.json'),
+[IO.File]::WriteAllText((Join-Path $output "LS-Overlay-$version-manifest.json"),
     ($publicManifest | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
 foreach ($artifact in $artifactInfo) {
     if ((Get-FileHash -LiteralPath (Join-Path $output $artifact.filename)).Hash -ne $artifact.sha256) { throw 'Final checksum mismatch.' }

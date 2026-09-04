@@ -4,7 +4,7 @@ namespace LSOverlay.Backend.Discord;
 // message/reaction events, credentials, timers or a second Discord connection.
 internal sealed class BotCustomStatus(Func<string, Task> setStatus, Action warn)
 {
-    internal const string Text = "LS Overlay - 정상 가동 중";
+    internal const string Text = "LS Overlay - 24/7 가동 중";
 
     internal async Task ApplyAfterReadyAsync()
     {

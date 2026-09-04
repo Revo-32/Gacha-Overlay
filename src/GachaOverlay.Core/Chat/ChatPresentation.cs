@@ -291,6 +291,13 @@ public sealed partial class ChatPresentationSynchronizer
         return new ResolvedDiscordDisplayName("Unknown", DiscordDisplayNameSource.Unknown);
     }
 
+    public static IReadOnlyList<ChatToken> TokenizeDiscordMarkup(string content) =>
+        Tokenize(
+            content,
+            new Dictionary<string, DiscordMention>(StringComparer.Ordinal),
+            new Dictionary<string, DiscordCustomEmoji>(StringComparer.Ordinal),
+            null);
+
     private static IReadOnlyList<ChatToken> Tokenize(
         string content,
         IReadOnlyDictionary<string, DiscordMention> mentions,

@@ -4,15 +4,17 @@
 
 GTA Online을 보면서 Discord 채팅과 판매 순서를 함께 확인하는 Windows HUD 도구입니다.
 
-현재 준비 버전은 **2.0.0-rc.1**입니다. 정식 안정판이 아닌 사전 배포 시험판이며, 공개 전 사용자 검토 단계입니다.
+현재 준비 버전은 **2.0.0-rc.2**입니다. 정식 안정판이 아닌 사전 배포 시험판이며, 공개 전 사용자 검토 단계입니다.
 
 ## 주요 기능
 
 - 선택한 Discord 채널의 최근 채팅, 이미지·이모지·스티커·전달 내용 표시
+- Discord 역할 색상·역할 아이콘·Reaction 표시, 같은 작성자의 연속 메시지 묶음
 - 판매 순서와 상품 확인, 자신의 판매글을 일반 판매 영역에서 바로 **판매완료**
 - 상세 판매 목록은 읽기 전용, 잠금 후에도 펼친 상태 유지
 - 선택한 호스트의 GTA Online 세션 인원 표시
-- HUD 위치·크기·투명도, 글꼴과 다섯 가지 테마
+- 일반·벙커·LSD GTAO 타이머와 완료 알림음
+- HUD 위치·크기·투명도, 조선굴림체를 포함한 글꼴과 다섯 가지 테마
 - 브라우저를 통한 Discord 로그인
 
 ## 사용 환경
@@ -23,10 +25,10 @@ Windows x64, 인터넷 연결, GTA V Enhanced / GTA Online, 지원 Discord 서�
 
 ## 다운로드
 
-RC1은 현재 로컬 준비 단계입니다. 공개된 뒤 [GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.0.0-rc.1-win-x64.zip**을 받으세요.
+RC2는 현재 로컬 준비 단계입니다. 공개된 뒤 [GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.0.0-rc.2-win-x64.zip**을 받으세요.
 GitHub가 자동 생성하는 **Source code** 파일은 실행용이 아닙니다.
 
-현재 공개 후보는 T 기능을 제거한 빌드입니다. [최종 릴리즈 준비 보고서](docs/releases/LS-Overlay-2.0.0-rc.1-final-report.md)에서 검증 결과와 배포 파일을 확인할 수 있습니다. 아직 업로드하거나 공개하지 않았습니다.
+현재 공개 후보는 T 기능을 제거한 빌드입니다. [RC2 릴리즈 안내](docs/releases/LS-Overlay-2.0.0-rc.2-github-release.md)에서 주요 변경을 확인할 수 있습니다. 아직 업로드하거나 공개하지 않았습니다.
 
 ZIP에는 **LSOverlay.exe**, 빠른 시작 README, 한국어 안내서 PDF, LICENSE와 구성요소 라이선스만 포함됩니다.
 별도 .NET 설치는 필요 없습니다. 자동 업데이트와 실행 파일 코드 서명은 제공하지 않습니다.
@@ -71,7 +73,7 @@ LS Overlay는 독립 도구이며 Rockstar Games·Take-Two·Discord의 공식 �
 
 ## RC 검증과 개발
 
-[RC 변경 안내](docs/releases/LS-Overlay-2.0.0-rc.1.md) · [실사용 테스트 계획](docs/releases/LS-Overlay-2.0.0-rc.1-test-plan.md) · [패키징 안내](tools/release/README.md)
+[RC2 변경 안내](docs/releases/LS-Overlay-2.0.0-rc.2-github-release.md) · [패키징 안내](tools/release/README.md)
 
 개발 빌드는 Windows와 .NET 8 SDK가 필요합니다.
 `dotnet build GachaOverlay.sln`, `dotnet test GachaOverlay.sln`으로 확인할 수 있습니다.
