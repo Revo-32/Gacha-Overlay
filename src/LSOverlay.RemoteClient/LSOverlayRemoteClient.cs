@@ -9,7 +9,7 @@ using LSOverlay.Protocol;
 
 namespace LSOverlay.RemoteClient;
 
-public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSOverlayRemoteSalesClient, ILSOverlayGtaCompanionClient, ILSOverlayDiscordWebAuthClient
+public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSOverlayRemoteSalesClient, ILSOverlayGtaCompanionClient, ILSOverlayDiscordWebAuthClient, ILSOverlayIndependentSessionClient
 {
     private static readonly IReadOnlyList<string> SupportedCapabilities =
         new[] { OverlayTransportProtocol.GtaCompanionV1Capability };
@@ -200,20 +200,35 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
                 salesResyncs,
                 cancellationToken);
 
+    public Task StreamIndependentAsync(
+        string accessToken,
+        ChatBootstrapResponse chatBootstrap,
+        ChannelReader<ChatBootstrapResponse> channelSwitches,
+        ChannelReader<SalesBootstrapResponse> salesResyncs,
+        Action<BootstrapResponse> presenceReady,
+        Action connected,
+        CancellationToken cancellationToken) =>
+        StreamChatCoreAsync(accessToken, null, chatBootstrap, null,
+            channelSwitches, salesResyncs, cancellationToken, presenceReady, connected);
+
     private async Task StreamChatCoreAsync(
         string accessToken,
-        BootstrapResponse presenceBootstrap,
+        BootstrapResponse? presenceBootstrap,
         ChatBootstrapResponse initialChatBootstrap,
         SalesBootstrapResponse? salesBootstrap,
         ChannelReader<ChatBootstrapResponse> channelSwitches,
         ChannelReader<SalesBootstrapResponse>? salesResyncs,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<BootstrapResponse>? presenceReady = null,
+        Action? connected = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
-        ArgumentNullException.ThrowIfNull(presenceBootstrap);
+        if (presenceBootstrap is null && presenceReady is null)
+            throw new ArgumentNullException(nameof(presenceBootstrap));
         ArgumentNullException.ThrowIfNull(initialChatBootstrap);
         ArgumentNullException.ThrowIfNull(channelSwitches);
-        OverlayProtocolJson.EnsureVersion(presenceBootstrap.ProtocolVersion);
+        if (presenceBootstrap is not null)
+            OverlayProtocolJson.EnsureVersion(presenceBootstrap.ProtocolVersion);
         OverlayProtocolJson.EnsureVersion(initialChatBootstrap.ProtocolVersion);
         if (salesBootstrap is not null)
         {
@@ -224,12 +239,13 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
         socket.Options.AddSubProtocol(OverlayTransportProtocol.WebSocketSubprotocol);
         socket.Options.SetRequestHeader("Authorization", $"Bearer {accessToken}");
         await socket.ConnectAsync(StreamEndpoint(), cancellationToken).ConfigureAwait(false);
+        connected?.Invoke();
         using var sendGate = new SemaphoreSlim(1, 1);
         await SendSerializedAsync(socket, new StreamClientMessage(
             OverlayTransportProtocol.Version,
-            OverlayTransportProtocol.Resume,
-            presenceBootstrap.Generation,
-            presenceBootstrap.LatestSequence,
+            presenceBootstrap is null ? OverlayTransportProtocol.SessionStart : OverlayTransportProtocol.Resume,
+            presenceBootstrap?.Generation,
+            presenceBootstrap?.LatestSequence,
             Capabilities: SupportedCapabilities), sendGate, cancellationToken).ConfigureAwait(false);
 
         var switchState = new TransactionalChatSwitchState(this);
@@ -245,8 +261,8 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
             await salesState.RequestAsync(socket, salesBootstrap, sendGate, cancellationToken)
                 .ConfigureAwait(false);
         }
-        var presenceGeneration = presenceBootstrap.Generation;
-        var nextPresenceSequence = presenceBootstrap.LatestSequence + 1;
+        var presenceGeneration = presenceBootstrap?.Generation;
+        var nextPresenceSequence = (presenceBootstrap?.LatestSequence ?? -1) + 1;
         var lastGtaRevision = -1L;
         // These requests now belong to the transactional states, not this
         // connection-long async frame. Keep only the presence cursor.
@@ -282,7 +298,18 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
                 OverlayProtocolJson.EnsureVersion(message.ProtocolVersion);
                 switch (message.Type)
                 {
+                    case OverlayTransportProtocol.PresenceBootstrap:
+                        if (presenceReady is null || presenceGeneration is not null ||
+                            message.PresenceBootstrap is not { } initialPresence)
+                            throw new InvalidDataException("Unexpected presence bootstrap.");
+                        OverlayProtocolJson.EnsureVersion(initialPresence.ProtocolVersion);
+                        presenceGeneration = initialPresence.Generation;
+                        nextPresenceSequence = initialPresence.LatestSequence + 1;
+                        presenceReady(initialPresence);
+                        break;
                     case OverlayTransportProtocol.Event:
+                        if (presenceGeneration is null)
+                            throw new InvalidDataException("Presence event arrived before its snapshot.");
                         ValidateEvent(message.Event, presenceGeneration);
                         if (message.Event!.Sequence != nextPresenceSequence++)
                         {
@@ -735,7 +762,6 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
         public void Commit(StreamServerMessage message)
         {
             SalesBootstrapResponse bootstrap;
-            long latestSequence;
             SalesMutationEnvelope[] staged;
             lock (_sync)
             {
@@ -751,7 +777,6 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
                 }
 
                 bootstrap = _bootstrap;
-                latestSequence = receivedLatestSequence;
                 _generation = message.SalesGeneration;
                 _nextSequence = bootstrap.LatestSequence + 1;
                 _committed = true;
@@ -764,7 +789,10 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
                 _staged.Clear();
             }
 
-            _owner.SalesReady?.Invoke(bootstrap with { LatestSequence = latestSequence });
+            // This payload contains the HTTP snapshot, not the replayed mutations.
+            // Consumers must start at its cursor, then advance through staged replay.
+            // Advertising the ready cursor here makes every staged mutation stale.
+            _owner.SalesReady?.Invoke(bootstrap);
             foreach (var envelope in staged)
             {
                 Deliver(envelope);

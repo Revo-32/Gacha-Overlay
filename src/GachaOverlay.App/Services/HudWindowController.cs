@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Diagnostics;
+using GachaOverlay.Core.Diagnostics;
 using System.Windows.Threading;
 using GachaOverlay.App.Presentation;
 using GachaOverlay.Core.Discord.Connection;
@@ -35,6 +37,8 @@ internal sealed class HudWindowController : IDisposable
     private string? _foregroundProcess;
     private HudSessionState? _lastAppliedState;
     private DiscordMessageState? _pendingChatState;
+    private long? _pendingChatReceivedAt;
+    private readonly IRuntimeMetrics? _metrics;
     private string? _authenticatedUserId;
     private System.Windows.Size _chatAvailableSize;
     private bool _started;
@@ -53,7 +57,8 @@ internal sealed class HudWindowController : IDisposable
         Action openHudSettings,
         ILocalizationService localization,
         IAppLogger logger,
-        AppSettings initialSettings)
+        AppSettings initialSettings,
+        IRuntimeMetrics? metrics = null)
     {
         _window = window;
         _viewModel = viewModel;
@@ -68,6 +73,7 @@ internal sealed class HudWindowController : IDisposable
         _localization = localization;
         _logger = logger;
         _settings = initialSettings;
+        _metrics = metrics;
         _updateCoalescer = new UiUpdateCoalescer(
             new DispatcherCallbackScheduler(window.Dispatcher),
             ExecutePresentationUpdate,
@@ -186,12 +192,16 @@ internal sealed class HudWindowController : IDisposable
             _updateCoalescer.Request();
         });
 
-    public void OnDiscordMessageStateChanged(DiscordMessageState state) =>
+    public void OnDiscordMessageStateChanged(DiscordMessageState state)
+    {
+        var receivedAt = Stopwatch.GetTimestamp();
         RunOnUi(() =>
         {
             _pendingChatState = state;
+            _pendingChatReceivedAt = receivedAt;
             _updateCoalescer.Request();
         });
+    }
 
     public void OnAuthenticatedUserChanged(DiscordAuthenticatedUser user) =>
         RunOnUi(() =>
@@ -392,6 +402,11 @@ internal sealed class HudWindowController : IDisposable
         if (_pendingChatState is not null)
         {
             _chat.ApplyState(_pendingChatState, _authenticatedUserId);
+            if (_pendingChatReceivedAt is { } receivedAt)
+            {
+                _metrics?.RecordDuration("wpf.chat.store_to_presentation.duration", Stopwatch.GetElapsedTime(receivedAt));
+                _pendingChatReceivedAt = null;
+            }
         }
 
         if (_chatAvailableSize.Width > 0 && _chatAvailableSize.Height > 0)

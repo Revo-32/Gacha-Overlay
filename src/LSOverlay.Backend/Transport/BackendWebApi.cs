@@ -76,7 +76,10 @@ internal static class BackendWebApi
                 ChatAuthorizationStatus.Authorized => Results.Json(
                     new ChatChannelCatalogResponse(
                         OverlayTransportProtocol.Version,
-                        result.AuthorizedChannels)),
+                        result.AuthorizedChannels)
+                    {
+                        Capabilities = new[] { OverlayTransportProtocol.SessionStart },
+                    }),
                 ChatAuthorizationStatus.AccessRevoked => Results.StatusCode(StatusCodes.Status403Forbidden),
                 _ => Results.StatusCode(StatusCodes.Status503ServiceUnavailable),
             };

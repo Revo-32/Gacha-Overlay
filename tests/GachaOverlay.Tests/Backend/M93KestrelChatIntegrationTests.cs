@@ -23,7 +23,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace GachaOverlay.Tests.Backend;
 
-public sealed class M93KestrelChatIntegrationTests
+public sealed partial class M93KestrelChatIntegrationTests
 {
     [Fact]
     public async Task M913_HostStopDrainsGatewayAndConnectedChatSalesPresenceWithoutLosingCredential()

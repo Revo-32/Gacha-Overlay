@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -207,27 +206,78 @@ internal sealed class DiscordMediaAssetService : IDisposable
 
     internal static (BitmapSource Image, TimeSpan Duration, int FrameCount) DecodeSkiaFrame(byte[] bytes, int width, int frameIndex)
     {
-        using var data = SKData.CreateCopy(bytes);
-        using var codec = SKCodec.Create(data) ?? throw new InvalidDataException("Unsupported image codec.");
-        ValidateMedia(codec.Info, codec.FrameCount);
-        var scale = Math.Min(1d, width / (double)Math.Max(1, codec.Info.Width));
-        var target = new SKImageInfo(Math.Max(1, (int)Math.Round(codec.Info.Width * scale)),
-            Math.Max(1, (int)Math.Round(codec.Info.Height * scale)), SKColorType.Bgra8888, SKAlphaType.Premul);
-        using var bitmap = new SKBitmap(target);
-        var count = Math.Max(1, codec.FrameCount);
-        var normalized = Math.Clamp(frameIndex, 0, count - 1);
-        var result = codec.GetPixels(target, bitmap.GetPixels(), new SKCodecOptions(normalized));
-        if (result is not (SKCodecResult.Success or SKCodecResult.IncompleteInput))
-            throw new InvalidDataException($"Skia decode failed: {result}.");
-        var stride = target.RowBytes;
-        var pixels = new byte[stride * target.Height];
-        Marshal.Copy(bitmap.GetPixels(), pixels, 0, pixels.Length);
-        var image = BitmapSource.Create(target.Width, target.Height, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
-        image.Freeze();
-        var durationMs = codec.FrameInfo is { Length: > 0 } frames
-            ? Math.Clamp(frames[normalized].Duration, 20, 10_000)
-            : 100;
-        return (image, TimeSpan.FromMilliseconds(durationMs), count);
+        using var decoder = new FrameDecoder(bytes, width);
+        return decoder.Decode(frameIndex);
+    }
+
+    // One owner per player; used only by its single in-flight worker. No frame-array cache.
+    internal sealed class FrameDecoder : IDisposable
+    {
+        private readonly SKData _data;
+        private readonly SKCodec _codec;
+        private readonly SKBitmap _bitmap;
+        private readonly long[] _ends;
+        private readonly SKImageInfo _target;
+
+        public FrameDecoder(byte[] bytes, int width)
+        {
+            _data = SKData.CreateCopy(bytes);
+            try
+            {
+                _codec = SKCodec.Create(_data) ?? throw new InvalidDataException("Unsupported image codec.");
+                ValidateMedia(_codec.Info, _codec.FrameCount);
+                var scale = Math.Min(1d, Math.Max(1, width) / (double)_codec.Info.Width);
+                _target = new SKImageInfo(Math.Max(1, (int)Math.Round(_codec.Info.Width * scale)),
+                    Math.Max(1, (int)Math.Round(_codec.Info.Height * scale)), SKColorType.Bgra8888, SKAlphaType.Premul);
+                _bitmap = new SKBitmap(_target);
+                var frames = _codec.FrameInfo;
+                _ends = new long[Math.Max(1, _codec.FrameCount)];
+                for (var i = 0; i < _ends.Length; i++)
+                    _ends[i] = (i == 0 ? 0 : _ends[i - 1]) + TimeSpan.FromMilliseconds(
+                        frames.Length > i ? Math.Clamp(frames[i].Duration, 20, 10_000) : 100).Ticks;
+            }
+            catch
+            {
+                _bitmap?.Dispose();
+                _codec?.Dispose();
+                _data.Dispose();
+                throw;
+            }
+        }
+
+        internal long BufferBytes => (long)_target.RowBytes * _target.Height;
+
+        internal (int Frame, long Ordinal, TimeSpan Next) SelectFrame(TimeSpan elapsed)
+        {
+            var ticks = Math.Max(0, elapsed.Ticks);
+            var cycles = ticks / _ends[^1];
+            var within = ticks % _ends[^1];
+            var index = Array.BinarySearch(_ends, within + 1);
+            if (index < 0) index = ~index;
+            return (index, cycles * _ends.Length + index, TimeSpan.FromTicks(cycles * _ends[^1] + _ends[index]));
+        }
+
+        public (BitmapSource Image, TimeSpan Duration, int FrameCount) Decode(int frameIndex)
+        {
+            var frame = Math.Clamp(frameIndex, 0, _ends.Length - 1);
+            // PriorFrame=-1 delegates required intermediate composition/disposal to Skia,
+            // including random timeline seeks and loop wrap. Never assert an invalid prior frame.
+            var result = _codec.GetPixels(_target, _bitmap.GetPixels(), new SKCodecOptions(frame) { PriorFrame = -1 });
+            if (result is not (SKCodecResult.Success or SKCodecResult.IncompleteInput))
+                throw new InvalidDataException($"Skia decode failed: {result}.");
+            // WPF copies synchronously into its own backing store. No per-frame managed BGRA array.
+            var image = BitmapSource.Create(_target.Width, _target.Height, 96, 96, PixelFormats.Pbgra32,
+                null, _bitmap.GetPixels(), checked((int)BufferBytes), _target.RowBytes);
+            image.Freeze();
+            return (image, TimeSpan.FromTicks(_ends[frame] - (frame == 0 ? 0 : _ends[frame - 1])), _ends.Length);
+        }
+
+        public void Dispose()
+        {
+            _bitmap.Dispose();
+            _codec.Dispose();
+            _data.Dispose();
+        }
     }
 
     private static bool InspectMedia(byte[] bytes)
@@ -304,6 +354,7 @@ internal sealed class MediaAnimationScheduler : IDisposable
     private readonly IRuntimeMetrics? _metrics;
     private readonly IAppLogger _logger;
     private int _activeDecoders;
+    private long _bufferBytes;
     private bool _disposed;
 
     public MediaAnimationScheduler(Dispatcher dispatcher, IRuntimeMetrics? metrics, IAppLogger logger)
@@ -311,6 +362,7 @@ internal sealed class MediaAnimationScheduler : IDisposable
         _metrics = metrics;
         _logger = logger;
         _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(20), DispatcherPriority.Background, (_, _) => Tick(), dispatcher);
+        _timer.Stop();
     }
 
     public IDisposable Register(byte[] bytes, int width, Action<BitmapSource> callback)
@@ -338,14 +390,15 @@ internal sealed class MediaAnimationScheduler : IDisposable
 
     private void Tick()
     {
-        var now = DateTimeOffset.UtcNow;
-        foreach (var player in _players.ToArray()) player.TryAdvance(now);
+        _metrics?.Increment("media.animation.scheduler_tick.count");
+        foreach (var player in _players.ToArray()) player.TryAdvance();
         if (_players.Count == 0) _timer.Stop();
     }
 
     private void Remove(Player player)
     {
         _players.Remove(player);
+        if (_players.Count == 0) _timer.Stop();
         UpdateGauge();
     }
 
@@ -362,12 +415,14 @@ internal sealed class MediaAnimationScheduler : IDisposable
         private readonly int _width;
         private readonly Action<BitmapSource> _callback;
         private readonly CancellationTokenSource _cancel = new();
-        private DateTimeOffset _next = DateTimeOffset.UtcNow;
-        private int _frame = 1;
-        private int _frameCount = 1;
-        private TimeSpan _frameDuration = TimeSpan.FromMilliseconds(100);
+        private readonly object _lifetime = new();
+        private readonly long _started = Stopwatch.GetTimestamp();
+        private TimeSpan _next;
+        private long _lastOrdinal = -1;
+        private DiscordMediaAssetService.FrameDecoder? _decoder;
         private int _busy;
-        private bool _disposed;
+        private volatile bool _disposed;
+        private bool _released;
 
         public Player(MediaAnimationScheduler owner, byte[] bytes, int width, Action<BitmapSource> callback)
         {
@@ -377,21 +432,15 @@ internal sealed class MediaAnimationScheduler : IDisposable
             _callback = callback;
         }
 
-        public void TryAdvance(DateTimeOffset now)
+        public void TryAdvance()
         {
-            if (_disposed || now < _next) return;
-            if (Interlocked.Exchange(ref _busy, 1) != 0) return;
-            if (_frameCount > 1 && _frameDuration > TimeSpan.Zero && now > _next)
+            lock (_lifetime)
             {
-                var skipped = (long)((now - _next).Ticks / (double)_frameDuration.Ticks);
-                if (skipped > 0)
-                {
-                    _frame = (int)((_frame + skipped % _frameCount) % _frameCount);
-                    _next = now;
-                    _owner._metrics?.Increment(RuntimeMetricNames.MediaAnimationFramesSkipped, skipped);
-                }
+                if (_disposed || _busy != 0 || Stopwatch.GetElapsedTime(_started) < _next) return;
+                _busy = 1;
             }
-            _ = DecodeAsync();
+            // WaitAsync alone can complete synchronously. Explicitly leave the UI thread.
+            _ = Task.Run(DecodeAsync);
         }
 
         private async Task DecodeAsync()
@@ -399,35 +448,45 @@ internal sealed class MediaAnimationScheduler : IDisposable
             try
             {
                 await _owner._decodeSlots.WaitAsync(_cancel.Token).ConfigureAwait(false);
-                var active = Interlocked.Increment(ref _owner._activeDecoders);
-                _owner._metrics?.SetGauge(RuntimeMetricNames.MediaAnimationDecoderCount, active);
-                _owner._metrics?.SetGauge(RuntimeMetricNames.MediaAnimationFrameBuffers, active);
                 try
                 {
+                    _cancel.Token.ThrowIfCancellationRequested();
                     var started = Stopwatch.GetTimestamp();
-                    var decoded = DiscordMediaAssetService.DecodeSkiaFrame(_bytes, _width, _frame);
+                    if (_decoder is null)
+                    {
+                        _decoder = new DiscordMediaAssetService.FrameDecoder(_bytes, _width);
+                        var active = Interlocked.Increment(ref _owner._activeDecoders);
+                        _owner._metrics?.SetGauge(RuntimeMetricNames.MediaAnimationDecoderCount, active);
+                        _owner._metrics?.SetGauge(RuntimeMetricNames.MediaAnimationFrameBuffers, active);
+                        _owner._metrics?.SetGauge("media.animation.working_bytes", Interlocked.Add(ref _owner._bufferBytes, _decoder.BufferBytes));
+                        _owner._metrics?.Increment("media.animation.decoder_created.count");
+                    }
+                    var selection = _decoder.SelectFrame(Stopwatch.GetElapsedTime(_started));
+                    var skipped = selection.Ordinal - _lastOrdinal - 1;
+                    if (skipped > 0) _owner._metrics?.Increment(RuntimeMetricNames.MediaAnimationFramesSkipped, skipped);
+                    _lastOrdinal = selection.Ordinal;
+                    var decoded = _decoder.Decode(selection.Frame);
                     _owner._metrics?.RecordDuration(RuntimeMetricNames.MediaAnimationDecodeDuration, Stopwatch.GetElapsedTime(started));
                     _owner._metrics?.Increment(RuntimeMetricNames.MediaAnimationFrameDecoded);
                     if (_disposed) return;
-                    _frameCount = decoded.FrameCount;
-                    _frameDuration = decoded.Duration;
-                    _frame = (_frame + 1) % decoded.FrameCount;
-                    _next += decoded.Duration;
+                    _next = selection.Next;
                     var presented = false;
                     await _owner._timer.Dispatcher.InvokeAsync(() =>
                     {
                         if (_disposed) return;
+                        if (Stopwatch.GetElapsedTime(_started) >= selection.Next)
+                        {
+                            _owner._metrics?.Increment(RuntimeMetricNames.MediaAnimationFramesSkipped);
+                            return;
+                        }
                         _callback(decoded.Image);
                         presented = true;
-                    });
+                    }, DispatcherPriority.Background, _cancel.Token);
                     if (presented)
                         _owner._metrics?.Increment(RuntimeMetricNames.MediaAnimationFramesPresented);
                 }
                 finally
                 {
-                    active = Interlocked.Decrement(ref _owner._activeDecoders);
-                    _owner._metrics?.SetGauge(RuntimeMetricNames.MediaAnimationDecoderCount, active);
-                    _owner._metrics?.SetGauge(RuntimeMetricNames.MediaAnimationFrameBuffers, active);
                     _owner._decodeSlots.Release();
                 }
             }
@@ -436,21 +495,45 @@ internal sealed class MediaAnimationScheduler : IDisposable
             {
                 _owner._metrics?.Increment(RuntimeMetricNames.MediaAnimationFrameFailed);
                 _owner._logger.Warning("MEDIA", $"Animated frame decode failed type={exception.GetType().Name}.");
-                await _owner._timer.Dispatcher.InvokeAsync(Dispose);
+                await _owner._timer.Dispatcher.InvokeAsync(Dispose, DispatcherPriority.Background);
             }
             finally
             {
-                Interlocked.Exchange(ref _busy, 0);
+                lock (_lifetime)
+                {
+                    _busy = 0;
+                    if (_disposed) ReleaseResources();
+                }
             }
         }
 
         public void Dispose()
         {
-            if (_disposed) return;
-            _disposed = true;
-            _cancel.Cancel();
+            lock (_lifetime)
+            {
+                if (_disposed) return;
+                _disposed = true;
+                _cancel.Cancel();
+                if (_busy == 0) ReleaseResources();
+            }
             _owner.Remove(this);
             _owner._metrics?.Increment(RuntimeMetricNames.MediaAnimationDisposals);
+        }
+
+        private void ReleaseResources()
+        {
+            if (_released) return;
+            _released = true;
+            if (_decoder is not null)
+            {
+                var bytes = _decoder.BufferBytes;
+                _decoder.Dispose();
+                _decoder = null;
+                var remaining = Interlocked.Decrement(ref _owner._activeDecoders);
+                _owner._metrics?.SetGauge(RuntimeMetricNames.MediaAnimationDecoderCount, remaining);
+                _owner._metrics?.SetGauge(RuntimeMetricNames.MediaAnimationFrameBuffers, remaining);
+                _owner._metrics?.SetGauge("media.animation.working_bytes", Interlocked.Add(ref _owner._bufferBytes, -bytes));
+            }
             _cancel.Dispose();
         }
     }

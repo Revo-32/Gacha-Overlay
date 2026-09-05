@@ -1,6 +1,8 @@
 using GachaOverlay.Core.Discord.Connection;
 using GachaOverlay.Core.Discord.Messages;
 using GachaOverlay.Core.Providers;
+using GachaOverlay.Core.Diagnostics;
+using System.Diagnostics;
 using LSOverlay.Protocol;
 
 namespace LSOverlay.RemoteClient;
@@ -15,6 +17,7 @@ public sealed class RemoteChatIngressAdapter : IDisposable
     private readonly IOverlayMessageIngress _ingress;
     private readonly ILSOverlayRemoteClient _client;
     private readonly long _ingressGeneration;
+    private readonly IRuntimeMetrics? _metrics;
     private bool _initialized;
     private bool _disposed;
 
@@ -22,7 +25,8 @@ public sealed class RemoteChatIngressAdapter : IDisposable
         IOverlayMessageIngress ingress,
         ILSOverlayRemoteClient client,
         long ingressGeneration,
-        string? authenticatedUserId)
+        string? authenticatedUserId,
+        IRuntimeMetrics? metrics = null)
     {
         if (ingressGeneration <= 0)
         {
@@ -32,6 +36,7 @@ public sealed class RemoteChatIngressAdapter : IDisposable
         _ingress = ingress ?? throw new ArgumentNullException(nameof(ingress));
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _ingressGeneration = ingressGeneration;
+        _metrics = metrics;
         if (!string.IsNullOrWhiteSpace(authenticatedUserId))
         {
             _ingress.SetAuthenticatedUser(authenticatedUserId);
@@ -82,15 +87,19 @@ public sealed class RemoteChatIngressAdapter : IDisposable
         return _ingress.ReplaceMain(_ingressGeneration, targets, snapshot);
     }
 
-    private void OnChannelReady(ChatBootstrapResponse bootstrap) => ApplyBootstrap(bootstrap);
+    private void OnChannelReady(ChatBootstrapResponse bootstrap)
+    {
+        if (!_disposed) ApplyBootstrap(bootstrap);
+    }
 
     private void OnMutation(ChatMutationEnvelope envelope)
     {
-        if (!_initialized)
+        if (_disposed || !_initialized)
         {
             return;
         }
 
+        var started = Stopwatch.GetTimestamp();
         var mutation = envelope.EventType switch
         {
             OverlayTransportProtocol.ChatMessageCreate when envelope.Message is not null =>
@@ -108,6 +117,7 @@ public sealed class RemoteChatIngressAdapter : IDisposable
         if (mutation is not null)
         {
             _ingress.ReceiveLive(_ingressGeneration, mutation);
+            _metrics?.RecordDuration("remote.chat.event.receive_to_store.duration", Stopwatch.GetElapsedTime(started));
         }
     }
 

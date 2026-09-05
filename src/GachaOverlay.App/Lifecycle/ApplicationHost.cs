@@ -217,7 +217,8 @@ internal sealed class ApplicationHost : IDisposable
             () => OpenSettings(SettingsOpenSource.HudGear, SettingsCategory.Hud),
             _localization,
             Logger,
-            settings);
+            settings,
+            _runtimeMetrics);
 
         var gtaCompanionState = new GtaCompanionStateManager(
             new JsonGtaCompanionStateStore(paths.GtaCompanionStateFilePath, Logger),
@@ -270,7 +271,8 @@ internal sealed class ApplicationHost : IDisposable
             paths.RemoteInstallationIdFilePath,
             Logger,
             recoveryAudit: _recoveryAudit,
-            channelPolicy: MainChannelPolicy.Apply);
+            channelPolicy: MainChannelPolicy.Apply,
+            metrics: _runtimeMetrics);
         _hudController.ChannelStepRequested += OnChannelStepRequested;
         _hudController.TimerStartRequested += OnTimerStartRequested;
         _hudController.GtaCompanionVisibilityToggleRequested += OnGtaCompanionVisibilityToggleRequested;

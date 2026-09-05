@@ -1,5 +1,6 @@
 using LSOverlay.Backend.Security;
 using LSOverlay.Protocol;
+using LSOverlay.Backend.Transport;
 
 namespace LSOverlay.Backend.Chat;
 
@@ -45,7 +46,7 @@ internal sealed class ChatAuthorizationService : IChatAuthorizationService
     public static readonly TimeSpan LeaseLifetime = TimeSpan.FromMinutes(2);
     public const int MaximumLeases = Security.ClientCredentialRegistry.MaximumCredentials;
 
-    private sealed record Lease(
+    internal sealed record Lease(
         ChatAuthorizationResult Result,
         DateTimeOffset ExpiresAt);
 
@@ -55,6 +56,45 @@ internal sealed class ChatAuthorizationService : IChatAuthorizationService
     private readonly Dictionary<(ulong GuildId, ulong UserId), Lease> _leases = new();
     private readonly Dictionary<(ulong GuildId, ulong UserId), Task<Lease>> _refreshes = new();
     private readonly Dictionary<ulong, long> _guildVersions = new();
+
+    private static readonly AsyncLocal<RefreshBatch?> CurrentBatch = new();
+
+    // Explicit logical operation, never a new time-based permission cache.
+    internal sealed class RefreshBatch : IDisposable
+    {
+        internal readonly object Sync = new();
+        internal readonly Dictionary<(ChatAuthorizationService Owner, AuthenticatedClientIdentity Identity),
+            (long Version, Task<Lease> Task)> Requests = new();
+        private readonly CancellationTokenSource _cancellation;
+        internal CancellationToken Token { get; }
+
+        public RefreshBatch(CancellationToken token)
+        {
+            _cancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
+            Token = _cancellation.Token;
+        }
+
+        public void ReleaseResults() { lock (Sync) Requests.Clear(); }
+
+        public IDisposable Enter()
+        {
+            var previous = CurrentBatch.Value;
+            CurrentBatch.Value = this;
+            return new Restore(() => CurrentBatch.Value = previous);
+        }
+
+        public void Dispose()
+        {
+            _cancellation.Cancel();
+            lock (Sync) Requests.Clear();
+            _cancellation.Dispose();
+        }
+
+        private sealed class Restore(Action restore) : IDisposable
+        {
+            public void Dispose() => restore();
+        }
+    }
 
     public ChatAuthorizationService(IChatDiscordSource source)
         : this(source, () => DateTimeOffset.UtcNow)
@@ -129,6 +169,8 @@ internal sealed class ChatAuthorizationService : IChatAuthorizationService
         bool forceRefresh,
         CancellationToken cancellationToken)
     {
+        if (forceRefresh && CurrentBatch.Value is { } batch)
+            return GetBatchLeaseAsync(batch, identity, cancellationToken);
         var key = (identity.GuildId, identity.DiscordUserId);
         lock (_sync)
         {
@@ -137,11 +179,13 @@ internal sealed class ChatAuthorizationService : IChatAuthorizationService
                 _leases.TryGetValue(key, out var cached) &&
                 cached.ExpiresAt > now)
             {
+                StagingConnectionDiagnostic.Note("authorization=cache_hit");
                 return Task.FromResult(cached);
             }
 
             if (_refreshes.TryGetValue(key, out var refresh))
             {
+                StagingConnectionDiagnostic.Note("authorization=coalesced");
                 return refresh.WaitAsync(cancellationToken);
             }
 
@@ -157,6 +201,46 @@ internal sealed class ChatAuthorizationService : IChatAuthorizationService
             _ = CompleteRefreshAsync(identity, key, guildVersion, completion);
             return completion.Task.WaitAsync(cancellationToken);
         }
+    }
+
+    private async Task<Lease> GetBatchLeaseAsync(
+        RefreshBatch batch, AuthenticatedClientIdentity identity, CancellationToken cancellationToken)
+    {
+        Task<Lease> task;
+        long version;
+        lock (batch.Sync)
+        {
+            batch.Token.ThrowIfCancellationRequested();
+            var key = (this, identity);
+            if (!batch.Requests.TryGetValue(key, out var request))
+            {
+                lock (_sync) version = _guildVersions.GetValueOrDefault(identity.GuildId);
+                task = RefreshCoreAsync(identity, (identity.GuildId, identity.DiscordUserId), version, batch.Token);
+                batch.Requests.Add(key, (version, task));
+                // A cancelled last consumer must not leave a late fault unobserved.
+                _ = task.ContinueWith(t => { _ = t.Exception; }, CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
+                StagingConnectionDiagnostic.Note("permission.batch request=1");
+            }
+            else
+            {
+                (version, task) = request;
+                StagingConnectionDiagnostic.Note("permission.batch coalesced=1");
+            }
+        }
+
+        var lease = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        batch.Token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_sync)
+        {
+            var now = _clock();
+            if (_guildVersions.GetValueOrDefault(identity.GuildId) != version ||
+                (lease.Result.Status == ChatAuthorizationStatus.Authorized && lease.ExpiresAt <= now))
+                return new Lease(ChatAuthorizationResult.Unavailable(now), now);
+        }
+        return lease;
     }
 
     private async Task CompleteRefreshAsync(
@@ -186,11 +270,14 @@ internal sealed class ChatAuthorizationService : IChatAuthorizationService
     private async Task<Lease> RefreshCoreAsync(
         AuthenticatedClientIdentity identity,
         (ulong GuildId, ulong UserId) key,
-        long guildVersion)
+        long guildVersion,
+        CancellationToken cancellationToken = default)
     {
+        using var diagnostic = StagingConnectionDiagnostic.Stage("authorization.refresh");
         Lease lease;
-        var source = await _source.GetGuildAsync(identity, CancellationToken.None)
+        var source = await _source.GetGuildAsync(identity, cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         var now = _clock();
         if (source.Status == ChatSourceStatus.Unavailable)
         {
@@ -236,6 +323,7 @@ internal sealed class ChatAuthorizationService : IChatAuthorizationService
 
         lock (_sync)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (_guildVersions.GetValueOrDefault(identity.GuildId) != guildVersion)
             {
                 var invalidatedAt = _clock();

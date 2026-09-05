@@ -1,10 +1,12 @@
 [CmdletBinding()]
-param()
+param(
+    [string]$ClientPath = (Join-Path $PSScriptRoot '..\..\src\GachaOverlay.App\bin\Release\net8.0-windows\GachaOverlay.App.exe')
+)
 
 $ErrorActionPreference = 'Stop'
 
 $stagingEndpoint = 'https://lsoverlaybackend-staging.up.railway.app'
-$clientPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\src\GachaOverlay.App\bin\Release\net8.0-windows\GachaOverlay.App.exe'))
+$clientPath = [System.IO.Path]::GetFullPath($ClientPath)
 $dataDirectory = [System.IO.Path]::GetFullPath((Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'GachaOverlay'))
 $settingsPath = Join-Path $dataDirectory 'settings.json'
 $settingsBackupPath = Join-Path $dataDirectory 'settings.json.bak'

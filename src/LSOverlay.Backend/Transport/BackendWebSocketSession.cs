@@ -40,6 +40,7 @@ internal sealed class BackendWebSocketSession
         AuthenticatedClientIdentity identity,
         CancellationToken cancellationToken)
     {
+        using var diagnostic = StagingConnectionDiagnostic.Stage("session");
         StreamClientMessage? resume;
         try
         {
@@ -51,8 +52,9 @@ internal sealed class BackendWebSocketSession
                 "Invalid WebSocket control message.", cancellationToken).ConfigureAwait(false);
             return;
         }
-        if (resume is null || resume.Type != OverlayTransportProtocol.Resume ||
-            resume.Generation is null || resume.AfterSequence is null)
+        var startsSession = resume?.Type == OverlayTransportProtocol.SessionStart;
+        if (resume is null || (!startsSession && (resume.Type != OverlayTransportProtocol.Resume ||
+            resume.Generation is null || resume.AfterSequence is null)))
         {
             await CloseAsync(socket, WebSocketCloseStatus.ProtocolError,
                 "A version 1 resume request is required.", cancellationToken)
@@ -61,12 +63,19 @@ internal sealed class BackendWebSocketSession
         }
 
         RemoteResumeResult prepared;
+        BootstrapResponse? initialPresence = null;
         try
         {
             OverlayProtocolJson.EnsureVersion(resume.ProtocolVersion);
-            prepared = _publication.PrepareResume(
-                resume.Generation,
-                resume.AfterSequence.Value);
+            if (startsSession)
+            {
+                (initialPresence, prepared) = _publication.StartSession(identity);
+            }
+            else
+            {
+                prepared = _publication.PrepareResume(
+                    resume.Generation!, resume.AfterSequence!.Value);
+            }
         }
         catch (NotSupportedException)
         {
@@ -91,6 +100,13 @@ internal sealed class BackendWebSocketSession
         }
 
         await using var subscription = prepared.Subscription;
+        if (initialPresence is not null)
+        {
+            await SendAsync(socket, new StreamServerMessage(
+                OverlayTransportProtocol.Version,
+                OverlayTransportProtocol.PresenceBootstrap,
+                PresenceBootstrap: initialPresence), cancellationToken).ConfigureAwait(false);
+        }
         foreach (var item in subscription.Replay)
         {
             await SendAsync(socket, EventMessage(item), cancellationToken).ConfigureAwait(false);
@@ -142,6 +158,7 @@ internal sealed class BackendWebSocketSession
 
         var completed = await Task.WhenAny(forward, heartbeat, send, receive)
             .ConfigureAwait(false);
+        StagingConnectionDiagnostic.Note($"session_end task={(completed == heartbeat ? "heartbeat" : completed == receive ? "receive" : completed == send ? "send" : "forward")} fault={completed.Exception?.GetBaseException().GetType().Name ?? "none"} cancelled={cancellationToken.IsCancellationRequested} close={socket.CloseStatus?.ToString() ?? "none"} ack_age_ms={(DateTimeOffset.UtcNow - heartbeatState.LastAcknowledgement).TotalMilliseconds:F0}");
         linked.Cancel();
         outbound.Writer.TryComplete();
         if (completed.IsFaulted && !cancellationToken.IsCancellationRequested)
@@ -189,10 +206,14 @@ internal sealed class BackendWebSocketSession
                 throw new TimeoutException("Client heartbeat acknowledgement timed out.");
             }
 
-            await chatState.RefreshAuthorizationIfDueAsync(now, cancellationToken)
-                .ConfigureAwait(false);
-            await salesState.RefreshAuthorizationIfDueAsync(now, cancellationToken)
-                .ConfigureAwait(false);
+            using (var batch = new ChatAuthorizationService.RefreshBatch(cancellationToken))
+            using (batch.Enter())
+            {
+                await chatState.RefreshAuthorizationIfDueAsync(now, cancellationToken)
+                    .ConfigureAwait(false);
+                await salesState.RefreshAuthorizationIfDueAsync(now, cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
             var id = Guid.NewGuid().ToString("N");
             state.ExpectedId = id;
@@ -226,6 +247,9 @@ internal sealed class BackendWebSocketSession
         SalesConnectionState salesState,
         CancellationToken cancellationToken)
     {
+        using var initialPermissions = new ChatAuthorizationService.RefreshBatch(cancellationToken);
+        var initialChat = true;
+        var initialSales = true;
         while (!cancellationToken.IsCancellationRequested &&
                socket.State == WebSocketState.Open)
         {
@@ -246,13 +270,27 @@ internal sealed class BackendWebSocketSession
 
             if (message.Type == OverlayTransportProtocol.ChatSubscribe)
             {
-                await chatState.SwitchAsync(message, cancellationToken).ConfigureAwait(false);
+                if (initialChat)
+                {
+                    using (initialPermissions.Enter())
+                        await chatState.SwitchAsync(message, cancellationToken).ConfigureAwait(false);
+                    initialChat = false;
+                    if (!initialSales) initialPermissions.ReleaseResults();
+                }
+                else await chatState.SwitchAsync(message, cancellationToken).ConfigureAwait(false);
                 continue;
             }
 
             if (message.Type == OverlayTransportProtocol.SalesSubscribe)
             {
-                await salesState.SubscribeAsync(message, cancellationToken).ConfigureAwait(false);
+                if (initialSales)
+                {
+                    using (initialPermissions.Enter())
+                        await salesState.SubscribeAsync(message, cancellationToken).ConfigureAwait(false);
+                    initialSales = false;
+                    if (!initialChat) initialPermissions.ReleaseResults();
+                }
+                else await salesState.SubscribeAsync(message, cancellationToken).ConfigureAwait(false);
                 continue;
             }
 
@@ -466,6 +504,7 @@ internal sealed class BackendWebSocketSession
                 throw new InvalidDataException("Sales transport is unavailable in this host.");
             }
 
+            StagingConnectionDiagnostic.Note("permission.consumer=sales subscription");
             var prepared = await _sales.SubscribeAsync(
                     _identity,
                     message.SalesGeneration,
@@ -512,6 +551,7 @@ internal sealed class BackendWebSocketSession
                 return;
             }
 
+            StagingConnectionDiagnostic.Note("permission.consumer=sales periodic");
             var result = await _sales.RefreshAuthorizationAsync(_identity, cancellationToken)
                 .ConfigureAwait(false);
             _nextAuthorizationRefresh = now + RefreshInterval;
@@ -706,6 +746,8 @@ internal sealed class BackendWebSocketSession
                     return;
                 }
 
+                using var diagnostic = StagingConnectionDiagnostic.Stage("chat.subscribe");
+                StagingConnectionDiagnostic.Note("permission.consumer=chat subscription");
                 var prepared = await _chat.SubscribeAsync(
                         _identity,
                         message.ChannelId.Value,
@@ -727,6 +769,7 @@ internal sealed class BackendWebSocketSession
                     return;
                 }
 
+                StagingConnectionDiagnostic.Note("chat.subscribe_authorized");
                 var next = prepared.Resume.Subscription;
                 foreach (var envelope in next.Replay)
                 {
@@ -741,6 +784,7 @@ internal sealed class BackendWebSocketSession
                     message.SwitchGeneration,
                     null);
 
+                StagingConnectionDiagnostic.Note($"chat.ready_queued replay_count={next.Replay.Count}");
                 // Commit only after the replacement subscription is authorized, replayed,
                 // and declared ready; the old channel remains live until this point.
                 var previous = _subscription;
@@ -789,6 +833,7 @@ internal sealed class BackendWebSocketSession
                 return;
             }
 
+            StagingConnectionDiagnostic.Note("permission.consumer=chat periodic");
             var result = await _chat.RefreshAuthorizationAsync(
                     _identity,
                     channelId,

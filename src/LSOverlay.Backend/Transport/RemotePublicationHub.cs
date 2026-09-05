@@ -171,6 +171,17 @@ internal sealed class RemotePublicationHub : IRemotePresencePublisher
         }
     }
 
+    public (BootstrapResponse Bootstrap, RemoteResumeResult Resume) StartSession(AuthenticatedClientIdentity identity)
+    {
+        // Snapshot and subscription share the publication lock: no event can fall
+        // between the snapshot cursor and the new subscriber.
+        lock (_sync)
+        {
+            var bootstrap = CaptureBootstrap(identity);
+            return (bootstrap, PrepareResume(bootstrap.Generation, bootstrap.LatestSequence));
+        }
+    }
+
     public RemoteResumeResult PrepareResume(string generation, long afterSequence)
     {
         lock (_sync)

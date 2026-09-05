@@ -843,6 +843,7 @@ public sealed partial class M94ProductionRemoteModeTests
         }
 
         public IReadOnlyList<ChatChannelDescriptor>? ChannelCatalogOverride { get; set; }
+        public IReadOnlyList<string>? Capabilities { get; set; }
         public bool StreamStarted { get; private set; }
         public bool Disposed { get; private set; }
         public int SubscriberCount => (StreamLive?.GetInvocationList().Length ?? 0) +
@@ -911,7 +912,8 @@ public sealed partial class M94ProductionRemoteModeTests
                     {
                         new ChatChannelDescriptor(10, 100, "main", 0, false),
                         new ChatChannelDescriptor(10, 200, "second", 1, false),
-                    }));
+                    })
+                { Capabilities = Capabilities });
 
         public Task<ChatBootstrapResponse> GetChatBootstrapAsync(
             string accessToken,

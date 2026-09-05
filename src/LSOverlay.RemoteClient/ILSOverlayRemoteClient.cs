@@ -68,3 +68,15 @@ public interface ILSOverlayGtaCompanionClient
 {
     event Action<GtaCompanionSnapshot>? GtaCompanionSnapshotReceived;
 }
+
+public interface ILSOverlayIndependentSessionClient
+{
+    Task StreamIndependentAsync(
+        string accessToken,
+        ChatBootstrapResponse chatBootstrap,
+        ChannelReader<ChatBootstrapResponse> channelSwitches,
+        ChannelReader<SalesBootstrapResponse> salesResyncs,
+        Action<BootstrapResponse> presenceReady,
+        Action connected,
+        CancellationToken cancellationToken);
+}

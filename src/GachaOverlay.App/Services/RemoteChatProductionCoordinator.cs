@@ -1,4 +1,5 @@
 using System.IO;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.WebSockets;
 using System.Threading.Channels;
@@ -8,6 +9,7 @@ using GachaOverlay.Core.Logging;
 using GachaOverlay.Core.Providers;
 using GachaOverlay.Core.Sales;
 using GachaOverlay.Core.Settings;
+using GachaOverlay.Core.Diagnostics;
 using LSOverlay.Protocol;
 using LSOverlay.RemoteClient;
 
@@ -30,6 +32,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
     private readonly IRemoteAccessCredentialStore _credentialStore;
     private readonly IOverlayMessageIngress _ingress;
     private readonly IAppLogger _logger;
+    private readonly IRuntimeMetrics _metrics;
     private readonly RemoteRecoveryAudit? _recoveryAudit;
     private readonly string _installationIdPath;
     private readonly Func<Uri, ILSOverlayRemoteClient> _clientFactory;
@@ -65,7 +68,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         Func<Uri, ILSOverlayRemoteClient>? clientFactory = null,
         RemoteRecoveryAudit? recoveryAudit = null,
         Action<Uri>? openBrowser = null,
-        Func<IEnumerable<RemoteChannelOption>, RemoteChannelOption[]>? channelPolicy = null)
+        Func<IEnumerable<RemoteChannelOption>, RemoteChannelOption[]>? channelPolicy = null,
+        IRuntimeMetrics? metrics = null)
     {
         _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
         _credentialStore = credentialStore ?? throw new ArgumentNullException(nameof(credentialStore));
@@ -73,6 +77,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(installationIdPath);
         _installationIdPath = installationIdPath;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _metrics = metrics ?? new RuntimeMetricsCollector();
         _recoveryAudit = recoveryAudit;
         _channelPolicy = channelPolicy;
         _clientFactory = clientFactory ?? (uri => new LSOverlayRemoteClient(uri));
@@ -286,6 +291,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
     public ManualSalesResyncResult RequestSalesResync()
     {
         ThrowIfDisposed();
+        _metrics.Increment("remote.sales.resync.requested");
         var settings = _settingsStore.Current;
         if (!settings.SalesTrackingEnabled)
         {
@@ -311,6 +317,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
 
         if (Interlocked.Exchange(ref _salesRecoveryRestarting, 1) != 0)
         {
+            _metrics.Increment("remote.sales.resync.coalesced");
             return ManualSalesResyncResult.Coalesced;
         }
 
@@ -321,6 +328,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         });
         if (request is null)
         {
+            _metrics.Increment("remote.sales.resync.coalesced");
             Interlocked.Exchange(ref _salesRecoveryRestarting, 0);
             return ManualSalesResyncResult.Coalesced;
         }
@@ -590,6 +598,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
             Action? liveHandler = null;
             Action<ChatBootstrapResponse>? channelReadyHandler = null;
             Action<SalesBootstrapResponse>? salesReadyHandler = null;
+            Action<SalesMutationEnvelope>? salesMutationHandler = null;
+            Action<string>? salesStatusHandler = null;
             Action<HostPresenceSnapshot>? presenceHandler = null;
             Action<GtaCompanionSnapshot>? gtaCompanionHandler = null;
             ILSOverlayGtaCompanionClient? gtaCompanionClient = null;
@@ -600,6 +610,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
             Task<SalesBootstrapResponse>? salesBootstrapTask = null;
             Task<BootstrapResponse>? presenceTask = null;
             Task<ChatChannelCatalogResponse>? catalogTask = null;
+            Task? deferredSalesSubscription = null;
             TimeSpan? retryDelay = null;
             var recoveryPhase = "Bootstrap";
             try
@@ -610,12 +621,24 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                 var generation = checked(_ingress.Current.Generation + 1);
                 SetHealth(RemoteChatHealthState.Authenticating, "Bootstrap");
                 client = _clientFactory(endpoint);
-                presenceHandler = presence => HostPresenceChanged?.Invoke(presence);
+                _metrics.Increment("remote.reconnect.started");
+                var recoveryStarted = Stopwatch.GetTimestamp();
+                long? connectedAt = null;
+                var initialLiveMeasured = false;
+                presenceHandler = presence =>
+                {
+                    if (!bootstrapCancellation.IsCancellationRequested && _ingress.Current.Generation == generation)
+                        HostPresenceChanged?.Invoke(presence);
+                };
                 client.HostPresenceChanged += presenceHandler;
                 if (client is ILSOverlayGtaCompanionClient gtaCandidate)
                 {
                     gtaCompanionClient = gtaCandidate;
-                    gtaCompanionHandler = snapshot => GtaCompanionSnapshotReceived?.Invoke(snapshot);
+                    gtaCompanionHandler = snapshot =>
+                    {
+                        if (!bootstrapCancellation.IsCancellationRequested && _ingress.Current.Generation == generation)
+                            GtaCompanionSnapshotReceived?.Invoke(snapshot);
+                    };
                     gtaCompanionClient.GtaCompanionSnapshotReceived += gtaCompanionHandler;
                 }
                 SalesBootstrapResponse? salesBootstrap = null;
@@ -625,6 +648,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                 {
                     SetRemoteSalesStatus(RemoteSalesStatusNames.Bootstrapping);
                     salesClient = candidate;
+                    _metrics.Increment("remote.sales.bootstrap.started");
                     salesBootstrapTask = salesClient.GetSalesBootstrapAsync(
                         accessToken,
                         bootstrapCancellation.Token);
@@ -634,13 +658,16 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                     SetRemoteSalesFailureStatus(OverlayTransportProtocol.SalesFailed);
                 }
 
-                presenceTask = client.GetBootstrapAsync(
-                    accessToken,
-                    bootstrapCancellation.Token);
+                var independentClient = client as ILSOverlayIndependentSessionClient;
+                if (independentClient is null)
+                    presenceTask = client.GetBootstrapAsync(
+                        accessToken,
+                        bootstrapCancellation.Token);
                 catalogTask = client.GetChatChannelsAsync(
                     accessToken,
                     bootstrapCancellation.Token);
-                presencePublicationTask = PublishPresenceBootstrapAsync(presenceTask, auditAttempt, bootstrapCancellation.Token);
+                if (presenceTask is not null)
+                    presencePublicationTask = PublishPresenceBootstrapAsync(presenceTask, auditAttempt, bootstrapCancellation.Token);
                 salesPublicationTask = PublishInitialSalesBootstrapAsync(salesBootstrapTask, auditAttempt, bootstrapCancellation.Token);
                 SetHealth(RemoteChatHealthState.Connecting, "LoadingChannels");
                 ChatChannelCatalogResponse catalog;
@@ -655,6 +682,15 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                     await IgnoreFailureAsync(presencePublicationTask).ConfigureAwait(false);
                     await IgnoreFailureAsync(salesPublicationTask).ConfigureAwait(false);
                     throw;
+                }
+                if (independentClient is not null &&
+                    catalog.Capabilities?.Contains(OverlayTransportProtocol.SessionStart) != true)
+                {
+                    // An older server still requires the legacy presence Resume.
+                    independentClient = null;
+                    presenceTask = client.GetBootstrapAsync(accessToken, bootstrapCancellation.Token);
+                    presencePublicationTask = PublishPresenceBootstrapAsync(
+                        presenceTask, auditAttempt, bootstrapCancellation.Token);
                 }
                 var channels = catalog.Channels
                     .OrderBy(channel => channel.Position)
@@ -700,6 +736,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                 }
 
                 SetHealth(RemoteChatHealthState.Bootstrapping, "LoadingRecentMessages");
+                _metrics.Increment("remote.chat.bootstrap.started");
                 ChatBootstrapResponse chatBootstrap;
                 try
                 {
@@ -723,38 +760,33 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                     _ingress,
                     client,
                     generation,
-                    authenticatedUserId: null);
+                    authenticatedUserId: null,
+                    metrics: _metrics);
                 if (!adapter.ApplyBootstrap(chatBootstrap))
                 {
                     throw new RemoteResyncRequiredException();
                 }
                 _recoveryAudit?.Mark(auditAttempt, RemoteRecoverySignal.ChatSnapshot);
+                _metrics.Increment("remote.chat.bootstrap.published");
                 _logger.Information(
                     "REMOTE",
                     $"Published initial chat bootstrap count={chatBootstrap.RecentMessages.Count} without waiting for Sales or Presence synchronization.");
-                try
+                BootstrapResponse? presence = null;
+                if (independentClient is null)
                 {
-                    recoveryPhase = "SalesBootstrap";
-                    salesBootstrap = await salesPublicationTask.ConfigureAwait(false);
-                }
-                catch
-                {
-                    bootstrapCancellation.Cancel();
-                    await IgnoreFailureAsync(presencePublicationTask).ConfigureAwait(false);
-                    throw;
-                }
-
-                SetHealth(RemoteChatHealthState.Bootstrapping, "WaitingForPresence");
-                BootstrapResponse presence;
-                try
-                {
-                    recoveryPhase = "PresenceBootstrap";
-                    presence = await presencePublicationTask.ConfigureAwait(false);
-                }
-                catch
-                {
-                    bootstrapCancellation.Cancel();
-                    throw;
+                    try
+                    {
+                        recoveryPhase = "SalesBootstrap";
+                        salesBootstrap = await salesPublicationTask.ConfigureAwait(false);
+                        SetHealth(RemoteChatHealthState.Bootstrapping, "WaitingForPresence");
+                        recoveryPhase = "PresenceBootstrap";
+                        presence = await presencePublicationTask!.ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        bootstrapCancellation.Cancel();
+                        throw;
+                    }
                 }
                 var switches = Channel.CreateBounded<ChatBootstrapResponse>(
                     new BoundedChannelOptions(1)
@@ -772,16 +804,18 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                     });
                 liveHandler = () =>
                 {
-                    if (_ingress.Current.Generation == generation)
+                    if (!bootstrapCancellation.IsCancellationRequested && _ingress.Current.Generation == generation)
                     {
                         failures = 0;
-                        OnStreamLive();
+                        // A Presence live marker is not evidence of a live Chat subscription.
+                        // OnChatChannelReady publishes Chat health on the independent path.
+                        if (independentClient is null) OnStreamLive();
                         _recoveryAudit?.Mark(auditAttempt, RemoteRecoverySignal.PresenceStream);
                     }
                 };
                 channelReadyHandler = bootstrap =>
                 {
-                    if (_ingress.Current.Generation == generation &&
+                    if (!bootstrapCancellation.IsCancellationRequested && _ingress.Current.Generation == generation &&
                         !_ingress.Current.IsBootstrapping &&
                         _ingress.Targets?.MainChannelId == bootstrap.Channel.ChannelId.ToString(
                             System.Globalization.CultureInfo.InvariantCulture) &&
@@ -789,6 +823,14 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                             System.Globalization.CultureInfo.InvariantCulture))
                     {
                         OnChatChannelReady(bootstrap);
+                        if (!initialLiveMeasured)
+                        {
+                            initialLiveMeasured = true;
+                            _metrics.Increment("remote.chat.live_ready");
+                            _metrics.RecordDuration("remote.chat.attempt_to_live.duration", Stopwatch.GetElapsedTime(recoveryStarted));
+                            if (connectedAt is { } started)
+                                _metrics.RecordDuration("remote.chat.recovery.duration", Stopwatch.GetElapsedTime(started));
+                        }
                         _recoveryAudit?.Mark(auditAttempt, RemoteRecoverySignal.ChatSnapshot);
                         _recoveryAudit?.Mark(auditAttempt, RemoteRecoverySignal.ChatStream);
                     }
@@ -800,6 +842,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                 {
                     salesReadyHandler = bootstrap =>
                     {
+                        if (bootstrapCancellation.IsCancellationRequested || _ingress.Current.Generation != generation) return;
                         OnSalesReady(bootstrap);
                         _recoveryAudit?.InvalidateSales();
                         if (bootstrap.Coverage == SalesBootstrapCoverage.Complete)
@@ -809,8 +852,18 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                         _recoveryAudit?.Mark(auditAttempt, RemoteRecoverySignal.SalesStream);
                     };
                     salesClient.SalesReady += salesReadyHandler;
-                    salesClient.SalesMutationReceived += OnSalesMutationReceived;
-                    salesClient.SalesStreamStatusChanged += OnSalesStreamStatusChanged;
+                    salesMutationHandler = mutation =>
+                    {
+                        if (!bootstrapCancellation.IsCancellationRequested && _ingress.Current.Generation == generation)
+                            OnSalesMutationReceived(mutation);
+                    };
+                    salesStatusHandler = status =>
+                    {
+                        if (!bootstrapCancellation.IsCancellationRequested && _ingress.Current.Generation == generation)
+                            OnSalesStreamStatusChanged(status);
+                    };
+                    salesClient.SalesMutationReceived += salesMutationHandler;
+                    salesClient.SalesStreamStatusChanged += salesStatusHandler;
                 }
                 lock (_sync)
                 {
@@ -820,15 +873,34 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                     _activeAccessToken = accessToken;
                     _channelSwitches = switches;
                     _salesResyncs = salesResyncs;
+                    if (independentClient is not null && salesClient is not null)
+                        Interlocked.Exchange(ref _salesRecoveryRestarting, 1);
                 }
 
                 recoveryPhase = "LiveStream";
                 Task stream;
-                if (salesClient is not null && salesBootstrap is not null)
+                if (independentClient is not null)
+                {
+                    stream = independentClient.StreamIndependentAsync(
+                        accessToken, chatBootstrap, switches.Reader, salesResyncs.Reader,
+                        bootstrap =>
+                        {
+                            if (!bootstrapCancellation.IsCancellationRequested &&
+                                _ingress.Current.Generation == generation)
+                                PublishPresenceBootstrap(bootstrap, auditAttempt);
+                        }, () =>
+                        {
+                            connectedAt = Stopwatch.GetTimestamp();
+                            _metrics.Increment("remote.session.connected");
+                        }, cancellationToken);
+                    deferredSalesSubscription = SubscribeInitialSalesAsync(
+                        salesPublicationTask, salesResyncs.Writer, bootstrapCancellation.Token);
+                }
+                else if (salesClient is not null && salesBootstrap is not null)
                 {
                     stream = salesClient.StreamChatAndSalesAsync(
                             accessToken,
-                            presence,
+                            presence!,
                             chatBootstrap,
                             salesBootstrap,
                             switches.Reader,
@@ -839,13 +911,13 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                 {
                     stream = client.StreamChatAsync(
                             accessToken,
-                            presence,
+                            presence!,
                             chatBootstrap,
                             switches.Reader,
                             cancellationToken);
                 }
-                // All bootstrap tasks have settled. Do not keep their results or
-                // the initial recent20 alive across later channel/sales replacements.
+                // Deferred Sales owns its complete request/publication chain until
+                // it settles. The session frame must not retain the initial snapshot.
                 chatBootstrap = null!;
                 salesBootstrap = null;
                 presence = null!;
@@ -929,6 +1001,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
 
                 // Includes stale-bootstrap rejection and unexpected callback failures.
                 bootstrapCancellation.Cancel();
+                await IgnoreFailureAsync(deferredSalesSubscription).ConfigureAwait(false);
                 await IgnoreFailureAsync(presencePublicationTask).ConfigureAwait(false);
                 await IgnoreFailureAsync(salesPublicationTask).ConfigureAwait(false);
                 await IgnoreFailureAsync(presenceTask).ConfigureAwait(false);
@@ -962,8 +1035,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
                         {
                             salesClient.SalesReady -= salesReadyHandler;
                         }
-                        salesClient.SalesMutationReceived -= OnSalesMutationReceived;
-                        salesClient.SalesStreamStatusChanged -= OnSalesStreamStatusChanged;
+                        if (salesMutationHandler is not null) salesClient.SalesMutationReceived -= salesMutationHandler;
+                        if (salesStatusHandler is not null) salesClient.SalesStreamStatusChanged -= salesStatusHandler;
                     }
                 }
 
@@ -1064,6 +1137,11 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
             OverlayTransportProtocol.SalesFailed => "Unavailable",
             _ => status,
         };
+        if (Snapshot.RemoteSalesStatus != display)
+        {
+            _metrics.Increment("remote.sales.ui_status.transitions");
+            if (display == "Resyncing") _metrics.Increment("remote.sales.resyncing.transitions");
+        }
         UpdateSnapshot(current => current with { RemoteSalesStatus = display });
         SalesStatusChanged?.Invoke(status);
     }
@@ -1214,6 +1292,34 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
     {
         var bootstrap = await bootstrapTask.ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
+        PublishPresenceBootstrap(bootstrap, auditAttempt);
+        return bootstrap;
+    }
+
+    private async Task SubscribeInitialSalesAsync(
+        Task<SalesBootstrapResponse?> bootstrapTask,
+        ChannelWriter<SalesBootstrapResponse> writer,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var bootstrap = await bootstrapTask.ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (bootstrap is not null && writer.TryWrite(bootstrap)) return;
+            Interlocked.Exchange(ref _salesRecoveryRestarting, 0);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or IOException)
+        {
+            if (cancellationToken.IsCancellationRequested) return;
+            Interlocked.Exchange(ref _salesRecoveryRestarting, 0);
+            SetRemoteSalesStatus(OverlayTransportProtocol.SalesFailed);
+            _logger.Warning("REMOTE-SALES", "Initial Sales synchronization failed; Chat remains connected.");
+        }
+    }
+
+    private void PublishPresenceBootstrap(BootstrapResponse bootstrap, long auditAttempt)
+    {
+        _metrics.Increment("remote.presence.bootstrap.completed");
         var authenticatedUserId = bootstrap.SelfDiscordUserId.ToString(
             System.Globalization.CultureInfo.InvariantCulture);
         _ingress.SetAuthenticatedUser(authenticatedUserId);
@@ -1222,7 +1328,6 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
             authenticatedUserId,
             string.Empty));
         _recoveryAudit?.Mark(auditAttempt, RemoteRecoverySignal.PresenceSnapshot, bootstrap.Generation);
-        return bootstrap;
     }
 
     private async Task<SalesBootstrapResponse?> PublishInitialSalesBootstrapAsync(
@@ -1239,6 +1344,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         {
             var bootstrap = await bootstrapTask.ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
+            _metrics.Increment("remote.sales.bootstrap.completed");
             lock (_sync)
             {
                 _publishedSalesBootstrapGeneration = bootstrap.Generation;
@@ -1311,6 +1417,8 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         CancellationToken cancellationToken)
     {
         var queued = false;
+        _metrics.Increment("remote.sales.canonical.requests");
+        _metrics.SetGauge("remote.sales.canonical.in_flight", 1);
         try
         {
             SetRemoteSalesStatus(OverlayTransportProtocol.SalesResyncRequired);
@@ -1337,6 +1445,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
             }
 
             queued = true;
+            _metrics.Increment("remote.sales.canonical.completed");
             _logger.Information(
                 "REMOTE-SALES",
                 $"Canonical Sales-only resync queued count={bootstrap.RecentMessages.Count}; Main Chat and Presence remained connected.");
@@ -1354,6 +1463,7 @@ internal sealed partial class RemoteChatProductionCoordinator : IAsyncDisposable
         }
         finally
         {
+            _metrics.SetGauge("remote.sales.canonical.in_flight", 0);
             if (!queued)
             {
                 Interlocked.Exchange(ref _salesRecoveryRestarting, 0);

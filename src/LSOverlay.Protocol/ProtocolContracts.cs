@@ -11,6 +11,8 @@ public static class OverlayTransportProtocol
 
     public const string HostPresenceChanged = "host_presence_changed";
     public const string Resume = "resume";
+    public const string SessionStart = "session_start_v1";
+    public const string PresenceBootstrap = "presence_bootstrap_v1";
     public const string Event = "event";
     public const string Live = "live";
     public const string ResyncRequired = "resync_required";
@@ -124,7 +126,10 @@ public sealed record ChatChannelDescriptor(
 
 public sealed record ChatChannelCatalogResponse(
     int ProtocolVersion,
-    IReadOnlyList<ChatChannelDescriptor> Channels);
+    IReadOnlyList<ChatChannelDescriptor> Channels)
+{
+    public IReadOnlyList<string>? Capabilities { get; init; }
+}
 
 public sealed record ChatBootstrapRequest(
     int ProtocolVersion,
@@ -519,7 +524,8 @@ public sealed record StreamServerMessage(
     string? SalesGeneration = null,
     long? SalesLatestSequence = null,
     SalesMutationEnvelope? SalesEvent = null,
-    GtaCompanionSnapshot? GtaCompanion = null);
+    GtaCompanionSnapshot? GtaCompanion = null,
+    BootstrapResponse? PresenceBootstrap = null);
 
 public static class OverlayProtocolJson
 {

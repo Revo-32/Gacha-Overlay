@@ -4,6 +4,7 @@ using Discord.Rest;
 using Discord.WebSocket;
 using LSOverlay.Backend.Security;
 using LSOverlay.Protocol;
+using LSOverlay.Backend.Transport;
 
 namespace LSOverlay.Backend.Chat;
 
@@ -85,9 +86,9 @@ internal sealed class DiscordNetChatSource : IChatDiscordSource
                 return new ChatGuildSourceResult(ChatSourceStatus.Unavailable, null);
             }
 
-            var guildTask = rest.GetGuildAsync(identity.GuildId);
-            var userTask = rest.GetGuildUserAsync(identity.GuildId, identity.DiscordUserId);
-            var botTask = rest.GetGuildUserAsync(identity.GuildId, botIdentity.Id);
+            var guildTask = StagingConnectionDiagnostic.MeasureAsync("rest.guild", rest.GetGuildAsync(identity.GuildId));
+            var userTask = StagingConnectionDiagnostic.MeasureAsync("rest.member", rest.GetGuildUserAsync(identity.GuildId, identity.DiscordUserId));
+            var botTask = StagingConnectionDiagnostic.MeasureAsync("rest.bot", rest.GetGuildUserAsync(identity.GuildId, botIdentity.Id));
             await Task.WhenAll(guildTask, userTask, botTask)
                 .WaitAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -99,7 +100,7 @@ internal sealed class DiscordNetChatSource : IChatDiscordSource
                 return new ChatGuildSourceResult(ChatSourceStatus.NotMember, null);
             }
 
-            var channels = await guild.GetChannelsAsync()
+            var channels = await StagingConnectionDiagnostic.MeasureAsync("rest.channels", guild.GetChannelsAsync())
                 .WaitAsync(cancellationToken)
                 .ConfigureAwait(false);
             var snapshots = channels
