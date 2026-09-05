@@ -65,11 +65,31 @@ internal sealed class BackendConnectionHealth
 
     public bool Transition(
         BackendConnectionHealthState state,
-        BackendConnectionHealthReason reason)
+        BackendConnectionHealthReason reason) => Transition(state, reason, gatewayConnected: false);
+
+    public bool MarkGatewayConnected() => Transition(
+        BackendConnectionHealthState.Connecting,
+        BackendConnectionHealthReason.GatewayConnecting,
+        gatewayConnected: true);
+
+    private bool Transition(
+        BackendConnectionHealthState state,
+        BackendConnectionHealthReason reason,
+        bool gatewayConnected)
     {
         BackendConnectionHealthSnapshot snapshot;
         lock (_sync)
         {
+            // On resume, GuildAvailable can precede Connected. A socket notification
+            // must not overwrite confirmed guild readiness (or a definitive failure).
+            if (gatewayConnected && _current.State is not (
+                    BackendConnectionHealthState.Starting or
+                    BackendConnectionHealthState.Connecting or
+                    BackendConnectionHealthState.Disconnected))
+            {
+                return false;
+            }
+
             if (_current.State == state && _current.Reason == reason)
             {
                 return false;

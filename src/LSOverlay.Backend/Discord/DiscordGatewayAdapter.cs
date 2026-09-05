@@ -219,10 +219,10 @@ internal sealed class DiscordGatewayAdapter : IDiscordGatewayLifecycle
         }
 
         _metrics.Increment(BackendMetric.DiscordConnected);
-        Transition(
-            BackendConnectionHealthState.Connecting,
-            BackendConnectionHealthReason.GatewayConnecting,
-            "Discord: Connected; synchronizing target Guild");
+        if (_health.MarkGatewayConnected())
+        {
+            _logger.LogInformation("Discord: Connected; synchronizing target Guild");
+        }
         return Task.CompletedTask;
     }
 
