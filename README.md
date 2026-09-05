@@ -2,83 +2,91 @@
 
 ![LS Overlay](assets/branding/LS_Overlay_logo.png)
 
-GTA Online을 보면서 Discord 채팅과 판매 순서를 함께 확인하는 Windows HUD 도구입니다.
+**LS Overlay 2.1.0**은 GTA Online을 플레이하면서 Discord 채팅과 판매 순서, 일일·주간 정보, 주요 사업장 타이머를 함께 확인할 수 있는 Windows HUD 도구입니다.
 
-현재 배포 버전은 **2.0.0**입니다. LS Overlay 2.0의 첫 정식 안정 버전입니다.
+LS Overlay는 Rockstar Games, Take-Two Interactive, Discord와 제휴하거나 이들의 승인을 받은 제품이 아닌 독립적인 비공식 도구입니다.
 
-## 주요 기능
+## 2.1 주요 기능
 
-- 선택한 Discord 채널의 최근 채팅, 이미지·이모지·스티커·전달 내용 표시
-- Discord 역할 색상·역할 아이콘·Reaction 표시, 같은 작성자의 연속 메시지 묶음
-- 판매 순서와 상품 확인, 자신의 판매글을 일반 판매 영역에서 바로 **판매완료**
-- 상세 판매 목록은 읽기 전용, 잠금 후에도 펼친 상태 유지
-- 선택한 호스트의 GTA Online 세션 인원 표시
-- 일반·벙커·LSD GTAO 타이머와 완료 알림음
-- HUD 위치·크기·투명도, 조선굴림체를 포함한 글꼴과 다섯 가지 테마
-- 브라우저를 통한 Discord 로그인
+- **Main HUD**: 선택한 Discord 채널의 최근 채팅, 언급, Reaction, 이미지, 스티커와 판매 대기열 표시
+- **GTA 컴패니언**: 오늘의 도전, 주간 도전, 주간 보너스·할인·이벤트를 별도 HUD로 표시
+- **사업장 관리자**: 벙커, 나이트클럽, LSD, 세차장, 스페셜 패키지, 항공 화물, 습격과 일반 타이머 관리
+- **움직이는 미디어**: GIF, WebP, Discord 스티커와 움직이는 Custom Emoji의 지원 가능한 형식 재생
+- **판매 히스토리**: 판매완료가 서버에서 확인된 내역과 최근 판매 시각 확인
+- **직접 단축키 입력**: 설정 칸을 누르고 키 또는 조합을 바로 입력하며, 입력 중 ESC로 매핑 해제
+- **독립 HUD 배치**: Main HUD, GTA 컴패니언, 사업장 관리자의 위치와 크기를 각각 보존
 
 ## 사용 환경
 
-Windows x64, 인터넷 연결, GTA V Enhanced / GTA Online, 지원 Discord 서버에 접근 가능한 계정이 필요합니다.
-일반 채팅 확인과 로그인에는 Discord Desktop이 필수는 아닙니다.
-독점 전체 화면에서 HUD가 가려지면 테두리 없는 창 모드를 사용하세요.
+- Windows x64
+- 인터넷 연결
+- GTA V Enhanced / GTA Online
+- LS Overlay를 지원하는 Discord 서버에 접근 가능한 Discord 계정
+
+Discord Desktop 앱은 필수가 아닙니다. 독점 전체 화면에서 HUD가 가려지면 GTA를 테두리 없는 창 모드로 실행하세요.
 
 ## 다운로드
 
-[GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.0.0-win-x64.zip**을 받으세요.
-GitHub가 자동 생성하는 **Source code** 파일은 실행용이 아닙니다.
+정식 배포 후 [GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.1.0-win-x64.zip**을 받으세요. GitHub가 자동 생성하는 **Source code** 파일은 실행용 패키지가 아닙니다.
 
-2.0.0은 T 빠른 전환 기능을 제거한 버전입니다. [2.0.0 릴리즈 안내](docs/releases/LS-Overlay-2.0.0-github-release.md)에서 주요 기능을 확인할 수 있습니다.
-
-ZIP에는 **LSOverlay.exe**, 빠른 시작 README, 한국어 안내서 PDF, LICENSE와 구성요소 라이선스만 포함됩니다.
-별도 .NET 설치는 필요 없습니다. 자동 업데이트와 실행 파일 코드 서명은 제공하지 않습니다.
-Windows 보안 경고가 나타나면 출처와 배포된 SHA-256을 먼저 확인하세요. 보안 프로그램을 끄지 마세요.
+ZIP을 원하는 새 폴더에 모두 압축 해제하고 **LSOverlay.exe**를 실행합니다. 별도 설치 프로그램이나 .NET 설치는 필요하지 않습니다. 자동 업데이트와 실행 파일 코드 서명은 제공하지 않으므로, Windows 경고가 나타나면 배포 페이지와 SHA-256을 먼저 확인하고 보안 기능을 끄지 마세요.
 
 ## 빠른 시작
 
 1. ZIP을 새 폴더에 모두 압축 해제합니다.
-2. 기존 앱은 트레이 메뉴의 **종료**로 끕니다.
-3. **LSOverlay.exe**를 실행하고 언어를 선택합니다.
+2. 기존 버전을 실행 중이면 트레이 아이콘을 우클릭해 **종료**합니다.
+3. **LSOverlay.exe**를 실행합니다.
 4. **Discord로 로그인**을 누르고 브라우저에서 승인합니다.
-5. 앱으로 돌아와 허용된 채널을 선택하고 안내를 완료합니다.
+5. 허용된 메인 채널을 선택하고 초기 안내를 마칩니다.
 6. GTA Online을 실행하고 HUD를 확인합니다.
 
-기존 사용자는 같은 Windows 계정에서 저장된 설정과 로그인을 계속 사용할 수 있습니다.
-HUD가 보이지 않으면 우하단 숨겨진 아이콘의 LS Overlay를 우클릭해 **HUD 표시** 또는 **설정**을 선택하세요.
+기존 2.0 사용자는 `%LOCALAPPDATA%\GachaOverlay`를 삭제하지 마세요. 같은 Windows 계정에서는 호환되는 설정과 로그인 정보를 이어서 사용합니다.
 
-[한 장 빠른 시작](docs/user/QUICK-START-ko.md) · [한국어 사용자 안내서 원문](docs/user/LS-Overlay-2.0-RC-User-Guide-ko.md)
+- [LS Overlay 2.1 빠른 시작 원문](docs/2.1/quick-start/LS-Overlay-2.1-Quick-Start-ko.md)
+- [LS Overlay 2.1 상세 사용자 설명서 원문](docs/2.1/user-guide/LS-Overlay-2.1-User-Guide-ko.md)
+- [LS Overlay 2.1.0 릴리즈 노트](docs/releases/LS-Overlay-2.1.0-release-notes.md)
 
-## 단축키
+배포 ZIP에는 **LS-Overlay-2.1-Quick-Start-ko.pdf**와 **LS-Overlay-2.1-User-Guide-ko.pdf**가 함께 들어 있습니다. 정식 배포 후 릴리즈 첨부 파일에서도 각각 받을 수 있습니다.
 
-| 키 | 동작 |
+## F9와 F10
+
+| 기본 키 | 동작 |
 |---|---|
-| F9 (기본) | HUD 표시 / 숨김 |
-| F10 (기본) | HUD 잠금 / 해제 |
-| 이전 / 다음 채널 | 기본 미지정, 설정에서 지정 가능 |
+| F9 | 모든 HUD를 함께 표시하거나 숨깁니다. 개별적으로 꺼 둔 보조 HUD를 강제로 켜지는 않습니다. |
+| F10 | 모든 HUD의 잠금 상태를 전환합니다. |
 
-잠금 중에는 마우스가 게임으로 통과합니다. 이동·스크롤·판매완료 버튼을 쓰려면 잠금을 푸세요.
-Discord 창으로 이동하려면 Windows의 Alt+Tab을 사용하세요. T 빠른 전환 기능은 제거되었습니다.
+잠금 상태에서는 마우스 입력이 게임으로 통과합니다. 위치 이동, 크기 조절, 스크롤 또는 버튼 사용이 필요하면 F10으로 잠금을 해제하세요.
 
-## 개인정보와 서비스 안내
+## Discord 연결과 보안
 
-[개인정보처리방침](https://overlay.revo32.cloud/privacy) · [이용약관](https://overlay.revo32.cloud/terms) · [서비스 상태](https://status.revo32.cloud)
+Discord 인증은 시스템 브라우저의 공식 OAuth 화면에서 진행합니다. LS Overlay는 사용자의 Discord 토큰을 붙여 넣도록 요구하지 않습니다. 연결에 필요한 클라이언트 자격 정보는 현재 Windows 사용자를 기준으로 보호해 저장합니다.
 
-진단 파일은 사용자가 직접 만들며 자동 업로드하지 않습니다. 공유 전에 내용을 확인하고 공개 게시판에는 올리지 마세요.
-LS Overlay는 독립 도구이며 Rockstar Games·Take-Two·Discord의 공식 제품이나 승인을 의미하지 않습니다.
+- [서비스 상태](https://status.revo32.cloud)
+- [개인정보처리방침](https://overlay.revo32.cloud/privacy)
+- [이용약관](https://overlay.revo32.cloud/terms)
+- [지원 문의](mailto:revo.32.39.41@gmail.com)
 
-## 문의
+진단 파일은 사용자가 직접 만들며 자동 업로드되지 않습니다. 공유 전에 내용을 확인하고 공개 게시판에는 올리지 마세요.
 
-이용 문의·개인정보 관련 문의·데이터 삭제 요청:
-[revo.32.39.41@gmail.com](mailto:revo.32.39.41@gmail.com)
+## 2.0에서 업그레이드
 
-## 릴리즈와 개발
+- LocalAppData 위치는 계속 `%LOCALAPPDATA%\GachaOverlay`입니다.
+- F9는 Main HUD뿐 아니라 활성화된 GTA 컴패니언과 사업장 관리자에도 공통 표시 상태를 적용합니다.
+- 일반 12/24/48분 타이머는 사업장 관리자에서 관리합니다.
+- 단축키는 키 입력으로 직접 지정하며, 캡처 중 ESC를 누르면 해당 매핑이 **미지정**이 됩니다.
+- GTA 컴패니언과 사업장 관리자는 기본적으로 사용자가 켜기 전까지 비활성화되어 있습니다.
 
-[2.0.0 릴리즈 안내](docs/releases/LS-Overlay-2.0.0-github-release.md) · [패키징 안내](tools/release/README.md)
+## 개발
 
 개발 빌드는 Windows와 .NET 8 SDK가 필요합니다.
-`dotnet build GachaOverlay.sln`, `dotnet test GachaOverlay.sln`으로 확인할 수 있습니다.
-일반 사용자는 소스 빌드나 서버 설정을 할 필요가 없습니다.
+
+```powershell
+dotnet build GachaOverlay.sln
+dotnet test GachaOverlay.sln
+```
+
+일반 사용자는 소스 빌드, Bot Token, Discord Developer Portal 또는 서버 설정을 준비할 필요가 없습니다.
 
 ## 라이선스
 
-프로젝트 소스는 [MIT](LICENSE)입니다. 포함된 런타임·글꼴·테마의 별도 고지는 배포 ZIP의 **Licenses** 폴더에 있습니다.
+프로젝트 소스는 [MIT](LICENSE) 라이선스입니다. 포함된 .NET 런타임, 글꼴, 색상 테마, SkiaSharp의 고지는 배포 ZIP의 `Licenses` 폴더에 함께 제공됩니다.

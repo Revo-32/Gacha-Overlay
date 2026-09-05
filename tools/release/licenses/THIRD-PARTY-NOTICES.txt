@@ -1,7 +1,7 @@
-Gacha Overlay - Third-party notice index
-========================================
+LS Overlay - Third-party notice index
+=====================================
 
-This Release Candidate bundles the .NET 8 Windows Desktop self-contained
+This LS Overlay 2.1.0 package bundles the .NET 8 Windows Desktop self-contained
 runtime, fonts, palette references, and the SkiaSharp media decoder. Their
 repository-preserved notices are staged under Runtime, Fonts, Themes, and Media.
 
@@ -33,9 +33,9 @@ texts, together with the .NET Runtime third-party notices, are recorded under
 Runtime/. The source package identities and verification hashes are described
 in Runtime/README.txt.
 
-Gacha Overlay own license
--------------------------
+LS Overlay own license
+----------------------
 
-Gacha Overlay source code is provided under the MIT License in the repository
+LS Overlay source code is provided under the MIT License in the repository
 root LICENSE file. That license does not replace or override the terms for the
 runtime, fonts, themes, or any other third-party component.

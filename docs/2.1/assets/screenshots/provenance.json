@@ -1,0 +1,564 @@
+[
+  {
+    "file": "01-main-hud.png",
+    "sourceSha256": "f603967f90cdaeef0485f775665b7ff0744bceb1f1a0abbba057af51e54cd6a4",
+    "crop": [
+      10,
+      0,
+      663,
+      810
+    ],
+    "redactedRegions": [
+      [
+        40,
+        65,
+        340,
+        120
+      ],
+      [
+        40,
+        149,
+        340,
+        205
+      ],
+      [
+        40,
+        231,
+        370,
+        292
+      ],
+      [
+        40,
+        315,
+        380,
+        392
+      ],
+      [
+        40,
+        425,
+        330,
+        451
+      ],
+      [
+        51,
+        680,
+        485,
+        703
+      ],
+      [
+        49,
+        743,
+        490,
+        802
+      ]
+    ],
+    "pixels": [
+      653,
+      810
+    ],
+    "sha256": "486040f776fa85d10b932e1d3aa8aacbd9bc8b06f95d2e4a353dccb899575dcc"
+  },
+  {
+    "file": "05-main-chat.png",
+    "sourceSha256": "f603967f90cdaeef0485f775665b7ff0744bceb1f1a0abbba057af51e54cd6a4",
+    "crop": [
+      10,
+      305,
+      663,
+      665
+    ],
+    "redactedRegions": [
+      [
+        40,
+        65,
+        340,
+        120
+      ],
+      [
+        40,
+        149,
+        340,
+        205
+      ],
+      [
+        40,
+        231,
+        370,
+        292
+      ],
+      [
+        40,
+        315,
+        380,
+        392
+      ],
+      [
+        40,
+        425,
+        330,
+        451
+      ],
+      [
+        51,
+        680,
+        485,
+        703
+      ],
+      [
+        49,
+        743,
+        490,
+        802
+      ]
+    ],
+    "pixels": [
+      653,
+      360
+    ],
+    "sha256": "c26cbcbb76745286e858c7bed504197e8062b454ce75ed3722d77f6152a4adfe"
+  },
+  {
+    "file": "06-sales.png",
+    "sourceSha256": "f603967f90cdaeef0485f775665b7ff0744bceb1f1a0abbba057af51e54cd6a4",
+    "crop": [
+      10,
+      671,
+      663,
+      810
+    ],
+    "redactedRegions": [
+      [
+        40,
+        65,
+        340,
+        120
+      ],
+      [
+        40,
+        149,
+        340,
+        205
+      ],
+      [
+        40,
+        231,
+        370,
+        292
+      ],
+      [
+        40,
+        315,
+        380,
+        392
+      ],
+      [
+        40,
+        425,
+        330,
+        451
+      ],
+      [
+        51,
+        680,
+        485,
+        703
+      ],
+      [
+        49,
+        743,
+        490,
+        802
+      ]
+    ],
+    "pixels": [
+      653,
+      139
+    ],
+    "sha256": "a7700477cb65318c4fa73c4efea02b2b7ca0fe97a1e9ca1dc37fdaa678eb25f5"
+  },
+  {
+    "file": "04-three-huds-overview.png",
+    "sourceSha256": "ffb680a602fa0ca76c1e2934ab19cac9b0c9edf0cd0831c096774559aa99f749",
+    "crop": [
+      104,
+      54,
+      1702,
+      878
+    ],
+    "redactedRegions": [
+      [
+        1053,
+        167,
+        1335,
+        233
+      ],
+      [
+        1053,
+        258,
+        1385,
+        327
+      ],
+      [
+        1053,
+        343,
+        1375,
+        403
+      ],
+      [
+        1053,
+        429,
+        1375,
+        481
+      ],
+      [
+        1053,
+        511,
+        1400,
+        564
+      ],
+      [
+        1053,
+        595,
+        1495,
+        649
+      ],
+      [
+        1070,
+        688,
+        1555,
+        715
+      ],
+      [
+        1065,
+        746,
+        1570,
+        852
+      ]
+    ],
+    "pixels": [
+      1598,
+      824
+    ],
+    "sha256": "d609fe7fb7d92bbd08cafd3cc5620dda9d186c356c7587cb5ca71f7ea8932624"
+  },
+  {
+    "file": "07-gta-companion.png",
+    "sourceSha256": "ffb680a602fa0ca76c1e2934ab19cac9b0c9edf0cd0831c096774559aa99f749",
+    "crop": [
+      111,
+      92,
+      490,
+      411
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      379,
+      319
+    ],
+    "sha256": "ab3eb16931a2803b74d2bd1c82abd17a5b15f5cb42fed234250593ce4b3c9e6c"
+  },
+  {
+    "file": "08-business-unlocked.png",
+    "sourceSha256": "ffb680a602fa0ca76c1e2934ab19cac9b0c9edf0cd0831c096774559aa99f749",
+    "crop": [
+      514,
+      82,
+      915,
+      324
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      401,
+      242
+    ],
+    "sha256": "6f8d9a82d21c643add2d864031321fba1d5117b9a23aa2c170ad671bd5c5a2f8"
+  },
+  {
+    "file": "08-business-cargo.png",
+    "sourceSha256": "ffb680a602fa0ca76c1e2934ab19cac9b0c9edf0cd0831c096774559aa99f749",
+    "crop": [
+      514,
+      326,
+      915,
+      589
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      401,
+      263
+    ],
+    "sha256": "7e5a2d4989d03ea73fce1f80fbed9fc51764014c229a940b5bd271427bbb0b37"
+  },
+  {
+    "file": "09-business-locked.png",
+    "sourceSha256": "35337fbf4dcc89d7803a074594b66848abe18cf628206dff4a4bb4a74e6038d9",
+    "crop": [
+      15,
+      464,
+      427,
+      631
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      412,
+      167
+    ],
+    "sha256": "44119804663698d24b7d5fda72f2bfcece763c5161422f52e513925d87d9426d"
+  },
+  {
+    "file": "09-business-compact.png",
+    "sourceSha256": "35337fbf4dcc89d7803a074594b66848abe18cf628206dff4a4bb4a74e6038d9",
+    "crop": [
+      15,
+      22,
+      427,
+      419
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      412,
+      397
+    ],
+    "sha256": "db29941ff300704fd5f239c9b4e66861b1d3f38bef75ee60faf5c2a7089a6416"
+  },
+  {
+    "file": "09-general-timer.png",
+    "sourceSha256": "ffb680a602fa0ca76c1e2934ab19cac9b0c9edf0cd0831c096774559aa99f749",
+    "crop": [
+      514,
+      805,
+      915,
+      854
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      401,
+      49
+    ],
+    "sha256": "b7c49030e3a8ec5486745cbec8eddbbacab3cd066ee674e4401c5706a573312c"
+  },
+  {
+    "file": "02-discord-connected.png",
+    "sourceSha256": "005fc3e8267b3ce3d6d2d7ad0e5d6332cc8dfb0553624a16e596af6dc2f3593b",
+    "crop": [
+      270,
+      112,
+      936,
+      390
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      666,
+      278
+    ],
+    "sha256": "53623d179886ca68f466fa01efbc3c69399a005e317c4dfa8d599f91845318ad"
+  },
+  {
+    "file": "03-settings-hud-hotkeys.png",
+    "sourceSha256": "efbbb4c8117c25823452dd87e24d6cca33277812d6ee3718d77ad714e2b867a4",
+    "crop": [
+      270,
+      224,
+      938,
+      620
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      668,
+      396
+    ],
+    "sha256": "a233db62d7c6c7c7d838e16e402b927000913a4ab892493c58539eb24def99ec"
+  },
+  {
+    "file": "10-settings-hotkey-capture.png",
+    "sourceSha256": "efbbb4c8117c25823452dd87e24d6cca33277812d6ee3718d77ad714e2b867a4",
+    "crop": [
+      270,
+      295,
+      938,
+      620
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      668,
+      325
+    ],
+    "sha256": "13618b9eb7b0c33fb35352ea124fa954eee198f14acc93b4388a62d96928c8ae"
+  },
+  {
+    "file": "11-settings-visual-media.png",
+    "sourceSha256": "c8e2a62851c8eaa796624dfbd662a250ae029bce710bc5eaad42c696495729f3",
+    "crop": [
+      270,
+      1050,
+      936,
+      1353
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      666,
+      303
+    ],
+    "sha256": "9f97cd6d0db40bcb36aa65e7033c62a133640253a2f072429da1d1ed331d3ae9"
+  },
+  {
+    "file": "11-settings-themes.png",
+    "sourceSha256": "63ae1fb04ea873b4af9e87f560c40b620d9087c2d4b8bba8a26d569b264ee1c3",
+    "crop": [
+      270,
+      285,
+      850,
+      669
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      580,
+      384
+    ],
+    "sha256": "f589571f70a0d04fa40d209358ffdd1798c20a7650f6f52ee91f0434560bfebc"
+  },
+  {
+    "file": "11-settings-media.png",
+    "sourceSha256": "fedf8b105c82df0bf76c9261a1dea633e5c5f1629d781046b74f49a03fe3da99",
+    "crop": [
+      270,
+      143,
+      936,
+      555
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      666,
+      412
+    ],
+    "sha256": "1a56b1bb281eee4a6797b48c2126fa728ec08fe02870e4d0fe4ef7520ab5f6ab"
+  },
+  {
+    "file": "12-settings-diagnostics.png",
+    "sourceSha256": "ff24304333af16cca8d769c1218db30526229a5628b8840c2edfdbc624b4b699",
+    "crop": [
+      270,
+      421,
+      936,
+      825
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      666,
+      404
+    ],
+    "sha256": "ecd7760f6b9e554788e80dcb47098499dec8e3f0e1f984f268c8cb9920618cad"
+  },
+  {
+    "file": "12-diagnostics-button.png",
+    "sourceSha256": "ff24304333af16cca8d769c1218db30526229a5628b8840c2edfdbc624b4b699",
+    "crop": [
+      270,
+      739,
+      936,
+      825
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      666,
+      86
+    ],
+    "sha256": "d458cbdba07cd5fdb0e51a7ee8edb3c48e912c5dbe79fbc8eef1a46e9067e846"
+  },
+  {
+    "file": "13-settings-sales.png",
+    "sourceSha256": "b55ef051aebd7721b4c7a7ada242221312fd9a3d651bc8700106d45dcfd03e28",
+    "crop": [
+      270,
+      313,
+      936,
+      562
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      666,
+      249
+    ],
+    "sha256": "fd1c82b78a3f84736c1e543b48b93db006556d19d062b64437c5ca80b87d4697"
+  },
+  {
+    "file": "14-sales-history.png",
+    "sourceSha256": "efc938746398108b8da6184787c6f93f0d92a7a3bcb5ebf298a91bbe0dc4e21c",
+    "crop": [
+      270,
+      112,
+      936,
+      538
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      666,
+      426
+    ],
+    "sha256": "2987b30a7e8b20326aa6f26146bb7deacf70d8e2f6b9f2cd6bdaf598f804bf3f"
+  },
+  {
+    "file": "15-settings-companion.png",
+    "sourceSha256": "b2e90f28c7bbb02c8cda01fabcd77d2e1f1e60f75a4e9c20b99875544886492c",
+    "crop": [
+      270,
+      187,
+      936,
+      623
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      666,
+      436
+    ],
+    "sha256": "f911d64bee01884e1ee7ba4a0fd4b64b09aa61ef74330408b25d1dfc4d81424b"
+  },
+  {
+    "file": "16-settings-business.png",
+    "sourceSha256": "57a3978b1875023aad974cdf65d4f2560b7a1b55193c572a930cb235db9329e7",
+    "crop": [
+      270,
+      183,
+      936,
+      613
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      666,
+      430
+    ],
+    "sha256": "9cb7e1a02e7eeda68ce7431ad54cdc4ad86b75b8fd6cde72acbf36fed72abd6c"
+  },
+  {
+    "file": "17-settings-business-options.png",
+    "sourceSha256": "57a3978b1875023aad974cdf65d4f2560b7a1b55193c572a930cb235db9329e7",
+    "crop": [
+      279,
+      638,
+      936,
+      990
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      657,
+      352
+    ],
+    "sha256": "b89dab24c36cde4c0801af773f6ce1ebf28bb5f6953100a6279aef58b7fdef2a"
+  },
+  {
+    "file": "18-settings-timer-sound.png",
+    "sourceSha256": "57a3978b1875023aad974cdf65d4f2560b7a1b55193c572a930cb235db9329e7",
+    "crop": [
+      270,
+      1565,
+      936,
+      1699
+    ],
+    "redactedRegions": [],
+    "pixels": [
+      666,
+      134
+    ],
+    "sha256": "b9fcbe2eb8990b82d6d6299aef69ad9947bf965626721377c7f49ae965455a8e"
+  }
+]

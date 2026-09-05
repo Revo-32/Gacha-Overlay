@@ -1,9 +1,9 @@
-Gacha Overlay - Color Theme Attribution Audit
-============================================================
+LS Overlay - Color Theme Attribution Audit
+========================================================
 
 Audit date: 2026-08-31
 
-The Gacha Overlay theme system is an original semantic-token implementation.
+The LS Overlay theme system is an original semantic-token implementation.
 It contains no copied theme source code, icons, screenshots, fonts, or binary
 assets. The locally defined palettes were adapted from the approved M7.5.6
 specification with the following projects used as naming and color references.
