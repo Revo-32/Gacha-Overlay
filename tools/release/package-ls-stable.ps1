@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory)][string]$QuickStartPath,
     [Parameter(Mandatory)][string]$GuidePath,
     [Parameter(Mandatory)][string]$FocusedTrxPath,
-    [string]$ManifestPath = 'ls-2.1.0.json',
+    [string]$ManifestPath = 'ls-2.1.1.json',
+    [switch]$UserValidationCompleted,
     [Parameter(Mandatory)][string]$OutputRoot,
     [Parameter(Mandatory)][ValidatePattern('^[A-Fa-f0-9]{64}$')][string]$ExpectedExeSha256
 )
@@ -77,14 +78,14 @@ foreach ($license in $licenses.entries) {
     }
 }
 
-$staging = Join-Path ([IO.Path]::GetTempPath()) ('LSOverlay-210-Stable-' + [guid]::NewGuid().ToString('N'))
+$staging = Join-Path ([IO.Path]::GetTempPath()) ("LSOverlay-$version-Stable-" + [guid]::NewGuid().ToString('N'))
 $package = Join-Path $staging 'package'
 $fresh = Join-Path $staging 'fresh-extraction'
 New-Item -ItemType Directory -Path $package | Out-Null
 
 $sources = [ordered]@{
     'LSOverlay.exe' = $exeSource
-    'README.md' = (Join-Path $PSScriptRoot 'README-public-2.1.0.md')
+    'README.md' = (Join-Path $PSScriptRoot "README-public-$version.md")
     'LICENSE' = (Join-Path $repo 'LICENSE')
     ([string]$manifest.quickStartName) = $quickStart
     ([string]$manifest.guideName) = $guide
@@ -217,7 +218,7 @@ $publicManifest = [ordered]@{
     artifacts = $artifactInfo
     archiveContents = $actual
     isolatedLaunch = 'PASS - secondary-instance path; no profile/network/interactive UI'
-    interactiveUserReview = 'PENDING'
+    interactiveUserReview = if ($UserValidationCompleted) { 'PASS - user reported actual-PC corrective validation' } else { 'PENDING' }
 }
 [IO.File]::WriteAllText(
     (Join-Path $output "LS-Overlay-$version-manifest.json"),
