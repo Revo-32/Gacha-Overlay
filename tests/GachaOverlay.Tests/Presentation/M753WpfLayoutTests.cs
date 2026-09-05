@@ -117,7 +117,7 @@ public sealed class M753WpfLayoutTests
             using var model = Model("outline", settings, responsive);
             var view = new ChatMessageView { DataContext = model };
             var window = ShowForLayout(view, 520, 240);
-            var surface = Assert.IsType<Border>(view.FindName("MessageSurface"));
+            var surface = Assert.IsType<Border>(GachaOverlay.Tests.TestSupport.VisualLookup.Find(view, "MessageSurface"));
             var first = FirstRenderedLine(view);
             var body = RenderedBody(view);
             var firstBounds = BoundsIn(first, surface);
@@ -219,7 +219,7 @@ public sealed class M753WpfLayoutTests
             : model.IsCompact
                 ? "CompactBody"
                 : "BalancedBody";
-        return Assert.IsType<CrispOutlinedText>(view.FindName(name));
+        return Assert.IsType<CrispOutlinedText>(GachaOverlay.Tests.TestSupport.VisualLookup.Find(view, name));
     }
 
     private static FrameworkElement FirstRenderedLine(ChatMessageView view)
@@ -230,7 +230,7 @@ public sealed class M753WpfLayoutTests
             return RenderedBody(view);
         }
 
-        return Assert.IsType<CrispOutlinedText>(view.FindName("BalancedNickname"));
+        return Assert.IsType<CrispOutlinedText>(GachaOverlay.Tests.TestSupport.VisualLookup.Find(view, "BalancedNickname"));
     }
 
     private static Rect BoundsIn(FrameworkElement element, Visual ancestor) =>

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+  </PropertyGroup>
+  <!-- Explicit, already installed official diagnostic libraries; no automatic tool download. -->
+  <ItemGroup>
+    <Reference Include="Microsoft.Diagnostics.NETCore.Client" HintPath="$(DiagnosticsToolsDirectory)/Microsoft.Diagnostics.NETCore.Client.dll" />
+    <Reference Include="Microsoft.Diagnostics.Tracing.TraceEvent" HintPath="$(DiagnosticsToolsDirectory)/Microsoft.Diagnostics.Tracing.TraceEvent.dll" />
+    <Reference Include="Microsoft.Diagnostics.FastSerialization" HintPath="$(DiagnosticsToolsDirectory)/Microsoft.Diagnostics.FastSerialization.dll" />
+  </ItemGroup>
+  <Target Name="RequireDiagnosticLibraries" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(DiagnosticsToolsDirectory)/Microsoft.Diagnostics.NETCore.Client.dll')" Text="Set DiagnosticsToolsDirectory to the library directory of an existing official dotnet diagnostic tool." />
+  </Target>
+</Project>

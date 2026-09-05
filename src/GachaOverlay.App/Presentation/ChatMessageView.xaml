@@ -104,15 +104,7 @@
                 </StackPanel>
             </Border>
         </DataTemplate>
-    </UserControl.Resources>
-
-    <Grid Margin="{Binding MessageMargin}" ClipToBounds="False">
-        <Border x:Name="MessageSurface"
-                Padding="3,0,3,0"
-                Background="Transparent"
-                ClipToBounds="False"
-                CornerRadius="4">
-            <StackPanel ClipToBounds="False">
+        <DataTemplate x:Key="BalancedLayoutTemplate">
                 <StackPanel Visibility="{Binding IsBalanced, Converter={StaticResource BoolVisibility}}">
                     <Grid ClipToBounds="False"
                           Visibility="{Binding ShowAuthorHeader, Converter={StaticResource BoolVisibility}}">
@@ -218,7 +210,8 @@
                                TextWrapping="Wrap"
                                Visibility="{Binding HasRemoteDetails, Converter={StaticResource BoolVisibility}}" />
                 </StackPanel>
-
+        </DataTemplate>
+        <DataTemplate x:Key="CompactLayoutTemplate">
                 <Grid Visibility="{Binding IsCompact, Converter={StaticResource BoolVisibility}}"
                       ClipToBounds="False">
                     <Grid.ColumnDefinitions>
@@ -312,7 +305,8 @@
                                    Visibility="{Binding HasRemoteDetails, Converter={StaticResource BoolVisibility}}" />
                     </StackPanel>
                 </Grid>
-
+        </DataTemplate>
+        <DataTemplate x:Key="UltraCompactLayoutTemplate">
                 <Grid Visibility="{Binding IsUltraCompact, Converter={StaticResource BoolVisibility}}"
                       ClipToBounds="False">
                     <Grid.ColumnDefinitions>
@@ -395,6 +389,32 @@
                                TextWrapping="NoWrap"
                                Visibility="{Binding ShowUltraCompactSummary, Converter={StaticResource BoolVisibility}}" />
                 </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="{Binding MessageMargin}" ClipToBounds="False">
+        <Border x:Name="MessageSurface"
+                Padding="3,0,3,0"
+                Background="Transparent"
+                ClipToBounds="False"
+                CornerRadius="4">
+            <StackPanel ClipToBounds="False">
+                <!-- Only the selected density's existing visual tree is instantiated. -->
+                <ContentControl Content="{Binding}" HorizontalContentAlignment="Stretch">
+                    <ContentControl.Style>
+                        <Style TargetType="ContentControl">
+                            <Setter Property="ContentTemplate" Value="{StaticResource BalancedLayoutTemplate}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCompact}" Value="True">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource CompactLayoutTemplate}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsUltraCompact}" Value="True">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource UltraCompactLayoutTemplate}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentControl.Style>
+                </ContentControl>
                 <ItemsControl ItemsSource="{Binding Reactions}"
                               ItemTemplate="{StaticResource ReactionTemplate}"
                               Visibility="{Binding HasReactions, Converter={StaticResource BoolVisibility}}">

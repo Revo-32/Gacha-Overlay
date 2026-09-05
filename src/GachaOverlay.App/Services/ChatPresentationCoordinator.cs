@@ -22,7 +22,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     private readonly ChatTypographyResolver _typographyResolver;
     private readonly Dictionary<string, ChatMessageViewModel> _items = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ChatMessagePresentation> _presentations = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, List<IDisposable>> _animationHandles = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<AnimationBinding>> _animations = new(StringComparer.Ordinal);
+    private string? _previewMessageId;
     private AppSettings _settings;
     private ResolvedChatTypography _typography;
     private ChatResponsiveLevel _responsiveLevel = ChatResponsiveLevel.Full;
@@ -145,7 +146,8 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         _animationsVisible = visible;
         if (!visible)
         {
-            StopAllAnimations();
+            foreach (var bindings in _animations.Values)
+                foreach (var binding in bindings) binding.Stop();
             return;
         }
 
@@ -162,11 +164,13 @@ internal sealed class ChatPresentationCoordinator : IDisposable
     internal int ResponsiveMeasurementRevision => _responsiveMeasurementRevision;
 
     internal ChatResponsiveLevel CurrentResponsiveLevel => _responsiveLevel;
+    internal int AnimationBindingCount => _animations.Values.Sum(bindings => bindings.Count);
 
     public void ClearMediaCache()
     {
         StopAllAnimations();
         _viewModel.PreviewImage = null;
+        _previewMessageId = null;
         _media.ClearCache();
         foreach (var item in _items.Values)
         {
@@ -307,9 +311,10 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             return;
         }
 
-        if (ReferenceEquals(_viewModel.PreviewImage, item.Thumbnail))
+        if (_previewMessageId == item.MessageId)
         {
             _viewModel.PreviewImage = null;
+            _previewMessageId = null;
         }
 
         StopAnimations(item.MessageId);
@@ -330,9 +335,10 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         StopAnimations(messageId);
         _viewModel.Messages.Remove(item);
         item.Dispose();
-        if (ReferenceEquals(_viewModel.PreviewImage, item.Thumbnail))
+        if (_previewMessageId == messageId)
         {
             _viewModel.PreviewImage = null;
+            _previewMessageId = null;
         }
     }
 
@@ -340,7 +346,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
         ChatMessageViewModel item,
         ChatMessagePresentation presentation)
     {
-        StopAnimations(item.MessageId);
+        RefreshAnimations(item);
         var revision = presentation.Revision;
         var identity = new ChatEnrichmentIdentity(
             presentation.MessageId,
@@ -430,7 +436,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                 if (item.IsCurrent(identity) && _items.ContainsKey(item.MessageId))
                 {
                     token.Image = asset.Preview;
-                    StartAnimation(item, identity, asset, frame => token.Image = frame);
+                    StartEmojiAnimation(item, identity, asset, token.Identity!, item);
                 }
             });
         }
@@ -457,7 +463,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                 if (item.IsCurrent(identity) && _items.ContainsKey(item.MessageId))
                 {
                     item.Thumbnail = asset.Preview;
-                    StartAnimation(item, identity, asset, frame => item.Thumbnail = frame);
+                    StartAnimation(item, identity, asset, frame => item.Thumbnail = frame, item, AnimationKind.Thumbnail);
                 }
             });
         }
@@ -512,7 +518,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                     item.Reactions.Contains(reaction))
                 {
                     reaction.Image = asset.Preview;
-                    StartAnimation(item, identity, asset, frame => reaction.Image = frame);
+                    StartAnimation(item, identity, asset, frame => reaction.Image = frame, reaction, AnimationKind.Reaction);
                 }
             });
         }
@@ -545,7 +551,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                 if (item.IsCurrent(identity) && _items.ContainsKey(item.MessageId))
                 {
                     item.StickerImage = asset.Preview;
-                    StartAnimation(item, identity, asset, frame => item.StickerImage = frame);
+                    StartAnimation(item, identity, asset, frame => item.StickerImage = frame, item, AnimationKind.Sticker);
                     _logger.Information(
                         "STICKER",
                         $"message={item.MessageId} presentation=Visible.");
@@ -584,7 +590,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                     item.ForwardedMessages.Contains(forwarded))
                 {
                     forwarded.Thumbnail = asset.Preview;
-                    StartAnimation(item, identity, asset, frame => forwarded.Thumbnail = frame);
+                    StartAnimation(item, identity, asset, frame => forwarded.Thumbnail = frame, forwarded, AnimationKind.Thumbnail);
                 }
             });
         }
@@ -615,7 +621,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                     forwarded.Tokens.Contains(token))
                 {
                     token.Image = asset.Preview;
-                    StartAnimation(item, identity, asset, frame => token.Image = frame);
+                    StartEmojiAnimation(item, identity, asset, token.Identity!, forwarded);
                 }
             });
         }
@@ -648,7 +654,7 @@ internal sealed class ChatPresentationCoordinator : IDisposable
                     item.ForwardedMessages.Contains(forwarded))
                 {
                     forwarded.StickerImage = asset.Preview;
-                    StartAnimation(item, identity, asset, frame => forwarded.StickerImage = frame);
+                    StartAnimation(item, identity, asset, frame => forwarded.StickerImage = frame, forwarded, AnimationKind.Sticker);
                 }
             });
         }
@@ -664,32 +670,89 @@ internal sealed class ChatPresentationCoordinator : IDisposable
             return;
         }
 
-        _viewModel.PreviewImage = item.Thumbnail;
+        _viewModel.PreviewImage = SnapshotForPreview(item.Thumbnail);
+        _previewMessageId = item.MessageId;
+    }
+
+    // Preserve the click-time frame independently of the reusable animation presentation surface.
+    internal static ImageSource SnapshotForPreview(ImageSource image)
+    {
+        if (image.IsFrozen) return image;
+        var snapshot = image.CloneCurrentValue();
+        if (snapshot.CanFreeze) snapshot.Freeze();
+        return snapshot;
     }
 
     private void StartAnimation(ChatMessageViewModel item, ChatEnrichmentIdentity identity,
-        CachedMediaAsset asset, Action<ImageSource> apply)
+        CachedMediaAsset asset, Action<ImageSource> apply, object target, AnimationKind kind)
     {
-        if (!_settings.AnimatedMediaPlaybackEnabled || !_animationsVisible || !asset.IsAnimated) return;
-        var handle = _media.Play(asset, frame =>
+        if (!asset.IsAnimated || !item.IsCurrent(identity) || !_items.ContainsKey(item.MessageId)) return;
+        if (!_animations.TryGetValue(item.MessageId, out var bindings))
+            _animations[item.MessageId] = bindings = [];
+        var existing = bindings.Find(binding => Equals(binding.Target, target) && binding.Kind == kind);
+        if (existing is null || !ReferenceEquals(existing.Asset, asset) || existing.Identity != identity)
         {
-            if (item.IsCurrent(identity) && _items.ContainsKey(item.MessageId)) apply(frame);
-        });
-        if (handle is null) return;
-        if (!_animationHandles.TryGetValue(item.MessageId, out var handles))
-            _animationHandles[item.MessageId] = handles = [];
-        handles.Add(handle);
+            if (existing is not null) { existing.Stop(); bindings.Remove(existing); }
+            bindings.Add(new AnimationBinding(target, kind, asset, identity, apply));
+        }
+        RefreshAnimations(item);
+    }
+
+    private void StartEmojiAnimation(ChatMessageViewModel item, ChatEnrichmentIdentity identity,
+        CachedMediaAsset asset, string emojiId, object owner)
+    {
+        // Display-token VMs are rebuilt by settings/source-URL suppression. Address the live
+        // owner's emoji ID instead of retaining and updating an obsolete token VM.
+        StartAnimation(item, identity, asset, frame =>
+        {
+            var tokens = owner is ChatForwardMessageViewModel forwarded ? forwarded.Tokens : item.Tokens;
+            foreach (var token in tokens)
+                if (token.Kind == ChatTokenKind.CustomEmoji && token.Identity == emojiId) token.Image = frame;
+        }, new EmojiSlot(owner, emojiId), AnimationKind.Emoji);
+    }
+
+    private void RefreshAnimations(ChatMessageViewModel item)
+    {
+        if (!_animations.TryGetValue(item.MessageId, out var bindings)) return;
+        foreach (var binding in bindings)
+        {
+            var enabled = !_disposed && _animationsVisible && _settings.AnimatedMediaPlaybackEnabled &&
+                item.IsCurrent(binding.Identity) && binding.Kind switch
+                {
+                    AnimationKind.Emoji => _settings.ChatCustomEmojiEnabled,
+                    AnimationKind.Sticker => item.ShowImages && _settings.ChatStickerEnabled,
+                    AnimationKind.Thumbnail => item.ShowImages,
+                    _ => true,
+                };
+            if (!enabled) binding.Stop();
+            else binding.Handle ??= _media.Play(binding.Asset, frame =>
+            {
+                if (item.IsCurrent(binding.Identity) && _items.ContainsKey(item.MessageId)) binding.Apply(frame);
+            });
+        }
     }
 
     private void StopAnimations(string messageId)
     {
-        if (!_animationHandles.Remove(messageId, out var handles)) return;
-        foreach (var handle in handles) handle.Dispose();
+        if (!_animations.Remove(messageId, out var bindings)) return;
+        foreach (var binding in bindings) binding.Stop();
     }
 
     private void StopAllAnimations()
     {
-        foreach (var messageId in _animationHandles.Keys.ToArray()) StopAnimations(messageId);
+        foreach (var messageId in _animations.Keys.ToArray()) StopAnimations(messageId);
+    }
+
+    // References to already-cached sources, bounded by live message/media slots. No decoded frame cache.
+    // Visibility/settings suspend players; message revision/delete/cache clear discard the bindings.
+    private enum AnimationKind { Thumbnail, Sticker, Emoji, Reaction }
+    private sealed record EmojiSlot(object Owner, string EmojiId);
+
+    private sealed record AnimationBinding(object Target, AnimationKind Kind, CachedMediaAsset Asset,
+        ChatEnrichmentIdentity Identity, Action<ImageSource> Apply)
+    {
+        public IDisposable? Handle { get; set; }
+        public void Stop() { Handle?.Dispose(); Handle = null; }
     }
 
     private void RegroupConsecutiveAuthors()

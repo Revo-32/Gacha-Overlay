@@ -262,7 +262,8 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
     private UnifiedTextLayout GetLayout(double availableWidth, double availableHeight)
     {
         var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-        var content = BuildContent();
+        // Existing mutations clear the layout; reuse its current immutable content on cache hits.
+        var content = _layout?.Content ?? BuildContent();
         var key = new LayoutKey(
             _contentRevision,
             content.Text,
@@ -297,7 +298,7 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
     {
         if (content.Text.Length == 0 || FontSize <= 0)
         {
-            return new UnifiedTextLayout(content, Array.Empty<LayoutLine>(), 0, 0, null);
+            return new UnifiedTextLayout(content, Array.Empty<LayoutLine>(), 0, 0);
         }
 
         var paragraphLineHeight = double.IsFinite(LineHeight) && LineHeight > 0
@@ -339,7 +340,7 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
         var width = 0d;
         var height = 0d;
         TextLineBreak? previousBreak = null;
-        var formatter = TextFormatter.Create(key.FormattingMode);
+        var formatter = DispatcherTextFormatters.Get(Dispatcher, key.FormattingMode);
         try
         {
             try
@@ -392,7 +393,7 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
                 previousBreak?.Dispose();
             }
 
-            return new UnifiedTextLayout(content, lines, width, height, formatter);
+            return new UnifiedTextLayout(content, lines, width, height);
         }
         catch
         {
@@ -400,7 +401,6 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
             {
                 line.Line.Dispose();
             }
-            formatter.Dispose();
             throw;
         }
     }
@@ -666,21 +666,18 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
             UnifiedTextContent content,
             IReadOnlyList<LayoutLine> lines,
             double width,
-            double height,
-            TextFormatter? formatter)
+            double height)
         {
             Content = content;
             Lines = lines;
             Width = width;
             Height = height;
-            Formatter = formatter;
         }
 
         public UnifiedTextContent Content { get; }
         public IReadOnlyList<LayoutLine> Lines { get; }
         public double Width { get; }
         public double Height { get; }
-        private TextFormatter? Formatter { get; }
 
         public void Dispose()
         {
@@ -689,7 +686,7 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
                 line.Line.Dispose();
             }
 
-            Formatter?.Dispose();
+            // Dispatcher owns the formatter; other live layouts still use it.
         }
     }
 

@@ -656,7 +656,7 @@ public sealed class M758UnifiedTextRenderingTests
             model.ApplySettings(settings, ChatResponsiveLevel.Full, typography);
             var view = new ChatMessageView { DataContext = model };
             Layout(view, 760, 180);
-            var nickname = Assert.IsType<CrispOutlinedText>(view.FindName(nicknameName));
+            var nickname = Assert.IsType<CrispOutlinedText>(GachaOverlay.Tests.TestSupport.VisualLookup.Find(view, nicknameName));
             var before = BoundsIn(nickname, view);
 
             model.ApplySettings(settings with

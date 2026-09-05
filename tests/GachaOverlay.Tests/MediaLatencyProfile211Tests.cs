@@ -219,7 +219,7 @@ public sealed class MediaLatencyProfile211Tests
         return new { count = sorted.Length, median = sorted[sorted.Length / 2], p95 = sorted[(int)((sorted.Length - 1) * .95)], max = sorted[^1] };
     }
 
-    private static long PrivateWorkingSet(Process process)
+    internal static long PrivateWorkingSet(Process process)
     {
         var counters = new MemoryCounters { Size = (uint)Marshal.SizeOf<MemoryCounters>() };
         return GetProcessMemoryInfo(process.Handle, ref counters, counters.Size) ? (long)counters.PrivateWorkingSetSize : -1;

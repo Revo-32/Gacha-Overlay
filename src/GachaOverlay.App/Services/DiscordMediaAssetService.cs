@@ -260,16 +260,24 @@ internal sealed class DiscordMediaAssetService : IDisposable
         public (BitmapSource Image, TimeSpan Duration, int FrameCount) Decode(int frameIndex)
         {
             var frame = Math.Clamp(frameIndex, 0, _ends.Length - 1);
+            var pixels = DecodePixels(frame);
+            // Immutable snapshots are still used for previews and independent pixel comparisons.
+            var image = BitmapSource.Create(pixels.Width, pixels.Height, 96, 96, PixelFormats.Pbgra32,
+                null, pixels.Address, pixels.Bytes, pixels.Stride);
+            image.Freeze();
+            return (image, TimeSpan.FromTicks(_ends[frame] - (frame == 0 ? 0 : _ends[frame - 1])), _ends.Length);
+        }
+
+        // Borrowed until the next decode/dispose. Player serializes decode -> UI copy -> next decode.
+        internal (IntPtr Address, int Width, int Height, int Bytes, int Stride) DecodePixels(int frameIndex)
+        {
+            var frame = Math.Clamp(frameIndex, 0, _ends.Length - 1);
             // PriorFrame=-1 delegates required intermediate composition/disposal to Skia,
             // including random timeline seeks and loop wrap. Never assert an invalid prior frame.
             var result = _codec.GetPixels(_target, _bitmap.GetPixels(), new SKCodecOptions(frame) { PriorFrame = -1 });
             if (result is not (SKCodecResult.Success or SKCodecResult.IncompleteInput))
                 throw new InvalidDataException($"Skia decode failed: {result}.");
-            // WPF copies synchronously into its own backing store. No per-frame managed BGRA array.
-            var image = BitmapSource.Create(_target.Width, _target.Height, 96, 96, PixelFormats.Pbgra32,
-                null, _bitmap.GetPixels(), checked((int)BufferBytes), _target.RowBytes);
-            image.Freeze();
-            return (image, TimeSpan.FromTicks(_ends[frame] - (frame == 0 ? 0 : _ends[frame - 1])), _ends.Length);
+            return (_bitmap.GetPixels(), _target.Width, _target.Height, checked((int)BufferBytes), _target.RowBytes);
         }
 
         public void Dispose()
@@ -354,6 +362,7 @@ internal sealed class MediaAnimationScheduler : IDisposable
     private readonly IRuntimeMetrics? _metrics;
     private readonly IAppLogger _logger;
     private int _activeDecoders;
+    private int _activeSurfaces;
     private long _bufferBytes;
     private bool _disposed;
 
@@ -420,6 +429,7 @@ internal sealed class MediaAnimationScheduler : IDisposable
         private TimeSpan _next;
         private long _lastOrdinal = -1;
         private DiscordMediaAssetService.FrameDecoder? _decoder;
+        private WriteableBitmap? _surface;
         private int _busy;
         private volatile bool _disposed;
         private bool _released;
@@ -465,7 +475,7 @@ internal sealed class MediaAnimationScheduler : IDisposable
                     var skipped = selection.Ordinal - _lastOrdinal - 1;
                     if (skipped > 0) _owner._metrics?.Increment(RuntimeMetricNames.MediaAnimationFramesSkipped, skipped);
                     _lastOrdinal = selection.Ordinal;
-                    var decoded = _decoder.Decode(selection.Frame);
+                    var decoded = _decoder.DecodePixels(selection.Frame);
                     _owner._metrics?.RecordDuration(RuntimeMetricNames.MediaAnimationDecodeDuration, Stopwatch.GetElapsedTime(started));
                     _owner._metrics?.Increment(RuntimeMetricNames.MediaAnimationFrameDecoded);
                     if (_disposed) return;
@@ -479,7 +489,17 @@ internal sealed class MediaAnimationScheduler : IDisposable
                             _owner._metrics?.Increment(RuntimeMetricNames.MediaAnimationFramesSkipped);
                             return;
                         }
-                        _callback(decoded.Image);
+                        // One UI-owned presentation surface per player, not a fresh BitmapSource per frame.
+                        // Decode stays on the worker. The borrowed pixels cannot be overwritten or freed
+                        // until this awaited UI operation completes, including cancellation/disposal races.
+                        if (_surface is null)
+                        {
+                            _surface = new WriteableBitmap(decoded.Width, decoded.Height, 96, 96, PixelFormats.Pbgra32, null);
+                            _owner._metrics?.SetGauge("media.animation.presentation_surfaces", Interlocked.Increment(ref _owner._activeSurfaces));
+                        }
+                        _surface.WritePixels(new System.Windows.Int32Rect(0, 0, decoded.Width, decoded.Height),
+                            decoded.Address, decoded.Bytes, decoded.Stride);
+                        _callback(_surface);
                         presented = true;
                     }, DispatcherPriority.Background, _cancel.Token);
                     if (presented)
@@ -524,6 +544,11 @@ internal sealed class MediaAnimationScheduler : IDisposable
         {
             if (_released) return;
             _released = true;
+            if (_surface is not null)
+            {
+                _surface = null;
+                _owner._metrics?.SetGauge("media.animation.presentation_surfaces", Interlocked.Decrement(ref _owner._activeSurfaces));
+            }
             if (_decoder is not null)
             {
                 var bytes = _decoder.BufferBytes;
