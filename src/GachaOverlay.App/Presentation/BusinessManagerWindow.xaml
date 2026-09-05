@@ -15,6 +15,18 @@
             <Setter Property="FontWeight" Value="Normal"/>
         </Style>
     </Window.Resources>
+    <Grid x:Name="EditRoot">
+        <Grid.Style>
+            <Style TargetType="Grid">
+                <Setter Property="Background" Value="Transparent"/>
+                <Style.Triggers>
+                    <!-- Nonzero alpha lets the existing native resize hit-test receive edge/corner input. -->
+                    <DataTrigger Binding="{Binding IsInteractive}" Value="True">
+                        <Setter Property="Background" Value="#01000000"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Style>
     <Border x:Name="Surface" Padding="7" BorderThickness="1" CornerRadius="11">
         <DockPanel>
             <Border x:Name="DragGrip" DockPanel.Dock="Top" Width="26" Height="17" Margin="0,0,0,1"
@@ -116,4 +128,8 @@
             </ScrollViewer>
         </DockPanel>
     </Border>
+        <Border x:Name="EditOutline" Margin="1" BorderThickness="1" CornerRadius="9"
+                BorderBrush="{DynamicResource AccentPrimaryBrush}" IsHitTestVisible="False"
+                Visibility="{Binding IsInteractive, Converter={StaticResource BoolVisibility}}"/>
+    </Grid>
 </Window>
