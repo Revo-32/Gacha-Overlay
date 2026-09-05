@@ -97,6 +97,9 @@ public sealed class M756ThemeSystemTests
                     .ToArray();
                 expectedKeys ??= keys;
                 Assert.Equal(expectedKeys, keys);
+                var editHitTestBrush = Assert.IsType<SolidColorBrush>(resources["HudEditHitTestBrush"]);
+                Assert.True(editHitTestBrush.IsFrozen);
+                Assert.Equal(Color.FromArgb(1, 0, 0, 0), editHitTestBrush.Color);
                 foreach (var token in Enum.GetValues<SemanticColorToken>())
                 {
                     Assert.IsType<Color>(resources[$"{token}Color"]);

@@ -22,7 +22,7 @@
                 <Style.Triggers>
                     <!-- Nonzero alpha lets the existing native resize hit-test receive edge/corner input. -->
                     <DataTrigger Binding="{Binding IsInteractive}" Value="True">
-                        <Setter Property="Background" Value="#01000000"/>
+                        <Setter Property="Background" Value="{DynamicResource HudEditHitTestBrush}"/>
                     </DataTrigger>
                 </Style.Triggers>
             </Style>

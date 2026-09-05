@@ -50,6 +50,11 @@ internal sealed class ColorThemeManager
             resources[$"{pair.Key}Brush"] = brush;
         }
 
+        // Non-zero alpha keeps the unlocked layered-window resize edges hittable.
+        var editHitTestBrush = new SolidColorBrush(MediaColor.FromArgb(1, 0, 0, 0));
+        editHitTestBrush.Freeze();
+        resources["HudEditHitTestBrush"] = editHitTestBrush;
+
         return resources;
     }
 
