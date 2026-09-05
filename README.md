@@ -2,11 +2,11 @@
 
 ![LS Overlay](assets/branding/LS_Overlay_logo.png)
 
-**LS Overlay 2.1.1**은 GTA Online을 플레이하면서 Discord 채팅과 판매 순서, 일일·주간 정보, 주요 사업장 타이머를 함께 확인할 수 있는 Windows HUD 도구입니다.
+**LS Overlay 2.2.0**은 GTA Online을 플레이하면서 Discord 채팅과 판매 순서, 일일·주간 정보, 주요 사업장 타이머를 함께 확인할 수 있는 Windows HUD 도구입니다.
 
 LS Overlay는 Rockstar Games, Take-Two Interactive, Discord와 제휴하거나 이들의 승인을 받은 제품이 아닌 독립적인 비공식 도구입니다.
 
-## 2.1 주요 기능
+## 2.2 주요 기능
 
 - **Main HUD**: 선택한 Discord 채널의 최근 채팅, 언급, Reaction, 이미지, 스티커와 판매 대기열 표시
 - **GTA 컴패니언**: 오늘의 도전, 주간 도전, 주간 보너스·할인·이벤트를 별도 HUD로 표시
@@ -27,7 +27,7 @@ Discord Desktop 앱은 필수가 아닙니다. 독점 전체 화면에서 HUD가
 
 ## 다운로드
 
-정식 배포 후 [GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.1.1-win-x64.zip**을 받으세요. GitHub가 자동 생성하는 **Source code** 파일은 실행용 패키지가 아닙니다.
+정식 배포 후 [GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.2.0-win-x64.zip**을 받으세요. GitHub가 자동 생성하는 **Source code** 파일은 실행용 패키지가 아닙니다.
 
 ZIP을 원하는 새 폴더에 모두 압축 해제하고 **LSOverlay.exe**를 실행합니다. 별도 설치 프로그램이나 .NET 설치는 필요하지 않습니다. 자동 업데이트와 실행 파일 코드 서명은 제공하지 않으므로, Windows 경고가 나타나면 배포 페이지와 SHA-256을 먼저 확인하고 보안 기능을 끄지 마세요.
 
@@ -40,13 +40,13 @@ ZIP을 원하는 새 폴더에 모두 압축 해제하고 **LSOverlay.exe**를 �
 5. 허용된 메인 채널을 선택하고 초기 안내를 마칩니다.
 6. GTA Online을 실행하고 HUD를 확인합니다.
 
-기존 2.0 사용자는 `%LOCALAPPDATA%\GachaOverlay`를 삭제하지 마세요. 같은 Windows 계정에서는 호환되는 설정과 로그인 정보를 이어서 사용합니다.
+기존 버전 사용자는 `%LOCALAPPDATA%\GachaOverlay`를 삭제하지 마세요. 같은 Windows 계정에서는 호환되는 설정과 로그인 정보를 이어서 사용합니다.
 
-- [LS Overlay 2.1 빠른 시작 원문](docs/2.1/quick-start/LS-Overlay-2.1-Quick-Start-ko.md)
-- [LS Overlay 2.1 상세 사용자 설명서 원문](docs/2.1/user-guide/LS-Overlay-2.1-User-Guide-ko.md)
-- [LS Overlay 2.1.1 릴리즈 노트](docs/releases/LS-Overlay-2.1.1-release-notes.md)
+- [LS Overlay 2.2 빠른 시작 원문](docs/2.2/quick-start/LS-Overlay-2.2-Quick-Start-ko.md)
+- [LS Overlay 2.2 상세 사용자 설명서 원문](docs/2.2/user-guide/LS-Overlay-2.2-User-Guide-ko.md)
+- [LS Overlay 2.2.0 릴리즈 노트](docs/releases/LS-Overlay-2.2.0-release-notes.md)
 
-배포 ZIP에는 **LS-Overlay-2.1-Quick-Start-ko.pdf**와 **LS-Overlay-2.1-User-Guide-ko.pdf**가 함께 들어 있습니다. 정식 배포 후 릴리즈 첨부 파일에서도 각각 받을 수 있습니다.
+배포 ZIP에는 **LS-Overlay-2.2-Quick-Start-ko.pdf**와 **LS-Overlay-2.2-User-Guide-ko.pdf**가 함께 들어 있습니다. 정식 배포 후 릴리즈 첨부 파일에서도 각각 받을 수 있습니다.
 
 ## F9와 F10
 

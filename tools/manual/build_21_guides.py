@@ -55,6 +55,7 @@ class GuideSpec:
     short_title: str
     min_pages: int
     max_pages: int
+    edition: str = "2.1"
 
 
 class ScreenshotCard(Flowable):
@@ -302,7 +303,7 @@ def page_flowables(repo: Path, chunk: str, page_index: int, style_set: dict) -> 
     return flow
 
 
-def furniture(canvas, doc, short_title: str):
+def furniture(canvas, doc, short_title: str, edition: str = "2.1"):
     canvas.saveState()
     width, height = A4
     canvas.setFillColor(ACCENT)
@@ -311,7 +312,7 @@ def furniture(canvas, doc, short_title: str):
     canvas.line(20 * mm, 16 * mm, width - 20 * mm, 16 * mm)
     canvas.setFont("WantedSans", 7.8)
     canvas.setFillColor(MUTED)
-    canvas.drawString(20 * mm, 10.5 * mm, f"LS Overlay 2.1 · {short_title}")
+    canvas.drawString(20 * mm, 10.5 * mm, f"LS Overlay {edition} · {short_title}")
     canvas.drawRightString(width - 20 * mm, 10.5 * mm, str(doc.page))
     canvas.restoreState()
 
@@ -340,13 +341,13 @@ def build_one(repo: Path, spec: GuideSpec, output_dir: Path) -> Path:
     doc = GuideDocTemplate(
         str(output), pagesize=A4, leftMargin=20 * mm, rightMargin=20 * mm,
         topMargin=20 * mm, bottomMargin=21 * mm, title=spec.title,
-        author="LS Overlay", subject="LS Overlay 2.1 Korean documentation",
+        author="LS Overlay", subject=f"LS Overlay {spec.edition} Korean documentation",
         creator="LS Overlay documentation pipeline"
     )
     doc.build(
         story,
-        onFirstPage=lambda canvas, current: furniture(canvas, current, spec.short_title),
-        onLaterPages=lambda canvas, current: furniture(canvas, current, spec.short_title),
+        onFirstPage=lambda canvas, current: furniture(canvas, current, spec.short_title, spec.edition),
+        onLaterPages=lambda canvas, current: furniture(canvas, current, spec.short_title, spec.edition),
     )
     reader = PdfReader(str(output))
     if not spec.min_pages <= len(reader.pages) <= spec.max_pages:
@@ -359,19 +360,21 @@ def build_one(repo: Path, spec: GuideSpec, output_dir: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--kind", choices=("quick-start", "user-guide", "all"), default="all")
+    parser.add_argument("--edition", choices=("2.1", "2.2"), default="2.1")
     parser.add_argument("--output-dir", type=Path, default=Path("output/pdf/2.1"))
     args = parser.parse_args()
+    edition = args.edition
     repo = Path(__file__).resolve().parents[2]
     specs = {
         "quick-start": GuideSpec(
-            repo / "docs/2.1/quick-start/LS-Overlay-2.1-Quick-Start-ko.md",
-            "LS-Overlay-2.1-Quick-Start-ko.pdf", "LS Overlay 2.1 빠른 시작 가이드",
-            "빠른 시작 가이드", 6, 8
+            repo / f"docs/{edition}/quick-start/LS-Overlay-{edition}-Quick-Start-ko.md",
+            f"LS-Overlay-{edition}-Quick-Start-ko.pdf", f"LS Overlay {edition} 빠른 시작 가이드",
+            "빠른 시작 가이드", 6, 8, edition
         ),
         "user-guide": GuideSpec(
-            repo / "docs/2.1/user-guide/LS-Overlay-2.1-User-Guide-ko.md",
-            "LS-Overlay-2.1-User-Guide-ko.pdf", "LS Overlay 2.1 상세 사용자 설명서",
-            "상세 사용자 설명서", 25, 35
+            repo / f"docs/{edition}/user-guide/LS-Overlay-{edition}-User-Guide-ko.md",
+            f"LS-Overlay-{edition}-User-Guide-ko.pdf", f"LS Overlay {edition} 상세 사용자 설명서",
+            "상세 사용자 설명서", 25, 35, edition
         ),
     }
     selected = list(specs.values()) if args.kind == "all" else [specs[args.kind]]

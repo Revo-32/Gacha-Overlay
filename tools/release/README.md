@@ -1,4 +1,26 @@
-# LS Overlay 2.1.0 - local Stable preparation
+# LS Overlay 2.2.0 - Stable preparation
+
+Current manifest: `ls-2.2.0.json`; public README: `README-public-2.2.0.md`.
+Use the existing builder with `--edition 2.2 --output-dir output/pdf/2.2`,
+and validator with `--edition 2.2 --pdf-dir output/pdf/2.2`. The original 2.1
+screenshot assets and layout are reused; both PDF titles/footers and source
+version references are updated. Render and inspect both PDFs before packaging.
+
+Run one clean Release build, full Release tests (preserve the TRX), format and
+diff checks. Commit the reviewed preparation, then publish/package the exact
+clean source. Use the established self-contained compressed win-x64 single-file
+options below, substituting 2.2.0 paths. Pass `-ManifestPath ls-2.2.0.json`,
+the new PDFs, final passing TRX, approved EXE hash and a new output directory
+to the existing packager. `-UserValidationCompleted` refers to prior confirmed
+client testing, not live Backend validation.
+
+Exactly four public assets: ZIP, two PDFs and SHA256 TXT. EXE is inside ZIP only.
+Never include local manifests, diagnostics, settings or raw performance reports.
+Publication requires separate Git/Production gates: exact intended deployment,
+healthy endpoints, then immutable tag/release and public redownload/hash checks.
+A known baseline readiness incident is not a live corrective validation PASS.
+
+## Historical 2.1.0 preparation reference (not current commands)
 
 이 절차는 사용자 검토용 Stable 후보만 로컬에서 만듭니다. 커밋, 푸시, 태그, GitHub Release 게시, Railway 배포, DNS·OAuth·Discord 설정 변경을 수행하지 않습니다. 기존 2.0 manifest와 공개 산출물은 역사 자료로 유지합니다.
 

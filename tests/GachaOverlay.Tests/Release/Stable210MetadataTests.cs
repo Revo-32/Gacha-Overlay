@@ -13,30 +13,30 @@ public sealed class Stable210MetadataTests
     public void ReleaseMetadataMatchesManifestWithoutRenamingManagedAssembly()
     {
         using var manifest = JsonDocument.Parse(
-            File.ReadAllText(Path.Combine(Root, "tools/release/ls-2.1.1.json")));
+            File.ReadAllText(Path.Combine(Root, "tools/release/ls-2.2.0.json")));
         var version = manifest.RootElement.GetProperty("version").GetString();
         var app = typeof(GachaOverlay.App.App).Assembly;
 
-        Assert.Equal("2.1.1", version);
+        Assert.Equal("2.2.0", version);
         Assert.Equal(version,
             app.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion);
         Assert.Equal("GachaOverlay.App", app.GetName().Name);
-        Assert.Equal("2.1.1.0",
+        Assert.Equal("2.2.0.0",
             app.GetCustomAttribute<AssemblyFileVersionAttribute>()!.Version);
         Assert.Equal("LS Overlay", app.GetCustomAttribute<AssemblyProductAttribute>()!.Product);
         Assert.Equal("LS Overlay", app.GetCustomAttribute<AssemblyDescriptionAttribute>()!.Description);
         Assert.Equal("LSOverlay.exe",
             manifest.RootElement.GetProperty("executableName").GetString());
-        Assert.Equal("LS-Overlay-2.1.1-win-x64.zip",
+        Assert.Equal("LS-Overlay-2.2.0-win-x64.zip",
             manifest.RootElement.GetProperty("zipName").GetString());
-        Assert.Equal("LS-Overlay-2.1-Quick-Start-ko.pdf",
+        Assert.Equal("LS-Overlay-2.2-Quick-Start-ko.pdf",
             manifest.RootElement.GetProperty("quickStartName").GetString());
-        Assert.Equal("LS-Overlay-2.1-User-Guide-ko.pdf",
+        Assert.Equal("LS-Overlay-2.2-User-Guide-ko.pdf",
             manifest.RootElement.GetProperty("guideName").GetString());
-        Assert.Equal("LS-Overlay-2.1.1-SHA256.txt",
+        Assert.Equal("LS-Overlay-2.2.0-SHA256.txt",
             manifest.RootElement.GetProperty("checksumName").GetString());
-        Assert.Equal("v2.1.1", manifest.RootElement.GetProperty("tag").GetString());
-        Assert.Equal("LS Overlay 2.1.1",
+        Assert.Equal("v2.2.0", manifest.RootElement.GetProperty("tag").GetString());
+        Assert.Equal("LS Overlay 2.2.0",
             manifest.RootElement.GetProperty("title").GetString());
         Assert.False(manifest.RootElement.GetProperty("prerelease").GetBoolean());
     }
@@ -62,13 +62,13 @@ public sealed class Stable210MetadataTests
         foreach (var relative in new[]
                  {
                      "README.md",
-                     "docs/2.1/quick-start/LS-Overlay-2.1-Quick-Start-ko.md",
-                     "docs/2.1/user-guide/LS-Overlay-2.1-User-Guide-ko.md",
-                     "docs/releases/LS-Overlay-2.1.1-release-notes.md",
+                     "docs/2.2/quick-start/LS-Overlay-2.2-Quick-Start-ko.md",
+                     "docs/2.2/user-guide/LS-Overlay-2.2-User-Guide-ko.md",
+                     "docs/releases/LS-Overlay-2.2.0-release-notes.md",
                  })
         {
             var text = File.ReadAllText(Path.Combine(Root, relative));
-            Assert.Contains(relative.StartsWith("docs/2.1/", StringComparison.Ordinal) ? "2.1.0" : "2.1.1", text);
+            Assert.Contains("2.2.0", text);
             Assert.Contains("LSOverlay.exe", text);
             Assert.Contains("mailto:revo.32.39.41@gmail.com", text);
             Assert.Contains("https://overlay.revo32.cloud/privacy", text);
@@ -86,9 +86,9 @@ public sealed class Stable210MetadataTests
     public void TwoGuideSourcesUseCurrentSharedFactsAndExplicitScreenshotGate()
     {
         var quick = File.ReadAllText(Path.Combine(
-            Root, "docs/2.1/quick-start/LS-Overlay-2.1-Quick-Start-ko.md"));
+            Root, "docs/2.2/quick-start/LS-Overlay-2.2-Quick-Start-ko.md"));
         var full = File.ReadAllText(Path.Combine(
-            Root, "docs/2.1/user-guide/LS-Overlay-2.1-User-Guide-ko.md"));
+            Root, "docs/2.2/user-guide/LS-Overlay-2.2-User-Guide-ko.md"));
 
         foreach (var text in new[] { quick, full })
         {

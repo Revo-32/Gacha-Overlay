@@ -31,13 +31,13 @@ FORBIDDEN = (
 )
 
 
-def validate_source(repo: Path, source: Path, expected_pages: range) -> list[str]:
+def validate_source(repo: Path, source: Path, expected_pages: range, edition: str = "2.1") -> list[str]:
     text = source.read_text(encoding="utf-8")
     errors = []
     page_count = len([chunk for chunk in text.split(PAGEBREAK) if chunk.strip()])
     if page_count not in expected_pages:
         errors.append(f"source page plan {page_count} outside {expected_pages.start}-{expected_pages.stop - 1}")
-    for required in ("LS Overlay 2.1", "2.1.0", "F9", "F10", "%LOCALAPPDATA%\\GachaOverlay"):
+    for required in (f"LS Overlay {edition}", f"{edition}.0", "F9", "F10", "%LOCALAPPDATA%\\GachaOverlay"):
         if required not in text:
             errors.append(f"missing source term: {required}")
     for link in PUBLIC_LINKS:
@@ -56,7 +56,7 @@ def validate_source(repo: Path, source: Path, expected_pages: range) -> list[str
     return errors
 
 
-def validate_pdf(path: Path, expected_pages: range) -> list[str]:
+def validate_pdf(path: Path, expected_pages: range, edition: str = "2.1") -> list[str]:
     if not path.exists():
         return [f"PDF not generated: {path.name}"]
     reader = PdfReader(str(path))
@@ -68,7 +68,7 @@ def validate_pdf(path: Path, expected_pages: range) -> list[str]:
         errors.append("blank or unsearchable PDF page")
     if "2.0.0" in text or re.search(r"\brc(?:\.\d+)?\b", text, re.IGNORECASE):
         errors.append("stale current-version branding")
-    for required in ("2.1.0", "F9", "F10"):
+    for required in (f"{edition}.0", "F9", "F10"):
         if required not in text:
             errors.append(f"missing PDF term: {required}")
     if not reader.outline:
@@ -82,24 +82,26 @@ def validate_pdf(path: Path, expected_pages: range) -> list[str]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2])
+    parser.add_argument("--edition", choices=("2.1", "2.2"), default="2.1")
     parser.add_argument("--pdf-dir", type=Path, default=Path("output/pdf/2.1"))
     parser.add_argument("--sources-only", action="store_true")
     args = parser.parse_args()
+    edition = args.edition
     repo = args.repo.resolve()
     pdf_dir = (repo / args.pdf_dir).resolve()
     specs = (
-        (repo / "docs/2.1/quick-start/LS-Overlay-2.1-Quick-Start-ko.md", range(6, 9), "LS-Overlay-2.1-Quick-Start-ko.pdf"),
-        (repo / "docs/2.1/user-guide/LS-Overlay-2.1-User-Guide-ko.md", range(25, 36), "LS-Overlay-2.1-User-Guide-ko.pdf"),
+        (repo / f"docs/{edition}/quick-start/LS-Overlay-{edition}-Quick-Start-ko.md", range(6, 9), f"LS-Overlay-{edition}-Quick-Start-ko.pdf"),
+        (repo / f"docs/{edition}/user-guide/LS-Overlay-{edition}-User-Guide-ko.md", range(25, 36), f"LS-Overlay-{edition}-User-Guide-ko.pdf"),
     )
     errors = []
     for source, pages, pdf_name in specs:
-        errors.extend(f"{source.name}: {error}" for error in validate_source(repo, source, pages))
+        errors.extend(f"{source.name}: {error}" for error in validate_source(repo, source, pages, edition))
         if not args.sources_only:
-            errors.extend(f"{pdf_name}: {error}" for error in validate_pdf(pdf_dir / pdf_name, pages))
+            errors.extend(f"{pdf_name}: {error}" for error in validate_pdf(pdf_dir / pdf_name, pages, edition))
     if errors:
         print("\n".join(f"FAIL: {error}" for error in errors))
         raise SystemExit(1)
-    print("LS Overlay 2.1 documentation validation PASS")
+    print(f"LS Overlay {edition} documentation validation PASS")
 
 
 if __name__ == "__main__":
