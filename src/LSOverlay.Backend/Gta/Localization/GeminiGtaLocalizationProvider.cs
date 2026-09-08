@@ -15,7 +15,7 @@ internal interface IGtaLocalizationProvider
 internal sealed class GeminiGtaLocalizationProvider : IGtaLocalizationProvider, IDisposable
 {
     public const string DefaultModel = "gemini-3.5-flash-lite";
-    public const string PromptVersion = "gta-ko-3.3";
+    public const string PromptVersion = "gta-ko-3.5";
     public const string SchemaVersion = "fields-1";
     private readonly HttpClient _http;
     private readonly string? _key;
@@ -112,9 +112,12 @@ internal sealed class GeminiGtaLocalizationProvider : IGtaLocalizationProvider, 
         Keep each placeholder exactly once in the same item; never spell out, change or invent placeholders.
         Placeholders are machine tokens, not language. Copy them byte-for-byte without changing brackets or characters.
         Reordering within one field is allowed; moving tokens to another field or repeating a count is forbidden.
+        A shared multiplier applies to the entire original reward/rate list. Put it before or after that complete list, never between GTA$ and RP or joined to a currency with 'and'.
         protectedTerms provides read-only meanings/approved renderings for choosing word order and particles.
         Use those meanings to distinguish temporal phrases (this week, dates, times), percentages, rewards,
         quantities and activities. Output the placeholder, NOT its dictionary value.
+        Translate ONLY unprotected words from the source text. protectedTerms values are reference metadata, not additional source words.
+        Never add a Korean alias, translation or transliteration of a protected proper name before or after its placeholder. Keep the surrounding activity and location words instead.
         Place a quantity naturally (e.g. 임무 5개); choose Korean particles for the final restored term.
         "Available through September 10 at 15:00" means a single deadline, not a range starting at 15:00.
         "for free" means 무료로; "this week" is a temporal modifier, not part of an item name.

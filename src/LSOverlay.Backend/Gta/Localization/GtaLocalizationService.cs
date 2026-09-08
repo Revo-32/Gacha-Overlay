@@ -84,7 +84,7 @@ internal sealed class GtaLocalizationService : BackgroundService
     }
     private string Identity(PublicGtaLocalizationInput input) => GtaLocalizationGlossary.Digest(string.Join('|',
         TrustedGtaLocalizationSourcePolicy.Version, _glossary.Hash, _overrides.Hash, GeminiGtaLocalizationProvider.PromptVersion,
-        GeminiGtaLocalizationProvider.SchemaVersion, KoreanLocalizationSurface.Version, LocalizationProtection.Version, LocalizationRepairFeedback.Version,
+        GeminiGtaLocalizationProvider.SchemaVersion, KoreanLocalizationSurface.Version, LocalizationProtection.Version, LocalizationRepairFeedback.Version, LocalizationValidation.Version,
         _provider.Model, JsonSerializer.Serialize(input, GeminiGtaLocalizationProvider.JsonOptions)));
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

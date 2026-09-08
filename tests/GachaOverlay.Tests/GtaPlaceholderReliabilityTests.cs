@@ -35,6 +35,12 @@ public sealed class GtaPlaceholderReliabilityTests
             case "numeric": items[0]!["textKo"] = body.Replace(first, "GTA$600,000", StringComparison.Ordinal); break;
             case "extraNumber": items[0]!["textKo"] = body + " 99"; break;
             case "private": items[0]!["textKo"] = "[L_API_KEY_PRIVATE_SENTINEL]"; break;
+            case "scope":
+                var target = prepared.Fields.Select((f, i) => (f, i)).First(p => p.f.Tokens.Values.Contains("2배") && p.f.Tokens.Values.Contains("GTA$"));
+                var money = target.f.Tokens.Single(t => t.Value == "GTA$").Key;
+                var multiplier = target.f.Tokens.Single(t => t.Value == "2배").Key;
+                items[target.i]!["textKo"] = money + " 와 " + multiplier + ", " + string.Join(' ', target.f.Tokens.Keys.Except([money, multiplier])) + " 안내";
+                break;
         }
         return json.ToJsonString();
     }
@@ -64,6 +70,32 @@ public sealed class GtaPlaceholderReliabilityTests
             Assert.Equal(p.Fields[1].Tokens.Keys.First(), Assert.Single(diagnostics[0].MovedTokenIds));
             Assert.Equal(p.Fields[0].Tokens.Keys.First(), Assert.Single(diagnostics[1].MovedTokenIds));
         }
+    }
+
+    [Fact]
+    public void RealStagingModifierScopeFailureIsRejectedAndNaturalGroupingPasses()
+    {
+        const string source = "2X GTA$, RP & Research Speed: Bunker Research Missions (requested via Agent 14).";
+        var p = LocalizationValidation.Prepare(new("public-fixture", [new("field.000", "reward", source)]), GtaLocalizationGlossary.Default);
+        string Key(string value) => p.Fields[0].Tokens.Single(t => t.Value == value).Key;
+        string Response(string body) => JsonSerializer.Serialize(new { items = new[] { new { id = "field.000", textKo = body } } });
+        var tail = $": {Key("벙커 연구")} 임무 (요원 {Key("14")}에게 요청)";
+        var bad = $"{Key("GTA$")} 와 {Key("2배")}, {Key("RP")} 및 연구 속도" + tail;
+        Assert.False(LocalizationValidation.TryValidate(p, Response(bad), out var values, out var reason, out var diagnostics));
+        Assert.Empty(values);
+        Assert.Equal("ModifierScope", reason);
+        Assert.Equal(LocalizationValueFailure.ModifierScope, Assert.Single(diagnostics).ValueFailure);
+        var wrongSide = $"{Key("벙커 연구")} 임무 (요원 {Key("14")} 요청) 및 연구 속도: {Key("GTA$")} 와 {Key("RP")} {Key("2배")}";
+        Assert.False(LocalizationValidation.TryValidate(p, Response(wrongSide), out _, out reason));
+        Assert.Equal("ModifierScope", reason);
+        foreach (var body in new[]
+        {
+            $"{Key("GTA$")} 및 {Key("RP")}, 연구 속도 모두 {Key("2배")}" + tail,
+            $"{Key("2배")} {Key("GTA$")} 및 {Key("RP")}, 연구 속도" + tail,
+            $"{Key("벙커 연구")} 임무(요원 {Key("14")} 요청) 연구 속도, {Key("GTA$")} 및 {Key("RP")}: {Key("2배")}" // all metrics before the shared multiplier is valid too
+        })
+            Assert.True(LocalizationValidation.TryValidate(p, Response(body), out _, out _));
+        Assert.Equal("fields-validation-2", LocalizationValidation.Version);
     }
 
     [Fact]
@@ -109,35 +141,38 @@ public sealed class GtaPlaceholderReliabilityTests
         Assert.Equal(p.ProtectedInput, Prepare().ProtectedInput with { Items = p.ProtectedInput.Items });
         var roundTrip = JsonSerializer.Deserialize<PublicGtaLocalizationInput>(JsonSerializer.Serialize(p.ProtectedInput))!;
         Assert.Equal(p.ProtectedInput.Items[0].Text, roundTrip.Items[0].Text);
-        Assert.Equal("gta-protect-2", LocalizationProtection.Version);
-        Assert.Equal("gta-repair-1", LocalizationRepairFeedback.Version);
+        Assert.Equal("gta-protect-3", LocalizationProtection.Version);
+        Assert.Equal("gta-repair-2", LocalizationRepairFeedback.Version);
     }
 
     [Theory]
     [InlineData("missing")]
     [InlineData("duplicate")]
     [InlineData("moved")]
+    [InlineData("scope")]
     public async Task ExistingSingleRetryReceivesExactFeedbackAndMustPassWholeValidator(string mutation)
     {
         var folder = Path.Combine(Path.GetTempPath(), "LSO-Repair-" + Guid.NewGuid().ToString("N"));
         var logger = new CaptureLogger();
         var provider = new RepairProvider(mutation, false);
+        var document = GtaLocalizationTests.Document(mutation == "scope" ? File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "GtaLocalization", "real-business-rivalries.txt")) : null);
         try
         {
             using var service = new GtaLocalizationService(provider, folder, logger);
             await service.StartAsync(default);
-            Assert.True(await service.Submit(GtaLocalizationTests.Document()));
-            Assert.True(await service.Submit(GtaLocalizationTests.Document()));
-            Assert.True(await service.Submit(GtaLocalizationTests.Document()));
+            Assert.True(await service.Submit(document));
+            Assert.True(await service.Submit(document));
+            Assert.True(await service.Submit(document));
             await service.StopAsync(default);
             Assert.Equal(2, provider.Calls);
             Assert.NotNull(provider.Feedback);
-            Assert.Contains(provider.Feedback.Fields, d => d.FieldId == "field.000");
+            if (mutation == "scope") Assert.Contains(provider.Feedback.Fields, d => d.ValueFailure == LocalizationValueFailure.ModifierScope);
+            else Assert.Contains(provider.Feedback.Fields, d => d.FieldId == "field.000");
             Assert.Contains("FULL required JSON", provider.Feedback.Instructions, StringComparison.Ordinal);
             Assert.NotNull(provider.Feedback.PreviousResponse);
             Assert.DoesNotContain("PreviousResponse", JsonSerializer.Serialize(provider.Feedback), StringComparison.Ordinal);
             Assert.All(logger.Messages, text => Assert.DoesNotContain("Complete 5 Contact Missions", text, StringComparison.Ordinal));
-            Assert.Contains(logger.Messages, text => text.Contains("diagnostics=", StringComparison.Ordinal) && text.Contains("field.000", StringComparison.Ordinal));
+            Assert.Contains(logger.Messages, text => text.Contains("diagnostics=", StringComparison.Ordinal) && text.Contains("field.", StringComparison.Ordinal));
             Assert.Single(logger.Messages.Where(text => text.Contains("first cache hit", StringComparison.Ordinal)));
             Assert.True(File.Exists(Path.Combine(folder, "gta-localization-memory.json")));
         }
@@ -146,6 +181,7 @@ public sealed class GtaPlaceholderReliabilityTests
 
     [Theory]
     [InlineData("missing", 2)]
+    [InlineData("scope", 2)]
     [InlineData("Timeout", 1)]
     [InlineData("RateLimited", 1)]
     [InlineData("Http500", 1)]
@@ -153,11 +189,12 @@ public sealed class GtaPlaceholderReliabilityTests
     {
         var folder = Path.Combine(Path.GetTempPath(), "LSO-Repair-Failure-" + Guid.NewGuid().ToString("N"));
         var provider = new RepairProvider(failure, true);
+        var document = GtaLocalizationTests.Document(failure == "scope" ? File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "GtaLocalization", "real-business-rivalries.txt")) : null);
         try
         {
             using var service = new GtaLocalizationService(provider, folder, new CaptureLogger());
             await service.StartAsync(default);
-            Assert.False(await service.Submit(GtaLocalizationTests.Document()));
+            Assert.False(await service.Submit(document));
             await service.StopAsync(default);
             Assert.Equal(calls, provider.Calls);
             Assert.Equal(0, service.Diagnostics().Cached);

@@ -10,7 +10,7 @@ public sealed record ProtectedLocalizationText(string Source, string Text, IRead
 
 public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
 {
-    public const string Version = "gta-protect-2";
+    public const string Version = "gta-protect-3";
     private static readonly string[] NumberWords = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
     private static readonly Regex NumberWord = new(@"\G(?:one|two|three|four|five|six|seven|eight|nine|ten)\b(?:\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?))?",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
@@ -103,6 +103,28 @@ public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
             // Units belong to the protected semantic atom, never to model-generated grammar.
             if (Regex.IsMatch(text, Regex.Escape(fact.Key) + @"\s*(?:초|분|시간|일|주일?|개월|배|퍼센트|%)",
                 RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100))) { reason = "QuantityUnit"; return false; }
+        }
+        // A multiplier shared by GTA$ and RP must not split those coordinated rewards.
+        // Reject ambiguous scope; never move tokens or rewrite the model's prose here.
+        if (input.Quantities.Count(q => q.Value.Unit == "multiplier") == 1 &&
+            input.Tokens.Count(t => t.Value == "GTA$") == 1 && input.Tokens.Count(t => t.Value == "RP") == 1 &&
+            Regex.IsMatch(input.Source, @"\b\d+(?:\.\d+)?[X×]\s+GTA\$(?:\s*,|\s*(?:&|and)\s+RP)",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)))
+        {
+            var multiplier = text.IndexOf(input.Quantities.Single(q => q.Value.Unit == "multiplier").Key, StringComparison.Ordinal);
+            var money = text.IndexOf(input.Tokens.Single(t => t.Value == "GTA$").Key, StringComparison.Ordinal);
+            var rp = text.IndexOf(input.Tokens.Single(t => t.Value == "RP").Key, StringComparison.Ordinal);
+            if (multiplier > Math.Min(money, rp) && multiplier < Math.Max(money, rp))
+            { reason = "ModifierScope"; return false; }
+            var sourceColon = input.Source.IndexOf(':');
+            if (sourceColon >= 0 && input.Source[..sourceColon].Contains("Research Speed", StringComparison.OrdinalIgnoreCase))
+            {
+                var research = Regex.Match(text, @"연구\s*속도", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+                var outputColon = text.IndexOf(':');
+                if (!research.Success || (outputColon >= 0 &&
+                    new[] { money, rp, research.Index }.Select(index => index < outputColon).Distinct().Count() != 1))
+                { reason = "ModifierScope"; return false; }
+            }
         }
         foreach (var currency in input.Tokens.Where(t => t.Value == "GTA$"))
             foreach (var rp in input.Tokens.Where(t => t.Value == "RP"))

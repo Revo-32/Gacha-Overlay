@@ -8,6 +8,7 @@ internal sealed record PreparedLocalization(PublicGtaLocalizationInput Input,
 
 internal static class LocalizationValidation
 {
+    public const string Version = "fields-validation-2";
     public static PreparedLocalization Prepare(PublicGtaLocalizationInput input, GtaLocalizationGlossary glossary)
     {
         if (!input.IsComplete || input.Items.Count is 0 or > 64 || input.Items.Sum(i => i.Text.Length) > 12000 ||

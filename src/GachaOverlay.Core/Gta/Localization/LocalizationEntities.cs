@@ -19,6 +19,10 @@ internal static class LocalizationEntities
         RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
     private static readonly Regex DepotOwners = new(@"\((?<title>[A-Z][A-Za-z'’-]*(?:\s+[A-Z][A-Za-z'’-]*){0,4}(?:\s+&\s+[A-Z][A-Za-z'’-]*(?:\s+[A-Z][A-Za-z'’-]*){0,4})*)\s+depots\)",
         RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+    // The named delivery activity immediately qualified by explicit depot owners is
+    // preserve-until-verified too; generic title-cased prose has no such evidence.
+    private static readonly Regex DepotActivityPrefix = new(@"\b(?<title>[A-Z][A-Za-z'’-]*(?:\s+[A-Z][A-Za-z'’-]*){0,3}\s+Deliveries)\s+\z",
+        RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
 
     public static IReadOnlyList<LocalizationEntitySpan> Extract(string text, LocalizationEntityKind? kind)
     {
@@ -26,6 +30,8 @@ internal static class LocalizationEntities
         return Vehicle.Matches(text).Select(m => new LocalizationEntitySpan(m.Index, m.Length))
             .Concat(new[] { Creator, RewardItem, DepotOwners }.SelectMany(pattern => pattern.Matches(text))
                 .Select(m => m.Groups["title"]).Select(g => new LocalizationEntitySpan(g.Index, g.Length)))
+            .Concat(DepotOwners.Matches(text).Select(m => DepotActivityPrefix.Match(text[..m.Index]))
+                .Where(m => m.Success).Select(m => m.Groups["title"]).Select(g => new LocalizationEntitySpan(g.Index, g.Length)))
             .OrderBy(e => e.Start).ToArray();
     }
 }

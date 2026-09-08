@@ -1,8 +1,18 @@
 {
   "schemaVersion": 1,
-  "glossaryVersion": "2026-09-08.1",
+  "glossaryVersion": "2026-09-08.2",
   "locale": "ko-KR",
   "entries": [
+    {
+      "id": "token.duneloader",
+      "source": "Duneloader",
+      "ko": "Duneloader",
+      "category": "token",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": true
+    },
     {
       "id": "weapon.antique_cavalry_dagger",
       "source": "Antique Cavalry Dagger",

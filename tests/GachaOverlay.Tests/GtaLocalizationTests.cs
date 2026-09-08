@@ -70,7 +70,7 @@ public sealed class GtaLocalizationTests : IDisposable
             case "alias": entries[1]!["aliases"] = new JsonArray(entries[0]!["source"]!.GetValue<string>()); break;
             case "policy": entries[0]!["policy"] = "anything"; break;
             case "ko": entries[0]!["ko"] = ""; break;
-            case "preserve": entries[0]!["policy"] = "preserve"; break;
+            case "preserve": entries[0]!["policy"] = "preserve"; entries[0]!["ko"] = "변경된 이름"; break;
             case "category": entries[0]!["category"] = "vehicle_model"; break;
             case "placeholder": entries[0]!["source"] = "[[L000_0000]]"; break;
         }
@@ -131,7 +131,7 @@ public sealed class GtaLocalizationTests : IDisposable
     }
     internal static string ValidResponse(PublicGtaLocalizationInput input) => JsonSerializer.Serialize(new
     {
-        items = input.Items.Select(i => new { id = i.Id, textKo = "안내 " + string.Join(" ", Regex.Matches(i.Text, @"\[\[L\d{3}_\d{4}\]\]").Select(m => m.Value)) })
+        items = input.Items.Select(i => new { id = i.Id, textKo = "안내 " + string.Join(" ", Regex.Matches(i.Text, @"\[\[L\d{3}_\d{4}\]\]").Select(m => m.Value)) + (i.Text.Contains("Research Speed", StringComparison.OrdinalIgnoreCase) ? " 연구 속도" : "") })
     });
     [Theory]
     [InlineData("2X")]

@@ -19,6 +19,7 @@ public sealed class GtaLocalizationCorrectiveTests
     [InlineData("selling")]
     [InlineData("Unknown Title Cased Prose")]
     [InlineData("\"ordinary quoted prose\"")]
+    [InlineData("Ordinary Deliveries")]
     public void UnknownProseIsNotAProtectedEntity(string source)
     {
         var p = Protector.Protect(source);
@@ -67,6 +68,7 @@ public sealed class GtaLocalizationCorrectiveTests
     [InlineData("Bravado Banshee GTS", "Bravado Banshee GTS")]
     [InlineData("KnoWay Out", "KnoWay Out")]
     [InlineData("Mansion Raid", "Mansion Raid")]
+    [InlineData("Duneloader", "Duneloader")]
     public void PositiveEntitiesRemainProtected(string source, string expected)
     {
         var p = Protector.Protect("Get " + source + " for free");
@@ -90,7 +92,10 @@ public sealed class GtaLocalizationCorrectiveTests
         const string name = "Yeti x LS Customs Tracksuit";
         Assert.DoesNotContain(name, Protector.Protect(name).Tokens.Values);
         Assert.Contains(name, Protector.Protect("Sell product to receive GTA$1,000,000 + the " + name + ".").Tokens.Values);
-        Assert.Contains("Bobcat Security & Gruppe Sechs", Protector.Protect("Safeguard Deliveries (Bobcat Security & Gruppe Sechs depots).").Tokens.Values);
+        var depot = Protector.Protect("Safeguard Deliveries (Bobcat Security & Gruppe Sechs depots).");
+        Assert.Contains("Bobcat Security & Gruppe Sechs", depot.Tokens.Values);
+        Assert.Contains("Safeguard Deliveries", depot.Tokens.Values);
+        Assert.Contains(" depots", depot.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("all businesses", Protector.Protect("Deliveries (all businesses depots)").Tokens.Values);
         Assert.DoesNotContain("all kinds", Protector.Protect("selling all kinds of product").Tokens.Values);
     }
