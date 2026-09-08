@@ -104,7 +104,7 @@ internal sealed class GtaCompanionViewModel : INotifyPropertyChanged, IDisposabl
 
     public bool WeeklyCompleted => _state.Current.WeeklyCompleted;
 
-    public IReadOnlyList<string> WeeklyEventItems => BuildWeeklyEventItems(_snapshot?.CurrentWeek);
+    public IReadOnlyList<GtaWeeklyEventGroup> WeeklyEventGroups => GtaWeeklyEventPresentation.Build(_snapshot?.CurrentWeek);
 
     public bool HasCampaign => _snapshot?.Campaign is not null;
 
@@ -169,21 +169,11 @@ internal sealed class GtaCompanionViewModel : INotifyPropertyChanged, IDisposabl
             nameof(ShowDaily), nameof(ShowWeekly), nameof(ShowWeeklyEvents),
             nameof(IsChallengeOnly), nameof(IsInteractive),
             nameof(HasWeeklyChallenge), nameof(WeeklyChallengeText), nameof(WeeklyRewardText),
-            nameof(WeeklyCompleted), nameof(WeeklyEventItems), nameof(HasCampaign),
+            nameof(WeeklyCompleted), nameof(WeeklyEventGroups), nameof(HasCampaign),
             nameof(CampaignTitle), nameof(CampaignItems),
         }) OnPropertyChanged(name);
         foreach (var slot in DailySlots) slot.SetInteractive(IsInteractive);
         (ToggleWeeklyCompletionCommand as RelayCommand)?.RaiseCanExecuteChanged();
-    }
-
-    private static IReadOnlyList<string> BuildWeeklyEventItems(GtaCompanionWeek? week)
-    {
-        if (week is null) return Array.Empty<string>();
-        return week.Bonuses.Concat(week.Discounts).Concat(week.FreeItems).Concat(week.OtherEvents)
-            .Select(item => item.DisplayTextKo)
-            .Where(text => !string.IsNullOrWhiteSpace(text))
-            .Take(48)
-            .ToArray();
     }
 
     private static IReadOnlyList<string> BuildCampaignItems(GtaCompanionCampaign? campaign)

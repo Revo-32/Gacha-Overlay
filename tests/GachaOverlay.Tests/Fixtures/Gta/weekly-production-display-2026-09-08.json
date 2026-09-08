@@ -1,0 +1,371 @@
+{
+  "weekKey": "2026-09-03",
+  "effectiveFrom": "2026-09-03T18:00:00+09:00",
+  "effectiveTo": "2026-09-10T18:00:00+09:00",
+  "themeKo": "스페셜 패키지를 판매하여 GTA$1,000,000을 획득하면 Yeti x LS Customs Tracksuit 및 GTA$1,000,000의 10배 보상이 지급됩니다",
+  "weeklyChallenge": {
+    "challengeKey": "challenge_8d021bba293b29791146",
+    "displayTextKo": "스페셜 패키지를 판매하여 GTA$1,000,000을 획득하면 Yeti x LS Customs Tracksuit 및 GTA$1,000,000의 10배 보상이 지급됩니다",
+    "rewardTextKo": "GTA$1,000,000",
+    "requirementsKo": []
+  },
+  "bonuses": [
+    {
+      "itemKey": "item_2c11cec798b58eb0821e",
+      "kind": "bonus",
+      "displayTextKo": "특수 차량 작업\n4배 GTA 달러와 RP",
+      "originalLabel": "4X GTA$ & RP\nSpecial Vehicle Work",
+      "multiplier": 4,
+      "rewardTypes": [
+        "GtaCash",
+        "Rp"
+      ]
+    },
+    {
+      "itemKey": "item_725fc581c16232f27a4b",
+      "kind": "bonus",
+      "displayTextKo": "커뮤니티 임무 시리즈\n3배 GTA 달러와 RP",
+      "originalLabel": "3X GTA$ & RP\nCommunity Mission Series",
+      "multiplier": 3,
+      "rewardTypes": [
+        "GtaCash",
+        "Rp"
+      ]
+    },
+    {
+      "itemKey": "item_9d742fcb16743aafedc8",
+      "kind": "bonus",
+      "displayTextKo": "마드라조 청부 살인\n2배 GTA 달러와 RP",
+      "originalLabel": "2X GTA$ & RP\nMadrazo Hits",
+      "multiplier": 2,
+      "rewardTypes": [
+        "GtaCash",
+        "Rp"
+      ]
+    },
+    {
+      "itemKey": "item_8116b7e980757539b974",
+      "kind": "bonus",
+      "displayTextKo": "혼합 상품 수출 임무 (임원 전용 오피스 비서)\n2배 GTA 달러와 RP",
+      "originalLabel": "2X GTA$ & RP\nExport Mixed Goods Missions (via Executive Office Assistant)",
+      "multiplier": 2,
+      "rewardTypes": [
+        "GtaCash",
+        "Rp"
+      ]
+    },
+    {
+      "itemKey": "item_20372ca03f30ae634a49",
+      "kind": "bonus",
+      "displayTextKo": "다이아몬드 적대적 모드 시리즈\n2배 GTA 달러와 RP",
+      "originalLabel": "2X GTA$ & RP\nDiamond Adversary Series",
+      "multiplier": 2,
+      "rewardTypes": [
+        "GtaCash",
+        "Rp"
+      ]
+    },
+    {
+      "itemKey": "item_53d4c03490f06dd53753",
+      "kind": "bonus",
+      "displayTextKo": "직원 자원 확보 스페셜 패키지\n2배 속도",
+      "originalLabel": "2X SPEED\nStaff Sourcing Special Cargo",
+      "multiplier": 2,
+      "rewardTypes": [
+        "Speed"
+      ]
+    }
+  ],
+  "discounts": [
+    {
+      "itemKey": "item_98dce2746f8f2e6d79cc",
+      "kind": "discount",
+      "displayTextKo": "할인 (70% 할인)\nCoil Cyclone II",
+      "originalLabel": "DISCOUNTS (70% OFF)\nCoil Cyclone II",
+      "discountPercent": 70,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_1fce744cac7b9c31435d",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nBuckingham Maverick",
+      "originalLabel": "DISCOUNTS (30% OFF)\nBuckingham Maverick",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_e9eb9e93380e00921288",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nCoil Cyclone",
+      "originalLabel": "DISCOUNTS (30% OFF)\nCoil Cyclone",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_ca2626947c6b6164ac59",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nDeclasse Yosemite 1500",
+      "originalLabel": "DISCOUNTS (30% OFF)\nDeclasse Yosemite 1500",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_a2dfebedacdb8e4be0d0",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nDewbauchee Specter",
+      "originalLabel": "DISCOUNTS (30% OFF)\nDewbauchee Specter",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_731539888d256190f6ad",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nDewbauchee Vagner",
+      "originalLabel": "DISCOUNTS (30% OFF)\nDewbauchee Vagner",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_a2a2a35f3517fe931fcb",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nGrotti Cheetah",
+      "originalLabel": "DISCOUNTS (30% OFF)\nGrotti Cheetah",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_749f89b9c1c82720d404",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nHVY Insurgent Pick-Up",
+      "originalLabel": "DISCOUNTS (30% OFF)\nHVY Insurgent Pick-Up",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_999e49e4c065c44836dc",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nKarin 190z",
+      "originalLabel": "DISCOUNTS (30% OFF)\nKarin 190z",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_56ca08c96c052142757b",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nLampadati Novak",
+      "originalLabel": "DISCOUNTS (30% OFF)\nLampadati Novak",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_c48bfcf637083156c8d4",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nMammoth Squaddie",
+      "originalLabel": "DISCOUNTS (30% OFF)\nMammoth Squaddie",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_d751c0ab568a2c99e89b",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nOcelot Jugular",
+      "originalLabel": "DISCOUNTS (30% OFF)\nOcelot Jugular",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_df52746a6e77ecc6f375",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nÖverflöd Entity XF",
+      "originalLabel": "DISCOUNTS (30% OFF)\nÖverflöd Entity XF",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_7fce3e3048278f5edfc5",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nÜbermacht Rhinehart",
+      "originalLabel": "DISCOUNTS (30% OFF)\nÜbermacht Rhinehart",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_a790a7b5182dc6e9c341",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nVapid Dominator GTX",
+      "originalLabel": "DISCOUNTS (30% OFF)\nVapid Dominator GTX",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_2c676e127af653096ba3",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nVapid Ellie",
+      "originalLabel": "DISCOUNTS (30% OFF)\nVapid Ellie",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_783b66b22c33fd4a6c7d",
+      "kind": "discount",
+      "displayTextKo": "할인 (30% 할인)\nWestern Company Seabreeze",
+      "originalLabel": "DISCOUNTS (30% OFF)\nWestern Company Seabreeze",
+      "discountPercent": 30,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_4ccb0fdf0e1571154b4f",
+      "kind": "discount",
+      "displayTextKo": "50% 할인: 프리시전 라이플",
+      "originalLabel": "50% OFF: Precision Rifle",
+      "discountPercent": 50,
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_7d2124bbd9430e696ea9",
+      "kind": "discount",
+      "displayTextKo": "GTA+ 회원 30% 할인: 스턴 건",
+      "originalLabel": "30% OFF GTA+ Members: Stun Gun",
+      "discountPercent": 30,
+      "rewardTypes": []
+    }
+  ],
+  "freeItems": [
+    {
+      "itemKey": "item_7933a27ba085577d8439",
+      "kind": "freeItem",
+      "displayTextKo": "할인 (무료 | 100% 할인)\n아카디우스 비즈니스 센터 임원 전용 오피스",
+      "originalLabel": "DISCOUNTS (FREE | 100% OFF)\nArcadius Business Center Executive Office",
+      "discountPercent": 100,
+      "rewardTypes": []
+    }
+  ],
+  "otherEvents": [
+    {
+      "itemKey": "item_eb27408900eeae9222c5",
+      "kind": "note",
+      "displayTextKo": "한 달 동안 진행되는 비즈니스 라이벌 이벤트에서는 향후 4주 동안 최고경영자, 바이커, 무기 밀매업자, 나이트클럽 소유주에게 보너스가 주어집니다. 이번 주에는 무료 아카디우스 비즈니스 센터 오피스, 특수 차량 작업의 4배 GTA 달러와 RP, 혼합 상품 수출 2배 보상, 두 배로 빨라진 스페셜 패키지 자원 확보 속도가 최고경영자들을 위해 준비됩니다.*",
+      "originalLabel": "The month-long Business Rivalries event brings bonuses for Executives, Bikers, Gunrunners and Nightclub Owners in the next four weeks. This week spotlights Executives with a free Arcadius Business Center Office, 4X GTA$ and RP on Special Vehicle Work, 2X on Mixed Goods Exports and doubled Special Cargo sourcing speeds.*",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_82329d82ea38c4501adb",
+      "kind": "note",
+      "displayTextKo": "향후 3주 동안 금주의 도전을 최소 1개 완료하고, September 24-30 사이에 GTA Online을 플레이하여 무료 Penaud La Coureuse (스포츠카) 및 무료 HSW 업그레이드를 받으십시오.",
+      "originalLabel": "Complete at least one Weekly Challenge over the next three weeks to claim a free Penaud La Coureuse (Sports) and complimentary HSW upgrade when you play GTA Online between September 24-30",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_51901cccf41f0f4470dd",
+      "kind": "note",
+      "displayTextKo": "비즈니스 전투 화물을 배달하고 다음 의류 보상 중 하나를 획득하십시오: Six Figure Tee, Ride or Die Tee, Red and White Ammu-Nation Cap, Bourgeoix Tee",
+      "originalLabel": "Deliver Business Battle crates to receive guaranteed clothing rewards: Six Figure Tee, Ride or Die Tee, Red and White Ammu-Nation Cap, or Bourgeoix Tee",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_104c58617aa1f5cbe5e2",
+      "kind": "note",
+      "displayTextKo": "인벤토리: 레일 건 | 그레네이드 런처 | 신호탄 총 | 나이프 | 최루가스 | 몰로토프 칵테일 | 점착 폭탄",
+      "originalLabel": "Inventory: Railgun | Grenade Launcher | Flare Gun | Knife | Tear Gas | Molotovs | Sticky Bombs",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_4e77e11ff6a5443394fc",
+      "kind": "rotatingContent",
+      "displayTextKo": "FIB Priority File: [The Project Breakaway File](<https://youtu.be/otvIpaO4fN0>)",
+      "originalLabel": "FIB Priority File: [The Project Breakaway File](<https://youtu.be/otvIpaO4fN0>)",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_48d3fe7aa9848313b6f8",
+      "kind": "rotatingContent",
+      "displayTextKo": "코르츠 센터 습격 주요 타겟: Consumato, Stacks Study V, Trust",
+      "originalLabel": "Kortz Center Heist Primary Targets: Consumato, Stacks Study V & Trust",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_4957fd80c6be52e0dab7",
+      "kind": "note",
+      "displayTextKo": "더간 강도 사건: Pfister Astron (최상급)",
+      "originalLabel": "The Duggan Robbery: Pfister Astron (Top Tier)",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_aec0a54fcd5c23a5faa9",
+      "kind": "note",
+      "displayTextKo": "화물선 강도 사건: Ocelot Jugular (표준급)",
+      "originalLabel": "The Cargo Ship Robbery: Ocelot Jugular (Standard Tier)",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_fb7dd1098c4e35845d07",
+      "kind": "note",
+      "displayTextKo": "갱뱅어 강도 사건: Canis Kamacho (하급)",
+      "originalLabel": "The Gangbanger Robbery: Canis Kamacho (Low Tier)",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_eb0f3a474c78fd3652d1",
+      "kind": "note",
+      "displayTextKo": "프리미엄 디럭스 모터스포츠: Coil Cyclone, Dewbauchee Vagner, Grotti Cheetah, Karin 190z, Överflöd Entity XF",
+      "originalLabel": "Premium Deluxe Motorsport: Coil Cyclone, Dewbauchee Vagner, Grotti Cheetah, Karin 190z & Överflöd Entity XF",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_5011d274ad094b4c8181",
+      "kind": "note",
+      "displayTextKo": "럭셔리 오토: Benefactor LRC GT, Pfister X-treme",
+      "originalLabel": "Luxury Autos: Benefactor LRC GT & Pfister X-treme",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_448d6c4753207a4a3791",
+      "kind": "note",
+      "displayTextKo": "시승 트랙: Lampadati Novak, Ocelot Jugular, Vapid Dominator GTX",
+      "originalLabel": "Test Track: Lampadati Novak, Ocelot Jugular & Vapid Dominator GTX",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_fe3446b81980c804e9a5",
+      "kind": "note",
+      "displayTextKo": "Hao 프리미엄 시승 차량 (HSW): [Declasse Vigero ZX Convertible](<https://youtu.be/3UH0BUCYGLE>)",
+      "originalLabel": "Hao Premium Test Ride (HSW): [Declasse Vigero ZX Convertible](<https://youtu.be/3UH0BUCYGLE>)",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_b072084806a0bf1b4bf1",
+      "kind": "note",
+      "displayTextKo": "The 럭키 휠 포디움 이동 수단: [Declasse Impaler SZ](<https://youtu.be/4qrz3dyNGLc>)",
+      "originalLabel": "The Lucky Wheel Podium Vehicle: [Declasse Impaler SZ](<https://youtu.be/4qrz3dyNGLc>)",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_7a72417fd875301ddd02",
+      "kind": "note",
+      "displayTextKo": "LS 자동차 모임 경품 이동 수단: Place Top 2 in the LS 자동차 모임 Series to get the [Karin Woodlander](<https://youtu.be/cQtkgnvzq-8>)",
+      "originalLabel": "LS Car Meet Prize Ride: Place Top 2 in the LS Car Meet Series to get the [Karin Woodlander](<https://youtu.be/cQtkgnvzq-8>)",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_6adcf35f54a706568c00",
+      "kind": "note",
+      "displayTextKo": "Premium 레이스: [Downtown Underground](<https://youtu.be/-dU4YCv2uco>)",
+      "originalLabel": "Premium Race: [Downtown Underground](<https://youtu.be/-dU4YCv2uco>)",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_712852543dc73c3a96a3",
+      "kind": "note",
+      "displayTextKo": "타임 트라이얼: [Up Chiliad](<https://youtu.be/KULOo0ZGkiA>)",
+      "originalLabel": "Time Trial: [Up Chiliad](<https://youtu.be/KULOo0ZGkiA>)",
+      "rewardTypes": []
+    },
+    {
+      "itemKey": "item_73b5801f19dfad74dd2d",
+      "kind": "note",
+      "displayTextKo": "HSW 타임 트라이얼: [East Vinewood to Vespucci Beach](<https://youtu.be/juKtVbzvu70>)",
+      "originalLabel": "HSW Time Trial: [East Vinewood to Vespucci Beach](<https://youtu.be/juKtVbzvu70>)",
+      "rewardTypes": []
+    }
+  ]
+}

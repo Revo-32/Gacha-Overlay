@@ -13,31 +13,31 @@ public sealed class Stable210MetadataTests
     public void ReleaseMetadataMatchesManifestWithoutRenamingManagedAssembly()
     {
         using var manifest = JsonDocument.Parse(
-            File.ReadAllText(Path.Combine(Root, "tools/release/ls-2.4.1.json")));
+            File.ReadAllText(Path.Combine(Root, "tools/release/ls-2.4.2.json")));
         var version = manifest.RootElement.GetProperty("version").GetString();
         var app = typeof(GachaOverlay.App.App).Assembly;
 
-        Assert.Equal("2.4.1", version);
+        Assert.Equal("2.4.2", version);
         Assert.Equal(version,
             app.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion);
         Assert.Equal("GachaOverlay.App", app.GetName().Name);
-        Assert.Equal("2.4.1.0",
+        Assert.Equal("2.4.2.0",
             app.GetCustomAttribute<AssemblyFileVersionAttribute>()!.Version);
-        Assert.Equal(new Version(2, 4, 1, 0), app.GetName().Version);
+        Assert.Equal(new Version(2, 4, 2, 0), app.GetName().Version);
         Assert.Equal("LS Overlay", app.GetCustomAttribute<AssemblyProductAttribute>()!.Product);
         Assert.Equal("LS Overlay", app.GetCustomAttribute<AssemblyDescriptionAttribute>()!.Description);
         Assert.Equal("LSOverlay.exe",
             manifest.RootElement.GetProperty("executableName").GetString());
-        Assert.Equal("LS-Overlay-2.4.1-win-x64.zip",
+        Assert.Equal("LS-Overlay-2.4.2-win-x64.zip",
             manifest.RootElement.GetProperty("zipName").GetString());
         Assert.Equal("LS-Overlay-2.4-Quick-Start-ko.pdf",
             manifest.RootElement.GetProperty("quickStartName").GetString());
         Assert.Equal("LS-Overlay-2.4-User-Guide-ko.pdf",
             manifest.RootElement.GetProperty("guideName").GetString());
-        Assert.Equal("LS-Overlay-2.4.1-SHA256.txt",
+        Assert.Equal("LS-Overlay-2.4.2-SHA256.txt",
             manifest.RootElement.GetProperty("checksumName").GetString());
-        Assert.Equal("v2.4.1", manifest.RootElement.GetProperty("tag").GetString());
-        Assert.Equal("LS Overlay 2.4.1",
+        Assert.Equal("v2.4.2", manifest.RootElement.GetProperty("tag").GetString());
+        Assert.Equal("LS Overlay 2.4.2",
             manifest.RootElement.GetProperty("title").GetString());
         Assert.False(manifest.RootElement.GetProperty("prerelease").GetBoolean());
     }
@@ -65,12 +65,12 @@ public sealed class Stable210MetadataTests
                      "README.md",
                      "docs/2.4/quick-start/LS-Overlay-2.4-Quick-Start-ko.md",
                      "docs/2.4/user-guide/LS-Overlay-2.4-User-Guide-ko.md",
-                     "docs/releases/LS-Overlay-2.4.1-release-notes.md",
-                     "tools/release/README-public-2.4.1.md",
+                     "docs/releases/LS-Overlay-2.4.2-release-notes.md",
+                     "tools/release/README-public-2.4.2.md",
                  })
         {
             var text = File.ReadAllText(Path.Combine(Root, relative));
-            Assert.Contains(relative.StartsWith("docs/2.4/", StringComparison.Ordinal) ? "2.4.0" : "2.4.1", text);
+            Assert.Contains(relative.StartsWith("docs/2.4/", StringComparison.Ordinal) ? "2.4.0" : "2.4.2", text);
             Assert.Contains("LSOverlay.exe", text);
             Assert.Contains("mailto:revo.32.39.41@gmail.com", text);
             Assert.Contains("https://overlay.revo32.cloud/privacy", text);

@@ -36,6 +36,7 @@
     <Content Include="Fixtures\Gta\weekly-golden.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Fixtures\Gta\weekly-grouped-2026-09-03.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Fixtures\Gta\weekly-localized-frame-regression.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Fixtures\Gta\weekly-production-display-2026-09-08.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Fixtures\GtaLocalization\real-business-rivalries.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
