@@ -6,11 +6,12 @@ namespace GachaOverlay.Core.Gta.Localization;
 public sealed record ProtectedLocalizationText(string Source, string Text, IReadOnlyDictionary<string, string> Tokens)
 {
     public IReadOnlyDictionary<string, LocalizationQuantity> Quantities { get; init; } = new Dictionary<string, LocalizationQuantity>();
+    public IReadOnlySet<string> GlossaryTokens { get; init; } = new HashSet<string>(StringComparer.Ordinal);
 }
 
 public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
 {
-    public const string Version = "gta-protect-5-weekly-conditions";
+    public const string Version = "gta-protect-6-term-ownership";
     private static readonly string[] NumberWords = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
     private static readonly Regex NumberWord = new(@"\G(?:one|two|three|four|five|six|seven|eight|nine|ten)\b(?:\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?)\b)?",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
@@ -27,13 +28,15 @@ public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
             source.Contains("]]", StringComparison.Ordinal) || source.Contains('\uFFFD')) throw new InvalidDataException("InputText");
         var tokens = new Dictionary<string, string>(StringComparer.Ordinal);
         var quantities = new Dictionary<string, LocalizationQuantity>(StringComparer.Ordinal);
+        var glossaryTokens = new HashSet<string>(StringComparer.Ordinal);
         var output = new StringBuilder();
         var entities = LocalizationEntities.Extract(source, entityKind);
-        void Append(string value, LocalizationQuantity? quantity = null)
+        void Append(string value, LocalizationQuantity? quantity = null, bool glossaryOwned = false)
         {
             var key = $"[[L{fieldIndex:D3}_{tokens.Count:D4}]]";
             tokens.Add(key, value);
             if (quantity is not null) quantities.Add(key, quantity);
+            if (glossaryOwned) glossaryTokens.Add(key);
             output.Append(key);
         }
         for (var i = 0; i < source.Length;)
@@ -49,7 +52,7 @@ public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
             // Longest approved compound wins before any inferred entity/prose handling.
             if (glossary.Match(source, i) is { } term)
             {
-                Append(term.Output); i += term.Length; continue;
+                Append(term.Output, glossaryOwned: true); i += term.Length; continue;
             }
             if (entities.FirstOrDefault(e => e.Start == i) is { } entity)
             {
@@ -69,7 +72,7 @@ public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
             if (word.Success) { output.Append(word.Value); i += word.Length; }
             else { output.Append(source[i]); i++; }
         }
-        return new(source, output.ToString(), tokens) { Quantities = quantities };
+        return new(source, output.ToString(), tokens) { Quantities = quantities, GlossaryTokens = glossaryTokens };
     }
 
     public static bool TryRestore(ProtectedLocalizationText input, string? text, out string restored, out string reason)
@@ -109,6 +112,21 @@ public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
         // Normalize only known reward coordination between separate protected atoms.
         // Never rewrite a quoted creator name or a monetary amount containing these characters.
         var display = new Dictionary<string, string>(input.Tokens, StringComparer.Ordinal);
+        foreach (var key in input.GlossaryTokens)
+        {
+            var value = input.Tokens[key];
+            // An approved compound is owned by its source-occurrence token. Literal
+            // copies beside that token are model-added content, not another entity.
+            // Reject for bounded repair; never collapse restored words or equal tokens.
+            if (!Regex.IsMatch(value, @"^[가-힣]+(?:\s+[가-힣]+)+$", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100))) continue;
+            var phrase = string.Join(@"\s+", value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(Regex.Escape));
+            // Explicit Korean prose in the source can legitimately repeat the term.
+            if (Regex.IsMatch(Token.Replace(input.Text, ""), phrase, RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100))) continue;
+            var owned = Regex.Escape(key);
+            if (Regex.IsMatch(text, @"(?<![가-힣])" + phrase + @"\s+" + owned + "|" + owned + @"\s+" + phrase + @"(?=\s|$|[.,:;])",
+                RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)))
+            { reason = "RepeatedTerm"; return false; }
+        }
         foreach (var term in input.Tokens)
         {
             var finalWord = Regex.Match(term.Value, @"(?:^|\s)([가-힣]{2,})$", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
