@@ -133,7 +133,7 @@ public sealed class KoreanLocalizationSurfaceTests
     [Fact]
     public void PromptAndSurfaceVersionsInvalidateOldMemory()
     {
-        Assert.Equal("gta-ko-3.5", GeminiGtaLocalizationProvider.PromptVersion);
+        Assert.Equal("gta-ko-3.7-weekly-conditions", GeminiGtaLocalizationProvider.PromptVersion);
         Assert.Equal("ko-surface-1", KoreanLocalizationSurface.Version);
     }
 }

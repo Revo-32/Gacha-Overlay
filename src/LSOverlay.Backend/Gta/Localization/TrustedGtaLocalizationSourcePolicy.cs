@@ -12,7 +12,7 @@ internal static class TrustedGtaLocalizationSourcePolicy
 {
     public const ulong ChannelId = 1417898156187713577;
     public const ulong AuthorId = 1417898538385539085;
-    public const string Version = "trusted-relay-1";
+    public const string Version = "trusted-relay-2-weekly-fields";
     public static bool Allows(ulong channelId, ulong authorId) => channelId == ChannelId && authorId == AuthorId;
 
     public static PublicGtaLocalizationInput? Extract(CanonicalEventDocument document)
@@ -20,26 +20,28 @@ internal static class TrustedGtaLocalizationSourcePolicy
         if (!document.OwnInputIntegrity.IsComplete || !Allows(document.ChannelId, document.AuthorId) || string.IsNullOrWhiteSpace(document.OwnCanonicalText) ||
             document.OwnCanonicalText.Length > 16 * 1024) return null;
         var text = document.OwnCanonicalText;
-        // Content is allowlisted; embedded Discord references/identity and URLs are
-        // not required for localization. Reject rather than leaking or guessing.
-        if (ContainsPrivateReference(text)) return null;
         var own = document with { CanonicalText = text, CanonicalBlocks = [], IsForwarded = false };
         var classifier = new GtaEventClassifier();
         var parsed = new GtaEventParser().Parse(own, classifier.Classify(own));
+        // Weekly bulletins commonly contain linked races and a ping in the opening.
+        // Keep whole-field exclusion (never send stripped or guessed fragments),
+        // while allowing unrelated safe weekly fields through the existing pipeline.
+        // Campaign policy remains unchanged.
+        if (parsed.Week is null && ContainsPrivateReference(text)) return null;
         var fields = new List<PublicGtaText>();
         void Add(string kind, string? value)
         {
-            if (!string.IsNullOrWhiteSpace(value) && !fields.Any(f => f.Text == value))
+            if (!string.IsNullOrWhiteSpace(value) && !ContainsPrivateReference(value) && !fields.Any(f => f.Text == value))
                 fields.Add(new($"field.{fields.Count:D3}", kind, value));
         }
         if (parsed.Week is { } week)
         {
-            Add("title", week.Theme);
             if (week.WeeklyChallenge is { } challenge)
             {
                 Add("challenge", challenge.OriginalText); Add("reward", challenge.Reward);
                 foreach (var requirement in challenge.Requirements) Add("requirement", requirement);
             }
+            Add("title", week.Theme);
             foreach (var item in week.Bonuses.Concat(week.Discounts).Concat(week.FreeItems).Concat(week.OtherEvents))
                 Add(item.Kind.ToString(), item.OriginalLabel);
         }
@@ -58,7 +60,7 @@ internal static class TrustedGtaLocalizationSourcePolicy
 
     private static bool ContainsPrivateReference(string text)
     {
-        if (new[] { "<@", "<#", "<:", "<a:", "http://", "https://" }.Any(marker =>
+        if (new[] { "@", "<#", "<:", "<a:", "http://", "https://" }.Any(marker =>
             text.Contains(marker, StringComparison.OrdinalIgnoreCase))) return true;
         var digits = 0;
         foreach (var character in text)

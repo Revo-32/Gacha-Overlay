@@ -37,6 +37,83 @@ public sealed class GtaLocalizationTests : IDisposable
             42, channel ?? TrustedGtaLocalizationSourcePolicy.ChannelId, DateTimeOffset.Parse("2026-09-08T03:00:00Z"), null,
             text ?? Bulletin, [], forwards ?? [], "GTA Series Videos", null, author ?? TrustedGtaLocalizationSourcePolicy.AuthorId));
     private GtaLocalizationService Service(IGtaLocalizationProvider provider) => new(provider, _directory, NullLogger<GtaLocalizationService>.Instance);
+
+    [Fact]
+    public async Task PublicWeeklyBulletin_UsesSafeFieldsForChallengeSnapshotAndPersistentCache()
+    {
+        var text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures/Gta/weekly-grouped-2026-09-03.txt"));
+        var document = Document(text);
+        var input = TrustedGtaLocalizationSourcePolicy.Extract(document)!;
+        Assert.NotNull(input);
+        Assert.Equal(38, input.Items.Count);
+        var challenge = Assert.Single(input.Items, item => item.Type == "challenge");
+        Assert.StartsWith("Earn GTA$1,000,000 from selling Special Cargo", challenge.Text);
+        Assert.Equal(6, input.Items.Count(item => item.Type == "Bonus"));
+        Assert.All(input.Items, item =>
+        {
+            Assert.DoesNotContain("http", item.Text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("@", item.Text);
+        });
+        Assert.Null(TrustedGtaLocalizationSourcePolicy.Extract(Document(text, author: 123)));
+        Assert.Null(TrustedGtaLocalizationSourcePolicy.Extract(Document(text, channel: 123)));
+        var provider = new FakeProvider();
+        var config = new BackendConfiguration(new BackendBotCredential("synthetic-never-login"), 123, [], _directory, new Uri("http://127.0.0.1:0"));
+        using (var host = LSOverlay.Backend.Program.CreateHost(config, services =>
+        {
+            services.RemoveAll<IDiscordGatewayLifecycle>();
+            services.AddSingleton<IDiscordGatewayLifecycle, LocalGateway>();
+            services.RemoveAll<IGtaLocalizationProvider>();
+            services.AddSingleton<IGtaLocalizationProvider>(provider);
+            services.RemoveAll<TimeProvider>();
+            services.AddSingleton<TimeProvider>(new FixedTime());
+        }))
+        {
+            await host.StartAsync();
+            try
+            {
+                var events = host.Services.GetRequiredService<GtaEventService>();
+                var localization = host.Services.GetRequiredService<GtaLocalizationService>();
+                events.ProcessDocument(document);
+                Assert.True(await localization.Submit(document));
+                var snapshot = events.CaptureSnapshot();
+                Assert.Equal(localization.Find(challenge.Text), snapshot.CurrentWeek!.WeeklyChallenge!.DisplayTextKo);
+                Assert.StartsWith("안내", snapshot.CurrentWeek.WeeklyChallenge.DisplayTextKo); // Synthetic provider, not live quality evidence.
+                Assert.Equal(6, snapshot.CurrentWeek.Bonuses.Count);
+                Assert.Equal(17, snapshot.CurrentWeek.OtherEvents.Count);
+                var linked = Assert.Single(snapshot.CurrentWeek.OtherEvents, item => item.OriginalLabel.StartsWith("Time Trial:", StringComparison.Ordinal));
+                Assert.Null(localization.Find(linked.OriginalLabel));
+                Assert.Equal(new GtaKoreanFormatter().TranslateKnownTerms(linked.OriginalLabel), linked.DisplayTextKo);
+                Assert.True(await localization.Submit(document));
+                Assert.Equal(1, provider.Calls);
+            }
+            finally { await host.StopAsync(); }
+        }
+        using var restored = Service(provider);
+        await restored.StartAsync(default);
+        try
+        {
+            Assert.True(await restored.Submit(document));
+            Assert.NotNull(restored.Find(challenge.Text));
+            Assert.Equal(1, provider.Calls);
+        }
+        finally { await restored.StopAsync(default); }
+    }
+
+    [Theory]
+    [InlineData("https://example.invalid/private")]
+    [InlineData("<@123456789012345678>")]
+    [InlineData("@PingGTAOnline")]
+    [InlineData("<#123456789012345678>")]
+    [InlineData("<:secret:123456789012345678>")]
+    [InlineData("123456789012345678")]
+    public void UnsafeWeeklyFieldIsExcludedWholeWithoutDiscardingSafeChallenge(string reference)
+    {
+        var input = TrustedGtaLocalizationSourcePolicy.Extract(Document(Bulletin + "\nFIELD-SENTINEL " + reference));
+        Assert.NotNull(input);
+        Assert.Contains(input.Items, item => item.Type == "challenge");
+        Assert.DoesNotContain("FIELD-SENTINEL", JsonSerializer.Serialize(input));
+        Assert.DoesNotContain(reference, JsonSerializer.Serialize(input));
+    }
     public void Dispose() { if (Directory.Exists(_directory)) Directory.Delete(_directory, true); }
 
     public static IEnumerable<object[]> GlossaryEntries() => GtaLocalizationGlossary.Default.Entries.Select(e => new object[] { e.Source, e.Ko, e.Policy });
@@ -111,7 +188,9 @@ public sealed class GtaLocalizationTests : IDisposable
             Assert.DoesNotContain(banned, json, StringComparison.OrdinalIgnoreCase);
         var onlyForward = Document("", forwards: [new(Bulletin, [])]);
         Assert.Null(TrustedGtaLocalizationSourcePolicy.Extract(onlyForward));
-        Assert.Null(TrustedGtaLocalizationSourcePolicy.Extract(Document(Bulletin + "\n<@123456789012345678>")));
+        var filtered = TrustedGtaLocalizationSourcePolicy.Extract(Document(Bulletin + "\n<@123456789012345678>"));
+        Assert.NotNull(filtered);
+        Assert.DoesNotContain("123456789012345678", JsonSerializer.Serialize(filtered));
     }
     [Fact]
     public void FullOwnHashTracksBodyAndEmbedFieldsButNotMetadataOrForward()
@@ -131,7 +210,15 @@ public sealed class GtaLocalizationTests : IDisposable
     }
     internal static string ValidResponse(PublicGtaLocalizationInput input) => JsonSerializer.Serialize(new
     {
-        items = input.Items.Select(i => new { id = i.Id, textKo = "안내 " + string.Join(" ", Regex.Matches(i.Text, @"\[\[L\d{3}_\d{4}\]\]").Select(m => m.Value)) + (i.Text.Contains("Research Speed", StringComparison.OrdinalIgnoreCase) ? " 연구 속도" : "") })
+        items = input.Items.Select(i => new
+        {
+            id = i.Id,
+            textKo = "안내 " + string.Join(" ", Regex.Matches(i.Text, @"\[\[L\d{3}_\d{4}\]\]").Select(m =>
+            i.Text.Contains("over the next", StringComparison.Ordinal) && i.ProtectedTerms![m.Value].EndsWith("주", StringComparison.Ordinal) ? "향후 " + m.Value : m.Value))
+            + (i.Text.Contains("Research Speed", StringComparison.OrdinalIgnoreCase) ? " 연구 속도" : "")
+            + (i.Text.Contains("Assistant", StringComparison.Ordinal) ? " 비서" : "")
+            + (i.Text.Contains("when you play", StringComparison.Ordinal) ? " 최소 이상 접속" : "")
+        })
     });
     [Theory]
     [InlineData("2X")]

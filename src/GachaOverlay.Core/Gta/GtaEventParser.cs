@@ -50,13 +50,25 @@ public sealed partial class GtaEventParser
         var freeItems = new List<GtaSemanticEventItem>();
         var other = new List<GtaSemanticEventItem>();
         string? section = null;
+        GtaSemanticEventItem? group = null;
 
         foreach (var line in lines)
         {
-            var family = _vocabulary.MatchHeadingFamily(line);
+            if (TryParseGroupHeading(line, document.ReceivedAt, out var heading))
+            {
+                group = heading;
+                section = heading!.Kind == GtaEventItemKind.Bonus ? "bonuses" : "discounts";
+                continue;
+            }
+
+            var family = MatchSectionHeading(line);
+            if (group?.Kind == GtaEventItemKind.Bonus &&
+                GtaEventTextNormalizer.NormalizeIdentity(line) is "COMMUNITY SERIES" or "FEATURED SERIES")
+                family = null; // These are also activity names under a reward heading.
             if (family is not null)
             {
                 section = family;
+                group = null;
                 continue;
             }
 
@@ -67,12 +79,22 @@ public sealed partial class GtaEventParser
 
             if (TryParseItem(line, section, document.ReceivedAt, out var item))
             {
+                group = null;
                 AddItem(item!, bonuses, discounts, freeItems, other);
                 continue;
             }
 
+            if (group is not null)
+            {
+                ObserveUnknown(line);
+                AddItem(CreateItem(group.Kind, $"{group.OriginalLabel}\n{line}", line,
+                    group.Multiplier, group.DiscountPercent, group.RewardTypes, group.Qualifier,
+                    group.DateScope), bonuses, discounts, freeItems, other);
+                continue;
+            }
+
             if (section is "bonuses" or "gun_van" or "salvage_yard" or "premium_race" or
-                "time_trial" or "prize_ride" or "podium" or "rotating_content" or "login_rewards")
+                "time_trial" or "prize_ride" or "podium" or "rotating_content" or "login_rewards" or "test_rides" or null)
             {
                 var kind = section == "login_rewards"
                     ? GtaEventItemKind.LoginReward
@@ -202,13 +224,14 @@ public sealed partial class GtaEventParser
     {
         for (var index = 0; index < lines.Count; index++)
         {
-            if (_vocabulary.MatchHeadingFamily(lines[index]) != "weekly_challenge")
+            if (MatchSectionHeading(lines[index]) != "weekly_challenge")
             {
                 continue;
             }
 
-            var text = lines.Skip(index + 1).FirstOrDefault(line =>
-                _vocabulary.MatchHeadingFamily(line) is null && !LooksLikeDateOnly(line, reference));
+            var text = lines.Skip(index + 1)
+                .TakeWhile(line => MatchSectionHeading(line) is null && !BonusHeadingRegex().IsMatch(line))
+                .FirstOrDefault(line => !LooksLikeDateOnly(line, reference));
             if (string.IsNullOrWhiteSpace(text))
             {
                 return null;
@@ -333,6 +356,29 @@ public sealed partial class GtaEventParser
         }
     }
 
+    private string? MatchSectionHeading(string line)
+    {
+        // Classification may search prose for anchors; parsing must not discard
+        // content merely because it mentions Weekly Challenge, Prize Ride, etc.
+        var identity = GtaEventTextNormalizer.NormalizeIdentity(line).TrimEnd(':');
+        if (MultiplierRegex().IsMatch(line) || DiscountRegex().IsMatch(line)) return null;
+        if (_vocabulary.IsExactHeading(identity)) return _vocabulary.MatchHeadingFamily(identity);
+        return !line.Contains(':') && LooksLikeHeading(line) ? _vocabulary.MatchHeadingFamily(line) : null;
+    }
+
+    private bool TryParseGroupHeading(string line, DateTimeOffset reference, out GtaSemanticEventItem? group)
+    {
+        group = null;
+        if (BonusHeadingRegex().IsMatch(line))
+            return TryParseItem(line.TrimEnd(':'), "bonuses", reference, out group);
+        var match = DiscountHeadingRegex().Match(line);
+        if (!match.Success || !int.TryParse(match.Groups["percent"].Value, out var percent) || percent > 100)
+            return false;
+        group = CreateItem(percent == 100 ? GtaEventItemKind.FreeItem : GtaEventItemKind.Discount,
+            line, null, null, percent, Array.Empty<GtaRewardType>(), null, null);
+        return true;
+    }
+
     private static GtaSemanticEventItem CreateItem(
         GtaEventItemKind kind,
         string original,
@@ -446,11 +492,17 @@ public sealed partial class GtaEventParser
         return $"{prefix}_{Convert.ToHexString(bytes.AsSpan(0, 10)).ToLowerInvariant()}";
     }
 
-    [GeneratedRegex(@"(?<multiplier>\d{1,2})\s*[X×]\s*(?<body>.+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^(?:EARN\s+)?(?<multiplier>\d{1,2})\s*[X×]\s*(?<body>.+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex MultiplierRegex();
 
-    [GeneratedRegex(@"(?<percent>\d{1,3})\s*%\s*OFF\s+(?<entity>.+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"(?<percent>\d{1,3})\s*%\s*OFF(?:\s*:\s*|\s+)(?<entity>.+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex DiscountRegex();
+
+    [GeneratedRegex(@"^\d{1,2}\s*[X×]\s*(?:GTA\$|RP|SPEED|CASINO CHIPS|RESEARCH PROGRESS|FIRST TIME COMPLETION)(?:\s*(?:&|\+|AND)\s*(?:GTA\$|RP|SPEED|CASINO CHIPS|RESEARCH PROGRESS|FIRST TIME COMPLETION))*\s*:?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex BonusHeadingRegex();
+
+    [GeneratedRegex(@"^DISCOUNTS\s*\(\s*(?:FREE\s*\|\s*)?(?<percent>\d{1,3})\s*%\s*OFF\s*\)\s*:?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex DiscountHeadingRegex();
 
     [GeneratedRegex(@"^(?<entity>.+?)(?:\s*[-:]\s*|\s*\()(?<percent>\d{1,3})\s*%\s*OFF\)?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex TrailingDiscountRegex();

@@ -10,6 +10,69 @@ public sealed class GtaLocalizationCorrectiveTests
 {
     private static LocalizationProtection Protector => new(GtaLocalizationGlossary.Default);
 
+    [Fact]
+    public void WeeklyAccessConditionCannotDropOfficeAssistant()
+    {
+        var field = Protector.Protect("2X GTA$ & RP\nExport Mixed Goods Missions (via Executive Office Assistant)");
+        var body = string.Join(" ", field.Tokens.Keys) + " 혼합 상품 수출 임무를 오피스를 통해 진행";
+        Assert.False(LocalizationProtection.TryRestore(field, body, out _, out var reason));
+        Assert.Equal("SourceCondition", reason);
+        Assert.True(LocalizationProtection.TryRestore(field, body + " 비서", out _, out _));
+    }
+
+    [Fact]
+    public void WeeklyCompletionWindowCannotBeCollapsedIntoLaterLoginDates()
+    {
+        var field = Protector.Protect("Complete at least one Weekly Challenge over the next three weeks to claim a free Penaud La Coureuse (Sports) and complimentary HSW upgrade when you play GTA Online between September 24-30");
+        var body = string.Join(" ", field.Tokens.Keys) + " 기간에 도전을 완료하고 플레이하면 보상 획득";
+        Assert.False(LocalizationProtection.TryRestore(field, body, out _, out var reason));
+        Assert.Equal("SourceCondition", reason);
+        var weeks = field.Quantities.Single(q => q.Value.Unit == "week").Key;
+        var good = "향후 " + weeks + " 동안 최소 " + string.Join(" ", field.Tokens.Keys.Where(k => k != weeks)) + " 이상 완료 후 접속하면 보상 획득";
+        Assert.True(LocalizationProtection.TryRestore(field, good, out _, out _));
+    }
+
+    [Theory]
+    [InlineData("one Weekly Challenge", "1")]
+    [InlineData("three Weekly Challenges", "3")]
+    [InlineData("one Monthly Challenge", "1")]
+    public void WeeklyAdjectiveIsNotConsumedAsDuration(string source, string number)
+    {
+        var field = Protector.Protect(source);
+        Assert.Contains(number, field.Tokens.Values);
+        Assert.DoesNotContain(field.Quantities.Values, quantity => quantity.Unit is "week" or "month");
+        Assert.DoesNotContain("]]ly", field.Text);
+    }
+
+    [Theory]
+    [InlineData("Buckingham Maverick")]
+    [InlineData("HVY Insurgent Pick-Up")]
+    [InlineData("Lampadati Novak")]
+    [InlineData("Överflöd Entity XF")]
+    [InlineData("Western Company Seabreeze")]
+    [InlineData("Canis Kamacho")]
+    public void RealWeeklyVehicleManufacturersPreserveWholeModel(string name)
+    {
+        var field = Protector.Protect("DISCOUNTS (30% OFF)\n" + name);
+        Assert.Contains(name, field.Tokens.Values);
+        Assert.DoesNotContain(name, field.Text);
+    }
+
+    [Fact]
+    public void WeeklyNamedRewardsPreserveNamesWithoutTurningSixIntoAQuantity()
+    {
+        var challenge = Protector.Protect("Earn GTA$1,000,000 from selling Special Cargo to get the Yeti x LS Customs Tracksuit and a 10X Reward of GTA$1,000,000");
+        Assert.Contains("Yeti x LS Customs Tracksuit", challenge.Tokens.Values);
+        var clothes = Protector.Protect("Deliver Business Battle crates to receive guaranteed clothing rewards: Six Figure Tee, Ride or Die Tee, Red and White Ammu-Nation Cap, or Bourgeoix Tee");
+        foreach (var name in new[] { "Six Figure Tee", "Ride or Die Tee", "Red and White Ammu-Nation Cap", "Bourgeoix Tee" })
+            Assert.Contains(name, clothes.Tokens.Values);
+        Assert.DoesNotContain("6", clothes.Tokens.Values);
+        var targets = Protector.Protect("Kortz Center Heist Primary Targets: Consumato, Stacks Study V & Trust");
+        foreach (var name in new[] { "Consumato", "Stacks Study V", "Trust" }) Assert.Contains(name, targets.Tokens.Values);
+        Assert.DoesNotContain("Trust", Protector.Protect("Trust ordinary English prose").Tokens.Values);
+        Assert.Contains("DISCOUNTS", Protector.Protect("Coil Cyclone\nDISCOUNTS (30% OFF)").Text);
+    }
+
     [Theory]
     [InlineData("worth")]
     [InlineData("kinds")]

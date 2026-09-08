@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace GachaOverlay.Core.Gta.Localization;
 
 public enum PlaceholderFailure { Missing, Duplicate, Unknown, Mutated, CrossField, CountMismatch, Structural, ValueValidation }
-public enum LocalizationValueFailure { Content, NumericOrPlaceholder, UnprotectedToken, RepeatedTerm, QuantityUnit, KoreanSurface, OutputSize, ModifierScope }
+public enum LocalizationValueFailure { Content, NumericOrPlaceholder, UnprotectedToken, RepeatedTerm, QuantityUnit, KoreanSurface, OutputSize, ModifierScope, SourceCondition }
 
 // Structural data only. Never retain source/output text, external IDs, or malformed token bodies.
 public sealed record PlaceholderFieldDiagnostic(string FieldId, IReadOnlyList<PlaceholderFailure> Failures,

@@ -34,7 +34,7 @@ public sealed class GtaEventVocabulary
             ["bonuses"] = ["BONUSES", "BONUS GTA$", "BONUS REWARDS"],
             ["free_items"] = ["FREE ITEMS", "FREE VEHICLE", "FREE REWARDS"],
             ["login_rewards"] = ["LOGIN REWARD", "LOG IN TO RECEIVE"],
-            ["rotating_content"] = ["SHOWROOM", "COMMUNITY SERIES", "FEATURED SERIES"],
+            ["rotating_content"] = ["ROTATING CONTENT", "SHOWROOM", "COMMUNITY SERIES", "FEATURED SERIES"],
         });
 
     private static readonly string[] WeeklyAnchorIds =
@@ -79,6 +79,9 @@ public sealed class GtaEventVocabulary
 
         return null;
     }
+
+    public bool IsExactHeading(string line) => FamilyPatterns.Values.Any(patterns =>
+        patterns.Contains(GtaEventTextNormalizer.NormalizeIdentity(line), StringComparer.Ordinal));
 
     public IReadOnlySet<string> FindWeeklyAnchorFamilies(IEnumerable<string> lines) =>
         lines.Select(MatchHeadingFamily)

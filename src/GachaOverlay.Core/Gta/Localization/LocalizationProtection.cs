@@ -10,9 +10,9 @@ public sealed record ProtectedLocalizationText(string Source, string Text, IRead
 
 public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
 {
-    public const string Version = "gta-protect-3";
+    public const string Version = "gta-protect-5-weekly-conditions";
     private static readonly string[] NumberWords = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
-    private static readonly Regex NumberWord = new(@"\G(?:one|two|three|four|five|six|seven|eight|nine|ten)\b(?:\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?))?",
+    private static readonly Regex NumberWord = new(@"\G(?:one|two|three|four|five|six|seven|eight|nine|ten)\b(?:\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?)\b)?",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
     private static readonly Regex Fact = new(@"\G(?:\b(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)\s+\d{1,2}(?:-\d{1,2})?(?:,?\s+\d{4})?|(?:GTA\$|\$)?\d[\d,]*(?:[.:/-]\d+)*(?:\s*(?:%|[X×]|RP|seconds?|minutes?|hours?|days?|weeks?|months?))?)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
@@ -87,6 +87,23 @@ public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
         if (remainder.Contains('[') || remainder.Contains(']') || remainder.Any(char.IsDigit)) { reason = "NumericOrPlaceholder"; return false; }
         // The model may localize grammar, never introduce new Latin proper names/tokens.
         if (remainder.Any(c => c is >= 'a' and <= 'z' or >= 'A' and <= 'Z')) { reason = "UnprotectedToken"; return false; }
+        if (input.Source.Contains("via Executive Office Assistant", StringComparison.OrdinalIgnoreCase) &&
+            !Regex.IsMatch(remainder, "비서|보좌관", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)))
+        { reason = "SourceCondition"; return false; }
+        if (input.Source.Contains("over the next", StringComparison.OrdinalIgnoreCase) &&
+            input.Source.Contains("when you play", StringComparison.OrdinalIgnoreCase))
+        {
+            // The challenge-completion window is distinct from the later login window.
+            // Require the relative window next to its protected duration, not a bare
+            // duration appended to the absolute login date as seen in live output.
+            var weeks = input.Quantities.Where(q => q.Value.Unit == "week").ToArray();
+            if (weeks.Length == 1 && (!Regex.IsMatch(text, @"(?:향후|앞으로|다음)\s*" + Regex.Escape(weeks[0].Key),
+                    RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)) ||
+                !Regex.IsMatch(remainder, "플레이|접속", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)) ||
+                (input.Source.Contains("at least", StringComparison.OrdinalIgnoreCase) &&
+                 !Regex.IsMatch(remainder, "최소|이상", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)))))
+            { reason = "SourceCondition"; return false; }
+        }
         if (remainder.Any(char.IsLetter) && !remainder.Any(c => c is >= '\uAC00' and <= '\uD7A3')) return false;
         if (remainder.Length > Math.Max(80, input.Source.Length * 3)) return false;
         // Normalize only known reward coordination between separate protected atoms.

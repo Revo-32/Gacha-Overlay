@@ -141,8 +141,8 @@ public sealed class GtaPlaceholderReliabilityTests
         Assert.Equal(p.ProtectedInput, Prepare().ProtectedInput with { Items = p.ProtectedInput.Items });
         var roundTrip = JsonSerializer.Deserialize<PublicGtaLocalizationInput>(JsonSerializer.Serialize(p.ProtectedInput))!;
         Assert.Equal(p.ProtectedInput.Items[0].Text, roundTrip.Items[0].Text);
-        Assert.Equal("gta-protect-3", LocalizationProtection.Version);
-        Assert.Equal("gta-repair-2", LocalizationRepairFeedback.Version);
+        Assert.Equal("gta-protect-5-weekly-conditions", LocalizationProtection.Version);
+        Assert.Equal("gta-repair-3-weekly-conditions", LocalizationRepairFeedback.Version);
     }
 
     [Theory]

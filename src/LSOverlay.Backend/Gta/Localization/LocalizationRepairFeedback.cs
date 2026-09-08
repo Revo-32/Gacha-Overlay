@@ -7,7 +7,7 @@ namespace LSOverlay.Backend.Gta.Localization;
 internal sealed record LocalizationRepairFeedback(IReadOnlyList<PlaceholderFieldDiagnostic> Fields,
     [property: JsonIgnore] string? PreviousResponse)
 {
-    public const string Version = "gta-repair-2";
+    public const string Version = "gta-repair-3-weekly-conditions";
     public static readonly JsonSerializerOptions DiagnosticJson = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter() }
@@ -26,6 +26,7 @@ internal sealed record LocalizationRepairFeedback(IReadOnlyList<PlaceholderField
         RepeatedTerm: a protected term already contains a word that you repeated immediately after its token; remove the repeated word, not the token. Translate the remaining source activity accurately.
         QuantityUnit: the token already contains its unit; do not append another unit. NumericOrPlaceholder: remove invented digits or malformed token residue, retaining every original token.
         UnprotectedToken: translate ordinary English prose, do not spell out protected names. KoreanSurface: use natural particles without mechanical alternatives. OutputSize: shorten only unprotected prose, preserving every fact.
+        SourceCondition: preserve the office Assistant as 비서. For a challenge window followed by a separate login window, say 향후 [protected week-duration] 동안 for completion and keep the later login dates separate. Preserve at least as 최소/이상. Do not move or duplicate tokens.
         ModifierScope: a shared multiplier was placed between coordinated rewards. Put the multiplier before or after the COMPLETE reward list so it applies to all original rewards and rates; never join currency and the multiplier with 'and'.
         If Research Speed is one of those metrics, keep 연구 속도 with the cash/RP/multiplier on the SAME side of the colon, not beside the activity as another mission. Do not omit it.
         Where token lists are truncated, use the COMPLETE original protectedTerms contract, not the abbreviated diagnostics.

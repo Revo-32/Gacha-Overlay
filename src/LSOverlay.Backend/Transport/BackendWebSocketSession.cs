@@ -1,6 +1,8 @@
 using System.Buffers;
 using System.Net.WebSockets;
 using System.Text.Json;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using System.Threading.Channels;
 using LSOverlay.Backend.Chat;
 using LSOverlay.Backend.Security;
@@ -14,6 +16,15 @@ internal sealed class BackendWebSocketSession
 {
     internal static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(30);
     internal static readonly TimeSpan HeartbeatTimeout = TimeSpan.FromSeconds(75);
+    private static readonly JsonSerializerOptions GtaWireJson = new(OverlayProtocolJson.Options)
+    {
+        // Preserve the wire schema and HTML-sensitive escaping, but avoid doubling
+        // Korean text into ASCII escapes inside the existing 16 KiB client frame.
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+    };
+
+    internal static byte[] SerializeForWire(StreamServerMessage message) => JsonSerializer.SerializeToUtf8Bytes(
+        message, message.Type == OverlayTransportProtocol.GtaCompanionSnapshot ? GtaWireJson : OverlayProtocolJson.Options);
 
     private readonly RemotePublicationHub _publication;
     private readonly TransportMetrics _metrics;
@@ -365,7 +376,7 @@ internal sealed class BackendWebSocketSession
         StreamServerMessage message,
         CancellationToken cancellationToken)
     {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(message, OverlayProtocolJson.Options);
+        var bytes = SerializeForWire(message);
         return socket.SendAsync(
             bytes,
             WebSocketMessageType.Text,

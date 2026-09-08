@@ -15,7 +15,7 @@ internal interface IGtaLocalizationProvider
 internal sealed class GeminiGtaLocalizationProvider : IGtaLocalizationProvider, IDisposable
 {
     public const string DefaultModel = "gemini-3.5-flash-lite";
-    public const string PromptVersion = "gta-ko-3.5";
+    public const string PromptVersion = "gta-ko-3.7-weekly-conditions";
     public const string SchemaVersion = "fields-1";
     private readonly HttpClient _http;
     private readonly string? _key;
@@ -123,6 +123,11 @@ internal sealed class GeminiGtaLocalizationProvider : IGtaLocalizationProvider, 
         "for free" means 무료로; "this week" is a temporal modifier, not part of an item name.
         Do not add conditions like playing for a duration if the source states only a duration.
         Never introduce numbers, Latin words, currencies, dates or facts outside placeholders.
+        This includes abbreviations such as CEO: use 최고경영자 unless that abbreviation is inside a placeholder.
+        Weekly list headings are prose too: translate DISCOUNTS/OFF/SPEED into Korean, never echo those English labels in an initial or repaired response.
+        Preserve access conditions: 'via Executive Office Assistant' must include the office 비서, not just the office.
+        'Complete at least one Weekly Challenge over the next three weeks ... when you play ... between [dates]' has TWO different windows: complete at least one challenge 향후 [weeks] 동안, then claim by playing during [dates]. Never place the weeks inside the later date interval. Preserve 최소/이상. Two short sentences are allowed.
+        For grouped discounts use the target name plus the discount once, not redundant '할인(... 할인)' headings.
         Translate ALL remaining prose into concise natural Korean, without opinions or tips.
         Only placeholders are protected. Capitalized or quoted text outside placeholders is NOT protected:
         localize it into Korean, transliterating unlisted names if needed, with no residual Latin spelling.

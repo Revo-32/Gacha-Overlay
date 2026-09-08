@@ -20,6 +20,120 @@ public sealed class M21GtaCompanionTests
     private static readonly CanonicalEventDocumentBuilder Builder = new();
 
     [Fact]
+    public void RealLocalizedWeeklySnapshotFitsExistingClientFrameWithoutRemovingAnyField()
+    {
+        // Public GTA-only capture from Staging. No auth envelope or other channel content.
+        var snapshot = JsonSerializer.Deserialize<GtaCompanionSnapshot>(File.ReadAllText(Path.Combine(
+            AppContext.BaseDirectory, "Fixtures/Gta/weekly-localized-frame-regression.json")), OverlayProtocolJson.Options)!;
+        var envelope = new StreamServerMessage(OverlayTransportProtocol.Version, OverlayTransportProtocol.GtaCompanionSnapshot, GtaCompanion: snapshot);
+        var old = JsonSerializer.SerializeToUtf8Bytes(envelope, OverlayProtocolJson.Options);
+        var wire = BackendWebSocketSession.SerializeForWire(envelope);
+        Assert.True(old.Length > OverlayTransportProtocol.MaximumInboundWebSocketBytes);
+        Assert.True(wire.Length < OverlayTransportProtocol.MaximumInboundWebSocketBytes);
+        var received = JsonSerializer.Deserialize<StreamServerMessage>(wire, OverlayProtocolJson.Options)!;
+        Assert.Equal(old, JsonSerializer.SerializeToUtf8Bytes(received, OverlayProtocolJson.Options));
+        Assert.Equal(44, received.GtaCompanion!.CurrentWeek!.Bonuses.Count + received.GtaCompanion.CurrentWeek.Discounts.Count +
+            received.GtaCompanion.CurrentWeek.FreeItems.Count + received.GtaCompanion.CurrentWeek.OtherEvents.Count);
+        Assert.DoesNotContain("<", System.Text.Encoding.UTF8.GetString(wire));
+        var heartbeat = new StreamServerMessage(OverlayTransportProtocol.Version, OverlayTransportProtocol.Heartbeat, HeartbeatId: "한글<&>");
+        Assert.Equal(JsonSerializer.SerializeToUtf8Bytes(heartbeat, OverlayProtocolJson.Options), BackendWebSocketSession.SerializeForWire(heartbeat));
+    }
+
+    [Fact]
+    public void WeeklyGroupedPublicBulletin_PreservesTargetsThroughSnapshotWithoutAi()
+    {
+        // Public bulletin supplied by the user; no Discord/AI request is made here.
+        var text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory,
+            "Fixtures/Gta/weekly-grouped-2026-09-03.txt"));
+        var received = DateTimeOffset.Parse("2026-09-03T05:08:00+09:00");
+        var document = Document(text, receivedAt: received);
+        var week = ParseTrustedWeek(text, received);
+        var expected = new[]
+        {
+            (4, "Special Vehicle Work"), (3, "Community Mission Series"),
+            (2, "Madrazo Hits"), (2, "Export Mixed Goods Missions (via Executive Office Assistant)"),
+            (2, "Diamond Adversary Series"), (2, "Staff Sourcing Special Cargo"),
+        };
+        Assert.Equal(expected, week.Bonuses.Select(item => (item.Multiplier!.Value, item.Activity!)));
+        Assert.Equal(19, week.Discounts.Count);
+        Assert.Equal("Arcadius Business Center Executive Office", Assert.Single(week.FreeItems).Activity);
+        Assert.DoesNotContain(week.Bonuses, item => item.Multiplier == 10);
+        Assert.Contains(week.Discounts, item => item.Activity == "Coil Cyclone II" && item.DiscountPercent == 70);
+        Assert.Contains(week.Discounts, item => item.Activity == "Precision Rifle" && item.DiscountPercent == 50);
+        Assert.Equal("Earn GTA$1,000,000 from selling Special Cargo to get the Yeti x LS Customs Tracksuit and a 10X Reward of GTA$1,000,000",
+            week.WeeklyChallenge!.OriginalText);
+        Assert.Equal(17, week.OtherEvents.Count);
+        Assert.Contains(week.OtherEvents, item => item.OriginalLabel.StartsWith("Deliver Business Battle crates", StringComparison.Ordinal));
+
+        // Every non-heading line after the opening survives in semantic content.
+        // This also covers all vehicles, weapon inventory, rewards and linked trials.
+        var labels = week.Bonuses.Concat(week.Discounts).Concat(week.FreeItems).Concat(week.OtherEvents)
+            .Select(item => item.OriginalLabel).Append(week.WeeklyChallenge.OriginalText).ToArray();
+        foreach (var line in document.CanonicalText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Skip(1))
+        {
+            if (line.Any(char.IsLetter) && line.Where(char.IsLetter).All(char.IsUpper)) continue;
+            Assert.True(labels.Any(label => label.Contains(line, StringComparison.Ordinal)), $"Missing public bulletin line: {line}");
+        }
+
+        using var directory = new TemporaryDirectory();
+        var service = CreateService(directory.Path,
+            new MutableTimeProvider(DateTimeOffset.Parse("2026-09-04T00:00:00Z")),
+            new FakeEventSource(), new MemoryEventStore(Path.Combine(directory.Path, "events.json")));
+        service.ProcessDocument(document);
+        var snapshot = Assert.IsType<GtaCompanionWeek>(service.CaptureSnapshot().CurrentWeek);
+        Assert.Equal(6, snapshot.Bonuses.Count);
+        for (var i = 0; i < expected.Length; i++)
+        {
+            var actual = snapshot.Bonuses[i];
+            Assert.Contains(expected[i].Item2, actual.OriginalLabel);
+            Assert.Contains(new GtaKoreanFormatter().TranslateKnownTerms(expected[i].Item2), actual.DisplayTextKo);
+            Assert.Contains($"{expected[i].Item1}배", actual.DisplayTextKo);
+        }
+        Assert.Equal(19, snapshot.Discounts.Count);
+        Assert.Single(snapshot.FreeItems);
+        Assert.Equal(week.OtherEvents.Select(item => item.OriginalLabel), snapshot.OtherEvents.Select(item => item.OriginalLabel));
+        Assert.All(snapshot.OtherEvents, item => Assert.False(string.IsNullOrWhiteSpace(item.DisplayTextKo)));
+        Assert.False(service.CaptureSnapshot().IsTruncated);
+        Assert.True(snapshot.Bonuses.Count + snapshot.Discounts.Count + snapshot.FreeItems.Count + snapshot.OtherEvents.Count <= 48);
+
+        // A restart hydration can correct old persisted parses even when the
+        // Discord source revision itself has not been edited.
+        var now = DateTimeOffset.Parse("2026-09-04T00:00:00Z");
+        var resolver = new GtaEventResolver();
+        resolver.ApplyWeek(week with { Bonuses = [], Discounts = [], FreeItems = [], OtherEvents = [] }, now);
+        var recovered = new GtaEventResolver();
+        recovered.Restore(resolver.TrustedState, now);
+        Assert.True(recovered.ApplyWeek(week, now));
+        Assert.Equal(6, recovered.Resolve(now).CurrentWeek!.Bonuses.Count);
+        Assert.False(recovered.ApplyWeek(week, now));
+    }
+
+    [Fact]
+    public void WeeklyGroups_EndAtSections_KeepInlineBonusesAndEmbeddedFields()
+    {
+        var document = Builder.Build(Input(content: """
+            A new GTA Online event starts on AUG 27-SEP 2
+            Complete a Weekly Challenge over the next three weeks for a bonus.
+            WEEKLY CHALLENGE
+            Complete 3 Contact Missions
+            BONUSES
+            2X GTA$ & RP ON COMMUNITY SERIES
+            """, embeds: [new GtaEventEmbedInput(null, null,
+            [new("4X GTA$ & RP", "Special Vehicle Work"),
+             new("2X GTA$ & RP", "Community Series\nDiamond Adversary Series"),
+             new("3X GTA$ & RP", ""),
+             new("DISCOUNTS (30% OFF)", "Coil Cyclone"),
+             new("TEST RIDES & FREE VEHICLES", "Time Trial: Up Chiliad")])]));
+        var week = new GtaEventParser().Parse(document, new GtaEventClassifier().Classify(document)).Week!;
+        Assert.Equal(3, week.Bonuses.Count); // Inline/grouped duplicates keep the same semantic identity.
+        Assert.Single(week.Bonuses, item => string.Equals(item.Activity, "Community Series", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(week.Bonuses, item => item.Multiplier == 3 || item.Activity is null);
+        Assert.Equal("Coil Cyclone", Assert.Single(week.Discounts).Activity);
+        Assert.Contains(week.OtherEvents, item => item.OriginalLabel == "Time Trial: Up Chiliad");
+        Assert.Equal("Complete 3 Contact Missions", week.WeeklyChallenge!.OriginalText);
+    }
+
+    [Fact]
     public void GoldenCorpus_ContainsFourteenSyntheticBoundedFixtures_WithExpectedClassification()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Gta", "weekly-golden.json");
