@@ -20,6 +20,7 @@ using LSOverlay.Backend.WebAuth;
 using LSOverlay.Backend.PublicWeb;
 using GachaOverlay.Core.Gta;
 using LSOverlay.Backend.Gta;
+using LSOverlay.Backend.Gta.Localization;
 
 namespace LSOverlay.Backend;
 
@@ -56,7 +57,7 @@ internal static class Program
         }
     }
 
-    internal static IHost CreateHost(BackendConfiguration configuration)
+    internal static IHost CreateHost(BackendConfiguration configuration, Action<IServiceCollection>? configureLocalValidation = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         BackendStoragePreflight.Validate(configuration);
@@ -144,6 +145,12 @@ internal static class Program
         builder.Services.AddSingleton<RemoteSalesActionService>();
         builder.Services.AddSingleton<IGtaEventDiscordSource, DiscordNetGtaEventSource>();
         builder.Services.AddSingleton<IGtaEventStore, JsonGtaEventStore>();
+        builder.Services.AddSingleton<IGtaLocalizationProvider>(_ => new GeminiGtaLocalizationProvider(
+            Environment.GetEnvironmentVariable("GEMINI_API_KEY"), Environment.GetEnvironmentVariable("GEMINI_MODEL")));
+        builder.Services.AddSingleton(services => new GtaLocalizationService(
+            services.GetRequiredService<IGtaLocalizationProvider>(), configuration.StateDirectory,
+            services.GetRequiredService<ILogger<GtaLocalizationService>>()));
+        builder.Services.AddHostedService(services => services.GetRequiredService<GtaLocalizationService>());
         builder.Services.AddSingleton<GtaEventService>();
         builder.Services.AddHostedService<ActiveChatStreamEvictionWorker>();
         builder.Services.AddHostedService<GtaEventResetWorker>();
@@ -154,6 +161,8 @@ internal static class Program
         builder.Services.AddHostedService<DiscordBackendWorker>();
         builder.Services.AddHostedService<RemoteAuthenticationHealthReporter>();
         builder.Services.AddHostedService<DeveloperShutdownWatcher>();
+        // Internal composition seam only; not an HTTP endpoint or runtime setting.
+        configureLocalValidation?.Invoke(builder.Services);
         var app = builder.Build();
         if (app.Services.GetRequiredService<ClientCredentialRegistry>().IsFaulted)
         {

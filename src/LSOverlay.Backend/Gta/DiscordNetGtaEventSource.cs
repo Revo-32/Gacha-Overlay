@@ -70,7 +70,8 @@ internal sealed class DiscordNetGtaEventSource : IGtaEventDiscordSource
             embeds,
             forwarded,
             publisher,
-            null));
+            null,
+            message.Author.Id));
     }
 
     public async Task<GtaEventHydrationSourceResult> GetRecentAsync(

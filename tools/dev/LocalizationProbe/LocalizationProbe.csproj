@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>LSOverlay.LocalizationProbe</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/LSOverlay.Backend/LSOverlay.Backend.csproj" />
+    <Content Update="public-regression-corpus.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

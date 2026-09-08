@@ -71,7 +71,11 @@ public sealed partial class CanonicalEventDocumentBuilder
             NormalizeMetadata(source.SourceChannelName),
             source.ForwardedSnapshots?.Count > 0,
             blocks,
-            canonical);
+            canonical,
+            source.AuthorId,
+            source.ForwardedSnapshots?.Count > 0
+                ? Build(source with { ForwardedSnapshots = Array.Empty<GtaEventForwardInput>() }).CanonicalText
+                : canonical);
     }
 
     private static void AddEmbeds(

@@ -13,7 +13,7 @@ public sealed class Translation23Tests
     [InlineData("FREE Crawler", "무료 Crawler")]
     [InlineData("Freecrawler", "Freecrawler")]
     [InlineData("Unknown Vehicle 300R", "Unknown Vehicle 300R")]
-    [InlineData("Weekly Challenge: 5 missions", "주간 도전: 5 missions")]
+    [InlineData("Weekly Challenge: 5 missions", "금주의 도전: 5 missions")]
     [InlineData("Completion Reward: GTA$100,000", "완료 보상: GTA$100,000")]
     public void KnownTermsAndProtectedNames(string source, string expected)
     {

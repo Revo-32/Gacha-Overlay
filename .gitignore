@@ -31,6 +31,7 @@ guild-display-names.json
 crash-summary.json
 gta-companion-state.json
 gta-companion-events.json
+gta-localization-memory.json*
 # Runtime output at the repository root, not project Diagnostics source trees.
 /diagnostics/
 DiagnosticBundles/

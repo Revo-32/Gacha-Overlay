@@ -22,7 +22,8 @@ public sealed record GtaEventSourceInput(
     IReadOnlyList<GtaEventEmbedInput> Embeds,
     IReadOnlyList<GtaEventForwardInput> ForwardedSnapshots,
     string? SourcePublisher = null,
-    string? SourceChannelName = null);
+    string? SourceChannelName = null,
+    ulong AuthorId = 0);
 
 public sealed record CanonicalEventBlock(string Kind, string Text);
 
@@ -35,7 +36,9 @@ public sealed record CanonicalEventDocument(
     string? SourceChannelName,
     bool IsForwarded,
     IReadOnlyList<CanonicalEventBlock> CanonicalBlocks,
-    string CanonicalText);
+    string CanonicalText,
+    ulong AuthorId = 0,
+    string? OwnCanonicalText = null);
 
 public enum GtaEventClassificationKind
 {

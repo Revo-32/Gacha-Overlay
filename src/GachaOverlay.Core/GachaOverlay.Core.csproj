@@ -6,5 +6,6 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Gta/TranslationGlossary.ko.json" WithCulture="false" LogicalName="GachaOverlay.Core.Gta.TranslationGlossary.ko.json" />
+    <EmbeddedResource Include="Gta/Localization/*.json" WithCulture="false" LogicalName="GachaOverlay.Core.Gta.Localization.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

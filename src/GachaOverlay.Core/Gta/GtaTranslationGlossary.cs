@@ -52,7 +52,26 @@ public sealed class GtaTranslationGlossary
         using var stream = typeof(GtaTranslationGlossary).Assembly.GetManifestResourceStream("GachaOverlay.Core.Gta.TranslationGlossary.ko.json");
         if (stream is null) return new("missing", []);
         using var reader = new StreamReader(stream);
-        return Parse(reader.ReadToEnd());
+        var legacy = Parse(reader.ReadToEnd());
+        var approved = Localization.GtaLocalizationGlossary.Default;
+        var entries = approved.Entries.Where(term => term.ProtectOutput).Select(term =>
+        {
+            var previous = legacy.Entries.FirstOrDefault(old => old.EnglishName.Equals(term.Source, StringComparison.OrdinalIgnoreCase));
+            return new GtaGlossaryEntry(previous?.CanonicalId ?? term.Id, term.Source, term.Aliases,
+                term.Ko, term.Category, previous?.TranslationSource == GtaTranslationSource.RockstarOfficial
+                    ? GtaTranslationSource.RockstarOfficial : GtaTranslationSource.Curated);
+        }).ToList();
+        // Keep legacy-only aliases for compatibility, but never let them override
+        // a newly approved source or alias (Gunrunning is no longer Bunker).
+        var recognized = entries.SelectMany(e => e.EnglishAliases.Prepend(e.EnglishName)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var old in legacy.Entries)
+        {
+            var index = entries.FindIndex(e => e.EnglishName.Equals(old.EnglishName, StringComparison.OrdinalIgnoreCase));
+            var aliases = old.EnglishAliases.Where(alias => !recognized.Contains(alias)).ToArray();
+            if (index >= 0) entries[index] = entries[index] with { EnglishAliases = entries[index].EnglishAliases.Concat(aliases).ToArray() };
+            else if (!recognized.Contains(old.EnglishName)) entries.Add(old with { EnglishAliases = aliases });
+        }
+        return new(approved.Version + ":" + approved.Hash, entries);
     }
     private sealed record Document(string Version, IReadOnlyList<GtaGlossaryEntry> Entries);
 }

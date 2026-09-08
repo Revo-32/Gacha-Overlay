@@ -1,0 +1,4605 @@
+{
+  "schemaVersion": 1,
+  "glossaryVersion": "2026-09-08.1",
+  "locale": "ko-KR",
+  "entries": [
+    {
+      "id": "weapon.antique_cavalry_dagger",
+      "source": "Antique Cavalry Dagger",
+      "ko": "앤티크 기병 단검",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.baseball_bat",
+      "source": "Baseball Bat",
+      "ko": "야구 방망이",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.battle_axe",
+      "source": "Battle Axe",
+      "ko": "전투 도끼",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.bottle",
+      "source": "Bottle",
+      "ko": "병",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.candy_cane",
+      "source": "Candy Cane",
+      "ko": "캔디 케인",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.crowbar",
+      "source": "Crowbar",
+      "ko": "쇠지렛대",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.flashlight",
+      "source": "Flashlight",
+      "ko": "손전등",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.golf_club",
+      "source": "Golf Club",
+      "ko": "골프채",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.hammer",
+      "source": "Hammer",
+      "ko": "망치",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.hatchet",
+      "source": "Hatchet",
+      "ko": "손도끼",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.knife",
+      "source": "Knife",
+      "ko": "나이프",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.knuckle_duster",
+      "source": "Knuckle Duster",
+      "ko": "너클 더스터",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.machete",
+      "source": "Machete",
+      "ko": "마체테",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.nightstick",
+      "source": "Nightstick",
+      "ko": "야경봉",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.pipe_wrench",
+      "source": "Pipe Wrench",
+      "ko": "파이프 렌치",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.pool_cue",
+      "source": "Pool Cue",
+      "ko": "당구 큐",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.stone_hatchet",
+      "source": "Stone Hatchet",
+      "ko": "돌도끼",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.switchblade",
+      "source": "Switchblade",
+      "ko": "스위치블레이드",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.the_shocker",
+      "source": "The Shocker",
+      "ko": "쇼커",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.pistol",
+      "source": "Pistol",
+      "ko": "피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.combat_pistol",
+      "source": "Combat Pistol",
+      "ko": "컴뱃 피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.ap_pistol",
+      "source": "AP Pistol",
+      "ko": "AP 피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.pistol_50",
+      "source": "Pistol .50",
+      "ko": "피스톨 .50",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.sns_pistol",
+      "source": "SNS Pistol",
+      "ko": "SNS 피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.heavy_pistol",
+      "source": "Heavy Pistol",
+      "ko": "헤비 피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.vintage_pistol",
+      "source": "Vintage Pistol",
+      "ko": "빈티지 피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.marksman_pistol",
+      "source": "Marksman Pistol",
+      "ko": "마크스맨 피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.heavy_revolver",
+      "source": "Heavy Revolver",
+      "ko": "헤비 리볼버",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.double_action_revolver",
+      "source": "Double-Action Revolver",
+      "ko": "더블 액션 리볼버",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [
+        "Double Action Revolver"
+      ],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.stun_gun",
+      "source": "Stun Gun",
+      "ko": "스턴 건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.flare_gun",
+      "source": "Flare Gun",
+      "ko": "신호탄 총",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.up_n_atomizer",
+      "source": "Up-n-Atomizer",
+      "ko": "업 앤 아토마이저",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.ceramic_pistol",
+      "source": "Ceramic Pistol",
+      "ko": "세라믹 피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.navy_revolver",
+      "source": "Navy Revolver",
+      "ko": "네이비 리볼버",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.perico_pistol",
+      "source": "Perico Pistol",
+      "ko": "페리코 피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.wm_29_pistol",
+      "source": "WM 29 Pistol",
+      "ko": "WM29 피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [
+        "WM29 Pistol"
+      ],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.micro_smg",
+      "source": "Micro SMG",
+      "ko": "마이크로 SMG",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.smg",
+      "source": "SMG",
+      "ko": "SMG",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.assault_smg",
+      "source": "Assault SMG",
+      "ko": "어썰트 SMG",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.combat_pdw",
+      "source": "Combat PDW",
+      "ko": "컴뱃 PDW",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.machine_pistol",
+      "source": "Machine Pistol",
+      "ko": "머신 피스톨",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.mini_smg",
+      "source": "Mini SMG",
+      "ko": "미니 SMG",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.gusenberg_sweeper",
+      "source": "Gusenberg Sweeper",
+      "ko": "구젠버그 스위퍼",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.mg",
+      "source": "MG",
+      "ko": "MG",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.combat_mg",
+      "source": "Combat MG",
+      "ko": "컴뱃 MG",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.unholy_hellbringer",
+      "source": "Unholy Hellbringer",
+      "ko": "언홀리 헬브링거",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.tactical_smg",
+      "source": "Tactical SMG",
+      "ko": "택티컬 SMG",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.assault_rifle",
+      "source": "Assault Rifle",
+      "ko": "어썰트 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.carbine_rifle",
+      "source": "Carbine Rifle",
+      "ko": "카빈소총",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.advanced_rifle",
+      "source": "Advanced Rifle",
+      "ko": "차세대 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.special_carbine",
+      "source": "Special Carbine",
+      "ko": "특수 카빈소총",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.bullpup_rifle",
+      "source": "Bullpup Rifle",
+      "ko": "불펍 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.compact_rifle",
+      "source": "Compact Rifle",
+      "ko": "콤팩트 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.military_rifle",
+      "source": "Military Rifle",
+      "ko": "군용 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.heavy_rifle",
+      "source": "Heavy Rifle",
+      "ko": "헤비 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.service_carbine",
+      "source": "Service Carbine",
+      "ko": "서비스 카빈",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.battle_rifle",
+      "source": "Battle Rifle",
+      "ko": "배틀 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.el_strickler_military_rifle",
+      "source": "El Strickler Military Rifle",
+      "ko": "엘 스트릭클러 군용 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.el_strickler",
+      "source": "El Strickler",
+      "ko": "엘 스트릭클러",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.pump_shotgun",
+      "source": "Pump Shotgun",
+      "ko": "펌프 샷건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.sawed_off_shotgun",
+      "source": "Sawed-Off Shotgun",
+      "ko": "소드오프 샷건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.assault_shotgun",
+      "source": "Assault Shotgun",
+      "ko": "어썰트 샷건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.bullpup_shotgun",
+      "source": "Bullpup Shotgun",
+      "ko": "불펍 샷건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.musket",
+      "source": "Musket",
+      "ko": "머스킷",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.heavy_shotgun",
+      "source": "Heavy Shotgun",
+      "ko": "헤비 샷건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.double_barrel_shotgun",
+      "source": "Double Barrel Shotgun",
+      "ko": "더블 배럴 샷건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.sweeper_shotgun",
+      "source": "Sweeper Shotgun",
+      "ko": "스위퍼 샷건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.combat_shotgun",
+      "source": "Combat Shotgun",
+      "ko": "컴뱃 샷건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.sniper_rifle",
+      "source": "Sniper Rifle",
+      "ko": "스나이퍼 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.heavy_sniper",
+      "source": "Heavy Sniper",
+      "ko": "헤비 스나이퍼 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.marksman_rifle",
+      "source": "Marksman Rifle",
+      "ko": "마크스맨 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.precision_rifle",
+      "source": "Precision Rifle",
+      "ko": "프리시전 라이플",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.grenade_launcher",
+      "source": "Grenade Launcher",
+      "ko": "그레네이드 런처",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.compact_grenade_launcher",
+      "source": "Compact Grenade Launcher",
+      "ko": "콤팩트 그레네이드 런처",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.rpg",
+      "source": "RPG",
+      "ko": "RPG",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.homing_launcher",
+      "source": "Homing Launcher",
+      "ko": "호밍 런처",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.minigun",
+      "source": "Minigun",
+      "ko": "미니건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.firework_launcher",
+      "source": "Firework Launcher",
+      "ko": "폭죽 발사기",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.railgun",
+      "source": "Railgun",
+      "ko": "레일 건",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.widowmaker",
+      "source": "Widowmaker",
+      "ko": "위도우메이커",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.compact_emp_launcher",
+      "source": "Compact EMP Launcher",
+      "ko": "콤팩트 EMP 런처",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.snowball_launcher",
+      "source": "Snowball Launcher",
+      "ko": "눈덩이 발사기",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.grenade",
+      "source": "Grenade",
+      "ko": "수류탄",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.sticky_bomb",
+      "source": "Sticky Bomb",
+      "ko": "점착 폭탄",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.proximity_mine",
+      "source": "Proximity Mine",
+      "ko": "근접 지뢰",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.tear_gas",
+      "source": "Tear Gas",
+      "ko": "최루가스",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.molotov",
+      "source": "Molotov",
+      "ko": "화염병",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.pipe_bomb",
+      "source": "Pipe Bomb",
+      "ko": "파이프 폭탄",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.snowball",
+      "source": "Snowball",
+      "ko": "눈덩이",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.pistol_mk_ii",
+      "source": "Pistol Mk II",
+      "ko": "피스톨 Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.sns_pistol_mk_ii",
+      "source": "SNS Pistol Mk II",
+      "ko": "SNS 피스톨 Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.heavy_revolver_mk_ii",
+      "source": "Heavy Revolver Mk II",
+      "ko": "헤비 리볼버 Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.smg_mk_ii",
+      "source": "SMG Mk II",
+      "ko": "SMG Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.combat_mg_mk_ii",
+      "source": "Combat MG Mk II",
+      "ko": "컴뱃 MG Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.assault_rifle_mk_ii",
+      "source": "Assault Rifle Mk II",
+      "ko": "어썰트 라이플 Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.carbine_rifle_mk_ii",
+      "source": "Carbine Rifle Mk II",
+      "ko": "카빈소총 Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.special_carbine_mk_ii",
+      "source": "Special Carbine Mk II",
+      "ko": "특수 카빈소총 Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.bullpup_rifle_mk_ii",
+      "source": "Bullpup Rifle Mk II",
+      "ko": "불펍 라이플 Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.pump_shotgun_mk_ii",
+      "source": "Pump Shotgun Mk II",
+      "ko": "펌프 샷건 Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.heavy_sniper_mk_ii",
+      "source": "Heavy Sniper Mk II",
+      "ko": "헤비 스나이퍼 라이플 Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.marksman_rifle_mk_ii",
+      "source": "Marksman Rifle Mk II",
+      "ko": "마크스맨 라이플 Mk II",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.gun_van",
+      "source": "Gun Van",
+      "ko": "무기 밴",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.gun_van_inventory_and_discounts",
+      "source": "Gun Van Inventory and Discounts",
+      "ko": "무기 밴 인벤토리 및 할인",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.ammu_nation",
+      "source": "Ammu-Nation",
+      "ko": "아뮤네이션",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.agency_armory",
+      "source": "Agency Armory",
+      "ko": "사무소 무기고",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.armory",
+      "source": "Armory",
+      "ko": "무기고",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.weapon_workshop",
+      "source": "Weapon Workshop",
+      "ko": "무기 작업실",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.mk_ii_weapon_workshop",
+      "source": "Mk II Weapon Workshop",
+      "ko": "Mk II 무기 작업실",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.body_armor",
+      "source": "Body Armor",
+      "ko": "방탄복",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.parachute",
+      "source": "Parachute",
+      "ko": "낙하산",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.ammo",
+      "source": "Ammo",
+      "ko": "탄약",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.ammunition",
+      "source": "Ammunition",
+      "ko": "탄약",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.throwables",
+      "source": "Throwables",
+      "ko": "투척 무기",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.weapon_tint",
+      "source": "Weapon Tint",
+      "ko": "무기 틴팅",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.suppressor",
+      "source": "Suppressor",
+      "ko": "소음기",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.extended_magazine",
+      "source": "Extended Magazine",
+      "ko": "확장 탄창",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.scope",
+      "source": "Scope",
+      "ko": "조준경",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.grip",
+      "source": "Grip",
+      "ko": "손잡이",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.heavy_barrel",
+      "source": "Heavy Barrel",
+      "ko": "헤비 배럴",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.tracer_rounds",
+      "source": "Tracer Rounds",
+      "ko": "예광탄",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.incendiary_rounds",
+      "source": "Incendiary Rounds",
+      "ko": "소이탄",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.hollow_point_rounds",
+      "source": "Hollow Point Rounds",
+      "ko": "할로 포인트탄",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.full_metal_jacket_rounds",
+      "source": "Full Metal Jacket Rounds",
+      "ko": "풀 메탈 재킷탄",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.armor_piercing_rounds",
+      "source": "Armor Piercing Rounds",
+      "ko": "철갑탄",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weapon.explosive_rounds",
+      "source": "Explosive Rounds",
+      "ko": "폭발탄",
+      "category": "weapon",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.mansion",
+      "source": "Mansion",
+      "ko": "맨션 부동산",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.mansion_property",
+      "source": "Mansion Property",
+      "ko": "맨션 부동산",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.prix_luxury_real_estate",
+      "source": "Prix Luxury Real Estate",
+      "ko": "프릭스 럭셔리 부동산",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.apartment",
+      "source": "Apartment",
+      "ko": "아파트",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.high_end_apartment",
+      "source": "High-End Apartment",
+      "ko": "고급 아파트",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.garage",
+      "source": "Garage",
+      "ko": "차고",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.galaxy_super_yacht",
+      "source": "Galaxy Super Yacht",
+      "ko": "갤럭시 슈퍼 요트",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.executive_office",
+      "source": "Executive Office",
+      "ko": "임원 전용 오피스",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.executive_office_garage",
+      "source": "Executive Office Garage",
+      "ko": "임원 전용 오피스 차고",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.special_cargo_warehouse",
+      "source": "Special Cargo Warehouse",
+      "ko": "스페셜 패키지 창고",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.vehicle_warehouse",
+      "source": "Vehicle Warehouse",
+      "ko": "매매 이동 수단 창고",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.mc_clubhouse",
+      "source": "MC Clubhouse",
+      "ko": "바이커 클럽하우스",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.mc_business",
+      "source": "MC Business",
+      "ko": "바이커 사업장",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.bunker",
+      "source": "Bunker",
+      "ko": "벙커",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.hangar",
+      "source": "Hangar",
+      "ko": "격납고",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.facility",
+      "source": "Facility",
+      "ko": "시설",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.nightclub",
+      "source": "Nightclub",
+      "ko": "나이트클럽",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.arena_workshop",
+      "source": "Arena Workshop",
+      "ko": "아레나 작업실",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.diamond_casino_master_penthouse",
+      "source": "Diamond Casino Master Penthouse",
+      "ko": "마스터 펜트하우스",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.arcade",
+      "source": "Arcade",
+      "ko": "아케이드 부동산",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.arcade_property",
+      "source": "Arcade Property",
+      "ko": "아케이드 부동산",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.auto_shop",
+      "source": "Auto Shop",
+      "ko": "튜닝 샵",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.agency",
+      "source": "Agency",
+      "ko": "사무소",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.celebrity_solutions_agency",
+      "source": "Celebrity Solutions Agency",
+      "ko": "사무소",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.salvage_yard",
+      "source": "Salvage Yard",
+      "ko": "폐차장",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.bail_office",
+      "source": "Bail Office",
+      "ko": "보석 사무소",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.bail_enforcement_office",
+      "source": "Bail Enforcement Office",
+      "ko": "보석 사무소",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.darnell_bros_garment_factory",
+      "source": "Darnell Bros Garment Factory",
+      "ko": "다넬 형제 봉제 공장",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.hands_on_car_wash",
+      "source": "Hands On Car Wash",
+      "ko": "핸즈온 세차장",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.smoke_on_the_water",
+      "source": "Smoke on the Water",
+      "ko": "스모크 온 더 워터",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.higgins_helitours",
+      "source": "Higgins Helitours",
+      "ko": "히긴스 헬기투어",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.mobile_operations_center",
+      "source": "Mobile Operations Center",
+      "ko": "이동식 작전 본부",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.moc",
+      "source": "MOC",
+      "ko": "MOC",
+      "category": "property",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.avenger",
+      "source": "Avenger",
+      "ko": "어벤져",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.terrorbyte",
+      "source": "Terrorbyte",
+      "ko": "테러바이트",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.kosatka_submarine",
+      "source": "Kosatka Submarine",
+      "ko": "코사트카 잠수함",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.kosatka",
+      "source": "Kosatka",
+      "ko": "코사트카",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.acid_lab",
+      "source": "Acid Lab",
+      "ko": "LSD 제조실",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.freakshop",
+      "source": "Freakshop",
+      "ko": "프릭샵",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.vinewood_club_garage",
+      "source": "Vinewood Club Garage",
+      "ko": "바인우드 클럽 차고",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "property.ls_car_meet",
+      "source": "LS Car Meet",
+      "ko": "LS 자동차 모임",
+      "category": "property",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "mc_business.cocaine_lockup",
+      "source": "Cocaine Lockup",
+      "ko": "코카인 제조 아지트",
+      "category": "mc_business",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "mc_business.methamphetamine_lab",
+      "source": "Methamphetamine Lab",
+      "ko": "필로폰 제조실",
+      "category": "mc_business",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "mc_business.meth_lab",
+      "source": "Meth Lab",
+      "ko": "필로폰 제조실",
+      "category": "mc_business",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "mc_business.counterfeit_cash_factory",
+      "source": "Counterfeit Cash Factory",
+      "ko": "위조지폐 작업실",
+      "category": "mc_business",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "mc_business.weed_farm",
+      "source": "Weed Farm",
+      "ko": "마리화나 농장",
+      "category": "mc_business",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "mc_business.document_forgery_office",
+      "source": "Document Forgery Office",
+      "ko": "위조서류 사무실",
+      "category": "mc_business",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.upgrade",
+      "source": "Upgrade",
+      "ko": "업그레이드",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.upgrades_and_modifications",
+      "source": "Upgrades and Modifications",
+      "ko": "업그레이드 및 개조",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.renovations",
+      "source": "Renovations",
+      "ko": "개조",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.modifications",
+      "source": "Modifications",
+      "ko": "개조",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.equipment_upgrade",
+      "source": "Equipment Upgrade",
+      "ko": "장비 업그레이드",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.staff_upgrade",
+      "source": "Staff Upgrade",
+      "ko": "직원 업그레이드",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.security_upgrade",
+      "source": "Security Upgrade",
+      "ko": "보안 업그레이드",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.vehicle_workshop",
+      "source": "Vehicle Workshop",
+      "ko": "이동 수단 작업실",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.car_lift",
+      "source": "Car Lift",
+      "ko": "자동차 리프트",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.drone_station",
+      "source": "Drone Station",
+      "ko": "드론 스테이션",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.master_control_terminal",
+      "source": "Master Control Terminal",
+      "ko": "마스터 컨트롤 터미널",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.master_control_server",
+      "source": "Master Control Server",
+      "ko": "마스터 컨트롤 서버",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.safe",
+      "source": "Safe",
+      "ko": "금고",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.wall_safe",
+      "source": "Wall Safe",
+      "ko": "벽 금고",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.tow_truck",
+      "source": "Tow Truck",
+      "ko": "견인차",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.sonar_station",
+      "source": "Sonar Station",
+      "ko": "음파 탐지 시설",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.ai_assistant",
+      "source": "AI Assistant",
+      "ko": "AI 비서",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.missile_lock_on_jammer",
+      "source": "Missile Lock-On Jammer",
+      "ko": "미사일 전파 방해 장치",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.collectible_scanner",
+      "source": "Collectible Scanner",
+      "ko": "수집품 스캐너",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "upgrade.operations_terminal",
+      "source": "Operations Terminal",
+      "ko": "작전 터미널",
+      "category": "upgrade",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.gunrunning",
+      "source": "Gunrunning",
+      "ko": "무기 밀매",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.gunrunning_mission",
+      "source": "Gunrunning Mission",
+      "ko": "무기 밀매 임무",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.bunker_sell_mission",
+      "source": "Bunker Sell Mission",
+      "ko": "벙커 판매 임무",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.bunker_research",
+      "source": "Bunker Research",
+      "ko": "벙커 연구",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.supplies",
+      "source": "Supplies",
+      "ko": "보급품",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.product",
+      "source": "Product",
+      "ko": "제품",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.special_cargo",
+      "source": "Special Cargo",
+      "ko": "스페셜 패키지",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.special_cargo_sell_mission",
+      "source": "Special Cargo Sell Mission",
+      "ko": "스페셜 패키지 판매 임무",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.mixed_goods_export",
+      "source": "Mixed Goods Export",
+      "ko": "각종 상품 수출",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.vehicle_cargo",
+      "source": "Vehicle Cargo",
+      "ko": "매매 이동 수단",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.import_export",
+      "source": "Import/Export",
+      "ko": "반입/반출",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.air_freight_cargo",
+      "source": "Air Freight Cargo",
+      "ko": "항공 수송 패키지",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.smuggler_sell_mission",
+      "source": "Smuggler Sell Mission",
+      "ko": "밀수업자 판매 임무",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.nightclub_goods",
+      "source": "Nightclub Goods",
+      "ko": "나이트클럽 상품",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.nightclub_income",
+      "source": "Nightclub Income",
+      "ko": "나이트클럽 수입",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.security_contract",
+      "source": "Security Contract",
+      "ko": "보안 계약",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.payphone_hit",
+      "source": "Payphone Hit",
+      "ko": "공중전화 암살",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.exotic_exports",
+      "source": "Exotic Exports",
+      "ko": "이그조틱 수출",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.auto_shop_robbery_contract",
+      "source": "Auto Shop Robbery Contract",
+      "ko": "튜닝 샵 강도 계약",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.auto_shop_client_job",
+      "source": "Auto Shop Client Job",
+      "ko": "튜닝 샵 의뢰인 작업",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.salvage_yard_robbery",
+      "source": "Salvage Yard Robbery",
+      "ko": "폐차장 강도 작업",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.tow_truck_service",
+      "source": "Tow Truck Service",
+      "ko": "견인 서비스",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.bounty_target",
+      "source": "Bounty Target",
+      "ko": "현상금 표적",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.most_wanted_target",
+      "source": "Most Wanted Target",
+      "ko": "일급 지명수배자",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.fib_files",
+      "source": "FIB Files",
+      "ko": "FIB 파일",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "economy.money_laundering_mission",
+      "source": "Money Laundering Mission",
+      "ko": "돈세탁 임무",
+      "category": "economy",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.job",
+      "source": "Job",
+      "ko": "작업",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.mission",
+      "source": "Mission",
+      "ko": "임무",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.contact_mission",
+      "source": "Contact Mission",
+      "ko": "연락책 임무",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": ["Contact Missions"],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.story_mission",
+      "source": "Story Mission",
+      "ko": "스토리 임무",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.freemode",
+      "source": "Freemode",
+      "ko": "자유 모드",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.freemode_event",
+      "source": "Freemode Event",
+      "ko": "자유 모드 이벤트",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.freemode_challenge",
+      "source": "Freemode Challenge",
+      "ko": "자유 모드 도전",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.heist",
+      "source": "Heist",
+      "ko": "습격",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.finale",
+      "source": "Finale",
+      "ko": "피날레",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.adversary_mode",
+      "source": "Adversary Mode",
+      "ko": "대적 모드",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.deathmatch",
+      "source": "Deathmatch",
+      "ko": "데스매치",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.team_deathmatch",
+      "source": "Team Deathmatch",
+      "ko": "팀 데스매치",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.survival",
+      "source": "Survival",
+      "ko": "서바이벌",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.race",
+      "source": "Race",
+      "ko": "레이스",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.land_race",
+      "source": "Land Race",
+      "ko": "지상 레이스",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.air_race",
+      "source": "Air Race",
+      "ko": "항공 레이스",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.sea_race",
+      "source": "Sea Race",
+      "ko": "해상 레이스",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.stunt_race",
+      "source": "Stunt Race",
+      "ko": "스턴트 레이스",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.open_wheel_race",
+      "source": "Open Wheel Race",
+      "ko": "오픈 휠 레이스",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.street_race_series",
+      "source": "Street Race Series",
+      "ko": "길거리 레이스 시리즈",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.pursuit_series",
+      "source": "Pursuit Series",
+      "ko": "추격전 시리즈",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.sprint",
+      "source": "Sprint",
+      "ko": "단거리 질주",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.drift_race",
+      "source": "Drift Race",
+      "ko": "드리프트 레이스",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.drag_race",
+      "source": "Drag Race",
+      "ko": "드래그 레이스",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.transform_race",
+      "source": "Transform Race",
+      "ko": "변신 레이스",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.random_transform_race",
+      "source": "Random Transform Race",
+      "ko": "랜덤 변신 레이스",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.community_race_series",
+      "source": "Community Race Series",
+      "ko": "커뮤니티 레이스 시리즈",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.community_series",
+      "source": "Community Series",
+      "ko": "커뮤니티 시리즈",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.community_mission_series",
+      "source": "Community Mission Series",
+      "ko": "커뮤니티 임무 시리즈",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.time_trial",
+      "source": "Time Trial",
+      "ko": "타임 트라이얼",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.rc_time_trial",
+      "source": "RC Time Trial",
+      "ko": "RC 타임 트라이얼",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.hsw_time_trial",
+      "source": "HSW Time Trial",
+      "ko": "HSW 타임 트라이얼",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.junk_energy_time_trial",
+      "source": "Junk Energy Time Trial",
+      "ko": "정크 에너지 타임 트라이얼",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.junk_energy_skydives",
+      "source": "Junk Energy Skydives",
+      "ko": "정크 에너지 스카이다이빙",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.flight_school",
+      "source": "Flight School",
+      "ko": "비행 학교",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.flight_school_lesson",
+      "source": "Flight School Lesson",
+      "ko": "비행 학교 수업",
+      "category": "activity",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.the_fleeca_job",
+      "source": "The Fleeca Job",
+      "ko": "플리카 습격",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [
+        "플리카 작업"
+      ],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.the_prison_break",
+      "source": "The Prison Break",
+      "ko": "탈옥",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.the_humane_labs_raid",
+      "source": "The Humane Labs Raid",
+      "ko": "휴메인 연구소 습격",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.series_a_funding",
+      "source": "Series A Funding",
+      "ko": "시리즈 A 자금 조달",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.the_pacific_standard_job",
+      "source": "The Pacific Standard Job",
+      "ko": "퍼시픽 스탠다드 습격",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [
+        "퍼시픽 스탠다드 작업"
+      ],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.the_doomsday_heist",
+      "source": "The Doomsday Heist",
+      "ko": "심판의 날 습격",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.the_diamond_casino_heist",
+      "source": "The Diamond Casino Heist",
+      "ko": "다이아몬드 카지노 습격",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.the_cayo_perico_heist",
+      "source": "The Cayo Perico Heist",
+      "ko": "카요 페리코 습격",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.the_cluckin_bell_farm_raid",
+      "source": "The Cluckin' Bell Farm Raid",
+      "ko": "클러킹 벨 농장 기습",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.oscar_guzman_flies_again",
+      "source": "Oscar Guzman Flies Again",
+      "ko": "다시 뜬 오스카 구즈먼",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "heist.the_kortz_center_heist",
+      "source": "The Kortz Center Heist",
+      "ko": "코르츠 센터 습격",
+      "category": "heist",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.the_contract",
+      "source": "The Contract",
+      "ko": "청부 계약",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.security_contracts",
+      "source": "Security Contracts",
+      "ko": "보안 계약",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.payphone_hits",
+      "source": "Payphone Hits",
+      "ko": "공중전화 암살",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.short_trips",
+      "source": "Short Trips",
+      "ko": "짧은 여행",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.project_overthrow",
+      "source": "Project Overthrow",
+      "ko": "프로젝트 전복",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.lsa_operations",
+      "source": "LSA Operations",
+      "ko": "LSA 작전",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.first_dose",
+      "source": "First Dose",
+      "ko": "첫 투여",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.last_dose",
+      "source": "Last Dose",
+      "ko": "마지막 투여",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.acid_lab_sell_missions",
+      "source": "Acid Lab Sell Missions",
+      "ko": "LSD 제조실 판매 임무",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.clubhouse_contracts",
+      "source": "Clubhouse Contracts",
+      "ko": "클럽하우스 계약",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.mc_work",
+      "source": "MC Work",
+      "ko": "MC 명령",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.mc_challenges",
+      "source": "MC Challenges",
+      "ko": "MC 도전",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.special_vehicle_work",
+      "source": "Special Vehicle Work",
+      "ko": "특수 차량 작업",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.casino_story_missions",
+      "source": "Casino Story Missions",
+      "ko": "카지노 스토리 임무",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.a_superyacht_life",
+      "source": "A Superyacht Life",
+      "ko": "슈퍼 요트 생활",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.auto_shop_robbery_contracts",
+      "source": "Auto Shop Robbery Contracts",
+      "ko": "튜닝 샵 강도 계약",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.salvage_yard_robberies",
+      "source": "Salvage Yard Robberies",
+      "ko": "폐차장 강도 작업",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.dispatch_work",
+      "source": "Dispatch Work",
+      "ko": "파견 명령",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.money_laundering_missions",
+      "source": "Money Laundering Missions",
+      "ko": "돈세탁 임무",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "dlc.mr_faber_work_missions",
+      "source": "Mr. Faber Work Missions",
+      "ko": "미스터 페이버 작업 임무",
+      "category": "dlc",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.g_s_cache",
+      "source": "G's Cache",
+      "ko": "제랄드의 캐시",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.stash_house",
+      "source": "Stash House",
+      "ko": "숨겨진 비자금",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.shipwreck",
+      "source": "Shipwreck",
+      "ko": "난파선",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.street_dealers",
+      "source": "Street Dealers",
+      "ko": "길거리 딜러",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.wildlife_photography",
+      "source": "Wildlife Photography",
+      "ko": "야생 동물 사진",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.wildlife_photography_challenge",
+      "source": "Wildlife Photography Challenge",
+      "ko": "야생 동물 사진 도전",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.taxi_work",
+      "source": "Taxi Work",
+      "ko": "택시 작업",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.pizza_delivery",
+      "source": "Pizza Delivery",
+      "ko": "피자 배달",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.madrazo_hits",
+      "source": "Madrazo Hits",
+      "ko": "마드라조 청부 살인",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.ls_tags",
+      "source": "LS Tags",
+      "ko": "LS 태그",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.business_battle",
+      "source": "Business Battle",
+      "ko": "비즈니스 전투",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.daily_objective",
+      "source": "Daily Objective",
+      "ko": "일일 목표",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.weekly_challenge",
+      "source": "Weekly Challenge",
+      "ko": "금주의 도전",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "side_content.community_challenge",
+      "source": "Community Challenge",
+      "ko": "커뮤니티 도전",
+      "category": "side_content",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "recent.a_safehouse_in_the_hills",
+      "source": "A Safehouse in the Hills",
+      "ko": "언덕 위의 안식처",
+      "category": "recent",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "recent.money_fronts",
+      "source": "Money Fronts",
+      "ko": "돈의 가면",
+      "category": "recent",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "recent.new_listings",
+      "source": "New Listings",
+      "ko": "신규 매물",
+      "category": "recent",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "recent.fine_art_collector_program",
+      "source": "Fine Art Collector Program",
+      "ko": "파인 아트 수집가 프로그램",
+      "category": "recent",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "recent.business_rivalries_event",
+      "source": "Business Rivalries Event",
+      "ko": "비즈니스 라이벌 이벤트",
+      "category": "recent",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "recent.brand_wars_event",
+      "source": "Brand Wars Event",
+      "ko": "브랜드 전쟁 이벤트",
+      "category": "recent",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "recent.random_transform_races",
+      "source": "Random Transform Races",
+      "ko": "랜덤 변신 레이스",
+      "category": "recent",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "recent.community_series_showcase",
+      "source": "Community Series Showcase",
+      "ko": "커뮤니티 시리즈 쇼케이스",
+      "category": "recent",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "recent.deadline_duet",
+      "source": "Deadline Duet",
+      "ko": "데드라인 듀엣",
+      "category": "recent",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "recent.cayo_perico_survival",
+      "source": "Cayo Perico Survival",
+      "ko": "카요 페리코 서바이벌",
+      "category": "recent",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.every_bullet_counts",
+      "source": "Every Bullet Counts",
+      "ko": "총알을 아껴라",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.sumo",
+      "source": "Sumo",
+      "ko": "스모",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.inch_by_inch",
+      "source": "Inch by Inch",
+      "ko": "인치 바이 인치",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.in_and_out",
+      "source": "In and Out",
+      "ko": "인 앤 아웃",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.power_play",
+      "source": "Power Play",
+      "ko": "파워 플레이",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.entourage",
+      "source": "Entourage",
+      "ko": "에스코트",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.deadline",
+      "source": "Deadline",
+      "ko": "데드라인",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.juggernaut",
+      "source": "Juggernaut",
+      "ko": "저거너트",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.collection_time",
+      "source": "Collection Time",
+      "ko": "컬렉션 타임",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.tiny_racers",
+      "source": "Tiny Racers",
+      "ko": "미니 레이서",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.power_mad",
+      "source": "Power Mad",
+      "ko": "파워 매드",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.motor_wars",
+      "source": "Motor Wars",
+      "ko": "모터워즈",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.trap_door",
+      "source": "Trap Door",
+      "ko": "트랩 도어",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.sumo_remix",
+      "source": "Sumo (Remix)",
+      "ko": "스모(리믹스)",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.judgement_day",
+      "source": "Judgement Day",
+      "ko": "최후의 날",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.assault_on_cayo_perico",
+      "source": "Assault on Cayo Perico",
+      "ko": "카요 페리코 기습",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.assault_on_att_16",
+      "source": "Assault on ATT-16",
+      "ko": "ATT-16 공습",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.motor_wars_cayo_perico",
+      "source": "Motor Wars (Cayo Perico)",
+      "ko": "모터워즈(카요 페리코)",
+      "category": "adversary",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.come_out_to_play",
+      "source": "Come Out to Play",
+      "ko": "Come Out to Play",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.siege_mentality",
+      "source": "Siege Mentality",
+      "ko": "Siege Mentality",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.hasta_la_vista",
+      "source": "Hasta la Vista",
+      "ko": "Hasta la Vista",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.cross_the_line",
+      "source": "Cross the Line",
+      "ko": "Cross the Line",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.hunting_pack",
+      "source": "Hunting Pack",
+      "ko": "Hunting Pack",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.keep_the_pace",
+      "source": "Keep the Pace",
+      "ko": "Keep the Pace",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.relay",
+      "source": "Relay",
+      "ko": "Relay",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.offense_defense",
+      "source": "Offense Defense",
+      "ko": "Offense Defense",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.slasher",
+      "source": "Slasher",
+      "ko": "Slasher",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.running_back",
+      "source": "Running Back",
+      "ko": "Running Back",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.extraction",
+      "source": "Extraction",
+      "ko": "Extraction",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.beast_vs_slasher",
+      "source": "Beast vs. Slasher",
+      "ko": "Beast vs. Slasher",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.drop_zone",
+      "source": "Drop Zone",
+      "ko": "Drop Zone",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.till_death_do_us_part",
+      "source": "Till Death Do Us Part",
+      "ko": "Till Death Do Us Part",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.rhino_hunt",
+      "source": "Rhino Hunt",
+      "ko": "Rhino Hunt",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.trading_places",
+      "source": "Trading Places",
+      "ko": "Trading Places",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.slipstream",
+      "source": "Slipstream",
+      "ko": "Slipstream",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.lost_vs_damned",
+      "source": "Lost Vs Damned",
+      "ko": "Lost Vs Damned",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.kill_quota",
+      "source": "Kill Quota",
+      "ko": "Kill Quota",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.turf_wars",
+      "source": "Turf Wars",
+      "ko": "Turf Wars",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.vehicle_vendetta",
+      "source": "Vehicle Vendetta",
+      "ko": "Vehicle Vendetta",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.resurrection",
+      "source": "Resurrection",
+      "ko": "Resurrection",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.land_grab",
+      "source": "Land Grab",
+      "ko": "Land Grab",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.dawn_raid",
+      "source": "Dawn Raid",
+      "ko": "Dawn Raid",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.overtime_rumble",
+      "source": "Overtime Rumble",
+      "ko": "Overtime Rumble",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.overtime_shootout",
+      "source": "Overtime Shootout",
+      "ko": "Overtime Shootout",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.bombushka_run",
+      "source": "Bombushka Run",
+      "ko": "Bombushka Run",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.stockpile",
+      "source": "Stockpile",
+      "ko": "Stockpile",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.condemned",
+      "source": "Condemned",
+      "ko": "Condemned",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.dogfight",
+      "source": "Dogfight",
+      "ko": "Dogfight",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.occupy",
+      "source": "Occupy",
+      "ko": "Occupy",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.slashers",
+      "source": "Slashers",
+      "ko": "Slashers",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.air_quota",
+      "source": "Air Quota",
+      "ko": "Air Quota",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.hardest_target",
+      "source": "Hardest Target",
+      "ko": "Hardest Target",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.the_vespucci_job",
+      "source": "The Vespucci Job",
+      "ko": "The Vespucci Job",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.hunting_pack_remix",
+      "source": "Hunting Pack (Remix)",
+      "ko": "Hunting Pack (Remix)",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.trading_places_remix",
+      "source": "Trading Places (Remix)",
+      "ko": "Trading Places (Remix)",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.running_back_remix",
+      "source": "Running Back (Remix)",
+      "ko": "Running Back (Remix)",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.carnage",
+      "source": "Carnage",
+      "ko": "Carnage",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.flag_war",
+      "source": "Flag War",
+      "ko": "Flag War",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.games_masters",
+      "source": "Games Masters",
+      "ko": "Games Masters",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.here_come_the_monsters",
+      "source": "Here Come the Monsters",
+      "ko": "Here Come the Monsters",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.hot_bomb",
+      "source": "Hot Bomb",
+      "ko": "Hot Bomb",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.wreck_it",
+      "source": "Wreck It",
+      "ko": "Wreck It",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.tag_team",
+      "source": "Tag Team",
+      "ko": "Tag Team",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.buzzer_beater",
+      "source": "Buzzer Beater",
+      "ko": "Buzzer Beater",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.bomb_ball",
+      "source": "Bomb Ball",
+      "ko": "Bomb Ball",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.double_down",
+      "source": "Double Down",
+      "ko": "Double Down",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.the_vespucci_job_remix",
+      "source": "The Vespucci Job (Remix)",
+      "ko": "The Vespucci Job (Remix)",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.hunting_pack_get_lamar",
+      "source": "Hunting Pack (Get Lamar)",
+      "ko": "Hunting Pack (Get Lamar)",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "adversary.mansion_raid",
+      "source": "Mansion Raid",
+      "ko": "Mansion Raid",
+      "category": "adversary",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.premium_deluxe_motorsport_showroom",
+      "source": "Premium Deluxe Motorsport Showroom",
+      "ko": "프리미엄 디럭스 모터스포츠 전시장",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.luxury_autos_showroom",
+      "source": "Luxury Autos Showroom",
+      "ko": "럭셔리 오토 전시장",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.test_track",
+      "source": "Test Track",
+      "ko": "시승 트랙",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.test_ride",
+      "source": "Test Ride",
+      "ko": "시승 차량",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.premium_test_ride",
+      "source": "Premium Test Ride",
+      "ko": "프리미엄 시승 차량",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.hsw_premium_test_ride",
+      "source": "HSW Premium Test Ride",
+      "ko": "HSW 프리미엄 시승 차량",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.prize_ride",
+      "source": "Prize Ride",
+      "ko": "경품 이동 수단",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.lucky_wheel",
+      "source": "Lucky Wheel",
+      "ko": "럭키 휠",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.podium_vehicle",
+      "source": "Podium Vehicle",
+      "ko": "포디움 이동 수단",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.featured_series",
+      "source": "Featured Series",
+      "ko": "특선 시리즈",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.hao_s_special_works",
+      "source": "Hao's Special Works",
+      "ko": "하오의 스페셜 웍스",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.hsw_upgrade",
+      "source": "HSW Upgrade",
+      "ko": "HSW 업그레이드",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.hsw_conversion",
+      "source": "HSW Conversion",
+      "ko": "HSW 컨버전",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.drift_tuning_upgrade",
+      "source": "Drift Tuning Upgrade",
+      "ko": "드리프트 튜닝 업그레이드",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.trade_price",
+      "source": "Trade Price",
+      "ko": "거래 가격",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.career_progress",
+      "source": "Career Progress",
+      "ko": "경력 진행",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.gta_member",
+      "source": "GTA+ Member",
+      "ko": "GTA+ 회원",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.bonus",
+      "source": "Bonus",
+      "ko": "보너스",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.rewards",
+      "source": "Rewards",
+      "ko": "보상",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.discount",
+      "source": "Discount",
+      "ko": "할인",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.free",
+      "source": "Free",
+      "ko": "무료",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.limited_time",
+      "source": "Limited-Time",
+      "ko": "기간 한정",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.this_week",
+      "source": "This Week",
+      "ko": "이번 주",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "weekly.login_bonus",
+      "source": "Login Bonus",
+      "ko": "로그인 보너스",
+      "category": "weekly",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.super",
+      "source": "Super",
+      "ko": "슈퍼카",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.sports",
+      "source": "Sports",
+      "ko": "스포츠카",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.sports_classic",
+      "source": "Sports Classic",
+      "ko": "스포츠 클래식",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.muscle",
+      "source": "Muscle",
+      "ko": "머슬카",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.sedan",
+      "source": "Sedan",
+      "ko": "세단",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.coupe",
+      "source": "Coupe",
+      "ko": "쿠페",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.suv",
+      "source": "SUV",
+      "ko": "SUV",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.compact",
+      "source": "Compact",
+      "ko": "소형차",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.off_road",
+      "source": "Off-Road",
+      "ko": "오프로드",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.motorcycle",
+      "source": "Motorcycle",
+      "ko": "오토바이",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.bicycle",
+      "source": "Bicycle",
+      "ko": "자전거",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.plane",
+      "source": "Plane",
+      "ko": "비행기",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.helicopter",
+      "source": "Helicopter",
+      "ko": "헬리콥터",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.boat",
+      "source": "Boat",
+      "ko": "보트",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.military",
+      "source": "Military",
+      "ko": "군용",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.open_wheel",
+      "source": "Open Wheel",
+      "ko": "오픈 휠",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.van",
+      "source": "Van",
+      "ko": "밴",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "vehicle_class.law_enforcement",
+      "source": "Law Enforcement",
+      "ko": "법 집행",
+      "category": "vehicle_class",
+      "policy": "preferred",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.knoway_out",
+      "source": "KnoWay Out",
+      "ko": "KnoWay Out",
+      "category": "activity",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.the_data_breaches",
+      "source": "The Data Breaches",
+      "ko": "The Data Breaches",
+      "category": "activity",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.the_bogdan_problem",
+      "source": "The Bogdan Problem",
+      "ko": "The Bogdan Problem",
+      "category": "activity",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.the_doomsday_scenario",
+      "source": "The Doomsday Scenario",
+      "ko": "The Doomsday Scenario",
+      "category": "activity",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.the_data_leaks",
+      "source": "The Data Leaks",
+      "ko": "The Data Leaks",
+      "category": "activity",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.fooligan_jobs",
+      "source": "Fooligan Jobs",
+      "ko": "Fooligan Jobs",
+      "category": "activity",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.treasure_chest",
+      "source": "Treasure Chest",
+      "ko": "Treasure Chest",
+      "category": "activity",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "activity.hidden_cache",
+      "source": "Hidden Cache",
+      "ko": "Hidden Cache",
+      "category": "activity",
+      "policy": "preserve_until_verified",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "context.weapon_livery",
+      "source": "Weapon Livery",
+      "ko": "",
+      "category": "context",
+      "policy": "contextual",
+      "aliases": [],
+      "protectOutput": false,
+      "caseSensitive": false
+    },
+    {
+      "id": "context.personal_quarters",
+      "source": "Personal Quarters",
+      "ko": "",
+      "category": "context",
+      "policy": "contextual",
+      "aliases": [],
+      "protectOutput": false,
+      "caseSensitive": false
+    },
+    {
+      "id": "context.storage",
+      "source": "Storage",
+      "ko": "",
+      "category": "context",
+      "policy": "contextual",
+      "aliases": [],
+      "protectOutput": false,
+      "caseSensitive": false
+    },
+    {
+      "id": "context.stock",
+      "source": "Stock",
+      "ko": "",
+      "category": "context",
+      "policy": "contextual",
+      "aliases": [],
+      "protectOutput": false,
+      "caseSensitive": false
+    },
+    {
+      "id": "context.setup",
+      "source": "Setup",
+      "ko": "",
+      "category": "context",
+      "policy": "contextual",
+      "aliases": [],
+      "protectOutput": false,
+      "caseSensitive": false
+    },
+    {
+      "id": "context.prep",
+      "source": "Prep",
+      "ko": "",
+      "category": "context",
+      "policy": "contextual",
+      "aliases": [],
+      "protectOutput": false,
+      "caseSensitive": false
+    },
+    {
+      "id": "context.raid",
+      "source": "Raid",
+      "ko": "",
+      "category": "context",
+      "policy": "contextual",
+      "aliases": [],
+      "protectOutput": false,
+      "caseSensitive": false
+    },
+    {
+      "id": "context.robbery",
+      "source": "Robbery",
+      "ko": "",
+      "category": "context",
+      "policy": "contextual",
+      "aliases": [],
+      "protectOutput": false,
+      "caseSensitive": false
+    },
+    {
+      "id": "context.available_through",
+      "source": "Available Through",
+      "ko": "",
+      "category": "context",
+      "policy": "contextual",
+      "aliases": [],
+      "protectOutput": false,
+      "caseSensitive": false
+    },
+    {
+      "id": "context.utility",
+      "source": "Utility",
+      "ko": "",
+      "category": "context",
+      "policy": "contextual",
+      "aliases": [],
+      "protectOutput": false,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.gta",
+      "source": "GTA",
+      "ko": "GTA",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.gta_online",
+      "source": "GTA Online",
+      "ko": "GTA Online",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.gta_plus",
+      "source": "GTA+",
+      "ko": "GTA+",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.gta_cash",
+      "source": "GTA$",
+      "ko": "GTA$",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.rp",
+      "source": "RP",
+      "ko": "RP",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.hsw",
+      "source": "HSW",
+      "ko": "HSW",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.ls",
+      "source": "LS",
+      "ko": "LS",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.lsia",
+      "source": "LSIA",
+      "ko": "LSIA",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.ceo",
+      "source": "CEO",
+      "ko": "CEO",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.vip",
+      "source": "VIP",
+      "ko": "VIP",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.mc",
+      "source": "MC",
+      "ko": "MC",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.fib",
+      "source": "FIB",
+      "ko": "FIB",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.iaa",
+      "source": "IAA",
+      "ko": "IAA",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.lspd",
+      "source": "LSPD",
+      "ko": "LSPD",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.noose",
+      "source": "NOOSE",
+      "ko": "NOOSE",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.mk_ii",
+      "source": "Mk II",
+      "ko": "Mk II",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.ifruit",
+      "source": "iFruit",
+      "ko": "iFruit",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.rockstar_games",
+      "source": "Rockstar Games",
+      "ko": "Rockstar Games",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.playstation",
+      "source": "PlayStation",
+      "ko": "PlayStation",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.xbox",
+      "source": "Xbox",
+      "ko": "Xbox",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    },
+    {
+      "id": "token.pc",
+      "source": "PC",
+      "ko": "PC",
+      "category": "token",
+      "policy": "preserve",
+      "aliases": [],
+      "protectOutput": true,
+      "caseSensitive": false
+    }
+  ]
+}

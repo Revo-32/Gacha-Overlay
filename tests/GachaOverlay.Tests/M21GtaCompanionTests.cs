@@ -472,8 +472,8 @@ public sealed class M21GtaCompanionTests
         Assert.Equal(13, GtaEventVocabulary.HeadingFamilyCount);
         Assert.Equal(16, GtaEventVocabulary.ChallengeActions.Count);
         Assert.Equal(15, GtaEventVocabulary.RewardModifierTerms.Count);
-        Assert.Equal(22, GtaEventVocabulary.Glossary.Count);
-        Assert.Equal(26, GtaEventVocabulary.KnownActivityAliasCount);
+        Assert.InRange(GtaEventVocabulary.Glossary.Count, 449, 512);
+        Assert.Equal(GtaEventVocabulary.Glossary.Sum(term => 1 + term.EnglishAliases.Count), GtaEventVocabulary.KnownActivityAliasCount);
 
         var unknown = new GtaUnknownVocabularyReport();
         foreach (var index in Enumerable.Range(0, 100)) unknown.Observe("entity", $"Future {index}");

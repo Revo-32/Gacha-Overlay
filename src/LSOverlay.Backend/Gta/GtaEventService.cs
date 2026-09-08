@@ -4,6 +4,7 @@ using GachaOverlay.Core.Gta;
 using LSOverlay.Protocol;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using LSOverlay.Backend.Gta.Localization;
 
 namespace LSOverlay.Backend.Gta;
 
@@ -41,6 +42,7 @@ internal sealed class GtaEventService
     private readonly GtaEventParser _parser;
     private readonly GtaEventResolver _resolver;
     private readonly GtaKoreanFormatter _formatter;
+    private readonly GtaLocalizationService? _localization;
     private readonly GtaUnknownVocabularyReport _unknown;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<GtaEventService> _logger;
@@ -70,7 +72,8 @@ internal sealed class GtaEventService
         GtaKoreanFormatter formatter,
         GtaUnknownVocabularyReport unknown,
         TimeProvider timeProvider,
-        ILogger<GtaEventService> logger)
+        ILogger<GtaEventService> logger,
+        GtaLocalizationService? localization = null)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _source = source ?? throw new ArgumentNullException(nameof(source));
@@ -82,6 +85,9 @@ internal sealed class GtaEventService
         _unknown = unknown ?? throw new ArgumentNullException(nameof(unknown));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _localization = localization;
+        if (_localization is not null)
+            _localization.Changed += () => RebuildSnapshot(_timeProvider.GetUtcNow(), force: false);
 
         var now = _timeProvider.GetUtcNow();
         var promoted = _resolver.Restore(_store.Load(), now);
@@ -307,6 +313,9 @@ internal sealed class GtaEventService
             }
         }
 
+        // Submission is bounded and non-blocking; source authorization is independent
+        // of classification and nested forwards never inherit the outer identity.
+        if (_localization is not null) _ = _localization.Submit(document);
         return (classification.Kind, changed);
     }
 
@@ -362,13 +371,13 @@ internal sealed class GtaEventService
                 sourceWeek.WeekKey,
                 sourceWeek.EffectiveFrom,
                 sourceWeek.EffectiveTo,
-                Bound(sourceWeek.Theme is null ? null : _formatter.TranslateKnownTerms(sourceWeek.Theme), 256),
+                Bound(sourceWeek.Theme is null ? null : Localized(sourceWeek.Theme, _formatter.TranslateKnownTerms(sourceWeek.Theme)), 256),
                 sourceWeek.WeeklyChallenge is null ? null : new GtaCompanionChallenge(
                     sourceWeek.WeeklyChallenge.ChallengeKey,
-                    Bound(_formatter.FormatChallenge(sourceWeek.WeeklyChallenge), 512)!,
-                    Bound(_formatter.FormatReward(sourceWeek.WeeklyChallenge), 256),
+                    Bound(Localized(sourceWeek.WeeklyChallenge.OriginalText, _formatter.FormatChallenge(sourceWeek.WeeklyChallenge)), 512)!,
+                    Bound(_localization?.Find(sourceWeek.WeeklyChallenge.Reward) ?? _formatter.FormatReward(sourceWeek.WeeklyChallenge), 256),
                     sourceWeek.WeeklyChallenge.Requirements.Select(requirement =>
-                        Bound(_formatter.TranslateKnownTerms(requirement), 256)!).Take(8).ToArray()),
+                        Bound(Localized(requirement, _formatter.TranslateKnownTerms(requirement)), 256)!).Take(8).ToArray()),
                 bonuses,
                 discounts,
                 free,
@@ -384,20 +393,20 @@ internal sealed class GtaEventService
                 .Take(GtaCompanionProtocolPolicy.MaximumUpcomingWeeks)
                 .Select(item => new GtaCompanionCampaignWeek(
                     item.WeekKey,
-                    Bound(_formatter.FormatCampaignText(item.Label), 256)!,
+                    Bound(Localized(item.Label, _formatter.FormatCampaignText(item.Label)), 256)!,
                     item.EffectiveFrom,
                     item.EffectiveTo))
                 .ToArray();
             truncated |= sourceCampaign.PlannedWeeks.Count > upcoming.Length;
             campaign = new GtaCompanionCampaign(
                 sourceCampaign.CampaignKey,
-                Bound(_formatter.FormatCampaignText(sourceCampaign.Title), 256)!,
+                Bound(Localized(sourceCampaign.Title, _formatter.FormatCampaignText(sourceCampaign.Title)), 256)!,
                 sourceCampaign.StartAt,
                 sourceCampaign.EndAt,
                 sourceCampaign.Goals.Take(GtaCompanionProtocolPolicy.MaximumCampaignEntries)
-                    .Select(goal => Bound(_formatter.FormatCampaignText(goal), 256)!).ToArray(),
+                    .Select(goal => Bound(Localized(goal, _formatter.FormatCampaignText(goal)), 256)!).ToArray(),
                 sourceCampaign.Rewards.Take(GtaCompanionProtocolPolicy.MaximumCampaignEntries)
-                    .Select(reward => Bound(_formatter.FormatCampaignText(reward), 256)!).ToArray(),
+                    .Select(reward => Bound(Localized(reward, _formatter.FormatCampaignText(reward)), 256)!).ToArray(),
                 upcoming);
             truncated |= sourceCampaign.Goals.Count > GtaCompanionProtocolPolicy.MaximumCampaignEntries ||
                 sourceCampaign.Rewards.Count > GtaCompanionProtocolPolicy.MaximumCampaignEntries;
@@ -435,7 +444,7 @@ internal sealed class GtaEventService
                 GtaEventItemKind.RotatingContent => GtaCompanionItemKind.RotatingContent,
                 _ => GtaCompanionItemKind.Note,
             },
-            Bound(_formatter.FormatItem(item), 512)!,
+            Bound(Localized(item.OriginalLabel, _formatter.FormatItem(item)), 512)!,
             Bound(item.OriginalLabel, 512)!,
             item.Multiplier,
             item.DiscountPercent,
@@ -451,6 +460,8 @@ internal sealed class GtaEventService
         foreach (var item in retained.TakeLast(MaximumCandidates - 1)) _candidates.Enqueue(item);
         _candidates.Enqueue(candidate);
     }
+
+    private string Localized(string source, string fallback) => _localization?.Find(source) ?? fallback;
 
     private void LogHydrationFailure(GtaEventSourceStatus status)
     {
