@@ -2,7 +2,9 @@
 
 ![LS Overlay](assets/branding/LS_Overlay_logo.png)
 
-**LS Overlay 2.4.0**은 GTA Online을 플레이하면서 Discord 채팅과 판매 순서, 일일·주간 정보, 주요 사업장 타이머를 함께 확인할 수 있는 Windows HUD 도구입니다.
+**LS Overlay 2.4.1**은 GTA Online을 플레이하면서 Discord 채팅과 판매 순서, 일일·주간 정보, 주요 사업장 타이머를 함께 확인할 수 있는 Windows HUD 도구입니다.
+
+2.4.1은 주간 보너스·할인·차량 등 누락된 항목과 금주의 도전 선택을 수정하고, 안전한 주간 필드의 한국어 번역 및 한글 Snapshot 전송 크기를 개선한 서버 측 핫픽스입니다. UI와 Remote Protocol 스키마는 유지됩니다.
 
 LS Overlay는 Rockstar Games, Take-Two Interactive, Discord, Google과 제휴하거나 이들의 승인을 받은 제품이 아닌 독립적인 비공식 도구입니다.
 
@@ -38,7 +40,7 @@ Discord Desktop 앱은 필수가 아닙니다. 독점 전체 화면에서 HUD가
 
 ## 다운로드
 
-정식 배포 후 [GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.4.0-win-x64.zip**을 받으세요. GitHub가 자동 생성하는 **Source code** 파일은 실행용 패키지가 아닙니다.
+정식 배포 후 [GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.4.1-win-x64.zip**을 받으세요. GitHub가 자동 생성하는 **Source code** 파일은 실행용 패키지가 아닙니다.
 
 ZIP을 원하는 새 폴더에 모두 압축 해제하고 **LSOverlay.exe**를 실행합니다. 별도 설치 프로그램이나 .NET 설치는 필요하지 않습니다. 자동 업데이트와 실행 파일 코드 서명은 제공하지 않으므로, Windows 경고가 나타나면 배포 페이지와 SHA-256을 먼저 확인하고 보안 기능을 끄지 마세요.
 
@@ -55,9 +57,11 @@ ZIP을 원하는 새 폴더에 모두 압축 해제하고 **LSOverlay.exe**를 �
 
 - [LS Overlay 2.4 빠른 시작 원문](docs/2.4/quick-start/LS-Overlay-2.4-Quick-Start-ko.md)
 - [LS Overlay 2.4 상세 사용자 설명서 원문](docs/2.4/user-guide/LS-Overlay-2.4-User-Guide-ko.md)
-- [LS Overlay 2.4.0 릴리즈 노트](docs/releases/LS-Overlay-2.4.0-release-notes.md)
+- [LS Overlay 2.4.1 릴리즈 노트](docs/releases/LS-Overlay-2.4.1-release-notes.md)
 
 배포 ZIP에는 **LS-Overlay-2.4-Quick-Start-ko.pdf**와 **LS-Overlay-2.4-User-Guide-ko.pdf**가 함께 들어 있습니다. 정식 배포 후 릴리즈 첨부 파일에서도 각각 받을 수 있습니다.
+
+두 PDF는 조작이 동일한 승인된 2.4 계열 문서를 그대로 재사용합니다. 문서 속 2.4.0 다운로드·체크섬 예시 대신 이번 릴리즈의 2.4.1 파일명을 사용하세요.
 
 ## F9와 F10
 
