@@ -9,7 +9,7 @@ internal static class PublicServicePages
     internal const string PrivacyUrl = "https://overlay.revo32.cloud/privacy";
     internal const string TermsUrl = "https://overlay.revo32.cloud/terms";
     internal const string StatusOrigin = "https://status.revo32.cloud";
-    internal const string UpdatedDate = "2026-09-03";
+    internal const string UpdatedDate = "2026-09-08";
 
     // Operator-confirmed public contact. Both documents derive their visible
     // address and mailto link from this ONE email source; it is not a secret.

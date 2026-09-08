@@ -22,6 +22,23 @@ namespace GachaOverlay.Tests.Backend;
 
 public sealed class M101PublicServiceTests
 {
+    [Fact]
+    public void PublicPagesExplainScopedGeminiProcessingAndFallback()
+    {
+        foreach (var page in new[] { "privacy", "terms" })
+        {
+            var html = PublicServicePages.Render("공개 문서", page);
+            Assert.Contains("Google Gemini", html);
+            Assert.Contains("공개 GTA 온라인 이벤트", html);
+            Assert.Contains("일반 Discord 채팅·판매 메시지·사용자 정보·인증정보는 AI 번역 서비스로 전송하지 않습니다", html);
+            Assert.Contains("안전한 기존 정보 또는 원문", html);
+        }
+        var privacy = PublicServicePages.Render("개인정보처리방침", "privacy");
+        Assert.Contains("지정 채널과 작성자가 모두 확인된", privacy);
+        Assert.Contains("Translation Memory", privacy);
+        Assert.Contains("최대 64개 항목·4MiB", privacy);
+    }
+
     private static readonly string Root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.."));
     private static readonly PublicReadiness Ready = new(true, false, BackendConnectionHealthState.Ready, true, true, true, true);
 

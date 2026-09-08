@@ -2,11 +2,17 @@
 
 ![LS Overlay](assets/branding/LS_Overlay_logo.png)
 
-**LS Overlay 2.3.0**은 GTA Online을 플레이하면서 Discord 채팅과 판매 순서, 일일·주간 정보, 주요 사업장 타이머를 함께 확인할 수 있는 Windows HUD 도구입니다.
+**LS Overlay 2.4.0**은 GTA Online을 플레이하면서 Discord 채팅과 판매 순서, 일일·주간 정보, 주요 사업장 타이머를 함께 확인할 수 있는 Windows HUD 도구입니다.
 
-LS Overlay는 Rockstar Games, Take-Two Interactive, Discord와 제휴하거나 이들의 승인을 받은 제품이 아닌 독립적인 비공식 도구입니다.
+LS Overlay는 Rockstar Games, Take-Two Interactive, Discord, Google과 제휴하거나 이들의 승인을 받은 제품이 아닌 독립적인 비공식 도구입니다.
 
-## 2.3 주요 기능
+## 2.4 주요 기능
+
+- **공개 GTA 이벤트 AI 번역**: 승인 용어집과 사실값 검증으로 자연스러운 한국어를 제공합니다. 검증된 번역을 서버에 저장·재사용하며 실패 시 안전한 기존 정보나 원문을 표시합니다.
+
+Google Gemini를 이용한 AI 번역은 지정 채널·작성자가 모두 확인된 공개 GTA 온라인 이벤트 소스에만 적용됩니다. 일반 Discord 채팅·판매 메시지·사용자 정보·인증정보는 전송하지 않습니다.
+
+### 유지되는 주요 기능
 
 - **알림센터**: 설정 버튼 왼쪽의 종 버튼에서 멘션·답장·판매 차례·GTA 감지 알림 확인. 알림 목록은 12pt이며 읽음 처리는 직접 선택합니다.
 - **멘션 배경 선택**: 설정 → 채팅의 ‘나를 멘션한 메시지 배경 강조’로 배경만 켜고 끌 수 있습니다.
@@ -32,7 +38,7 @@ Discord Desktop 앱은 필수가 아닙니다. 독점 전체 화면에서 HUD가
 
 ## 다운로드
 
-정식 배포 후 [GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.3.0-win-x64.zip**을 받으세요. GitHub가 자동 생성하는 **Source code** 파일은 실행용 패키지가 아닙니다.
+정식 배포 후 [GitHub Releases](https://github.com/Revo-32/Gacha-Overlay/releases)에서 **LS-Overlay-2.4.0-win-x64.zip**을 받으세요. GitHub가 자동 생성하는 **Source code** 파일은 실행용 패키지가 아닙니다.
 
 ZIP을 원하는 새 폴더에 모두 압축 해제하고 **LSOverlay.exe**를 실행합니다. 별도 설치 프로그램이나 .NET 설치는 필요하지 않습니다. 자동 업데이트와 실행 파일 코드 서명은 제공하지 않으므로, Windows 경고가 나타나면 배포 페이지와 SHA-256을 먼저 확인하고 보안 기능을 끄지 마세요.
 
@@ -47,11 +53,11 @@ ZIP을 원하는 새 폴더에 모두 압축 해제하고 **LSOverlay.exe**를 �
 
 기존 버전 사용자는 `%LOCALAPPDATA%\GachaOverlay`를 삭제하지 마세요. 같은 Windows 계정에서는 호환되는 설정과 로그인 정보를 이어서 사용합니다.
 
-- [LS Overlay 2.3 빠른 시작 원문](docs/2.3/quick-start/LS-Overlay-2.3-Quick-Start-ko.md)
-- [LS Overlay 2.3 상세 사용자 설명서 원문](docs/2.3/user-guide/LS-Overlay-2.3-User-Guide-ko.md)
-- [LS Overlay 2.3.0 릴리즈 노트](docs/releases/LS-Overlay-2.3.0-release-notes.md)
+- [LS Overlay 2.4 빠른 시작 원문](docs/2.4/quick-start/LS-Overlay-2.4-Quick-Start-ko.md)
+- [LS Overlay 2.4 상세 사용자 설명서 원문](docs/2.4/user-guide/LS-Overlay-2.4-User-Guide-ko.md)
+- [LS Overlay 2.4.0 릴리즈 노트](docs/releases/LS-Overlay-2.4.0-release-notes.md)
 
-배포 ZIP에는 **LS-Overlay-2.3-Quick-Start-ko.pdf**와 **LS-Overlay-2.3-User-Guide-ko.pdf**가 함께 들어 있습니다. 정식 배포 후 릴리즈 첨부 파일에서도 각각 받을 수 있습니다.
+배포 ZIP에는 **LS-Overlay-2.4-Quick-Start-ko.pdf**와 **LS-Overlay-2.4-User-Guide-ko.pdf**가 함께 들어 있습니다. 정식 배포 후 릴리즈 첨부 파일에서도 각각 받을 수 있습니다.
 
 ## F9와 F10
 

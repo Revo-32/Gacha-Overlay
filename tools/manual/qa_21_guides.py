@@ -15,7 +15,7 @@ from build_21_guides import PAGEBREAK
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--poppler-bin", type=Path, required=True)
-    parser.add_argument("--edition", choices=("2.1", "2.2", "2.3"), default="2.1")
+    parser.add_argument("--edition", choices=("2.1", "2.2", "2.3", "2.4"), default="2.1")
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[2]
     output = repo / f"tmp/pdfs/{args.edition}/qa"
