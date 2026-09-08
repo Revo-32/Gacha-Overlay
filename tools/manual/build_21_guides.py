@@ -360,7 +360,7 @@ def build_one(repo: Path, spec: GuideSpec, output_dir: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--kind", choices=("quick-start", "user-guide", "all"), default="all")
-    parser.add_argument("--edition", choices=("2.1", "2.2"), default="2.1")
+    parser.add_argument("--edition", choices=("2.1", "2.2", "2.3"), default="2.1")
     parser.add_argument("--output-dir", type=Path, default=Path("output/pdf/2.1"))
     args = parser.parse_args()
     edition = args.edition

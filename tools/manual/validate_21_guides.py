@@ -82,7 +82,7 @@ def validate_pdf(path: Path, expected_pages: range, edition: str = "2.1") -> lis
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2])
-    parser.add_argument("--edition", choices=("2.1", "2.2"), default="2.1")
+    parser.add_argument("--edition", choices=("2.1", "2.2", "2.3"), default="2.1")
     parser.add_argument("--pdf-dir", type=Path, default=Path("output/pdf/2.1"))
     parser.add_argument("--sources-only", action="store_true")
     args = parser.parse_args()

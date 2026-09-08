@@ -15,14 +15,15 @@ from build_21_guides import PAGEBREAK
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--poppler-bin", type=Path, required=True)
+    parser.add_argument("--edition", choices=("2.1", "2.2", "2.3"), default="2.1")
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[2]
-    output = repo / "tmp/pdfs/2.1/qa"
+    output = repo / f"tmp/pdfs/{args.edition}/qa"
     output.mkdir(parents=True, exist_ok=True)
     report = []
     for kind, name, pages in (("quick-start", "Quick-Start", 8), ("user-guide", "User-Guide", 30)):
-        pdf = repo / f"output/pdf/2.1/LS-Overlay-2.1-{name}-ko.pdf"
-        source = repo / f"docs/2.1/{kind}/LS-Overlay-2.1-{name}-ko.md"
+        pdf = repo / f"output/pdf/{args.edition}/LS-Overlay-{args.edition}-{name}-ko.pdf"
+        source = repo / f"docs/{args.edition}/{kind}/LS-Overlay-{args.edition}-{name}-ko.md"
         reader = PdfReader(pdf)
         assert len(reader.pages) == pages, (name, len(reader.pages))
         chunks = [chunk.strip() for chunk in source.read_text(encoding="utf-8").split(PAGEBREAK)]

@@ -18,6 +18,7 @@ captures/
 raw-captures/
 /output/pdf/2.1/
 /output/pdf/2.2/
+/output/pdf/2.3/
 gta-event-corpus-private/
 
 # Gacha Overlay local/runtime data must never enter the source repository.
