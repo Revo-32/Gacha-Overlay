@@ -98,6 +98,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
     private double _chatFontSizePoints;
     private bool _chatNicknameOutlineEnabled;
     private bool _chatMessageOutlineEnabled;
+    private bool _chatSelfMentionBackgroundEnabled;
     private double _chatNicknameOutlineThickness;
     private double _chatMessageOutlineThickness;
     private int _chatMaxLines;
@@ -239,6 +240,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _chatNicknameOutlineThickness = settings.ChatNicknameOutlineThickness;
         _chatMessageOutlineThickness = settings.ChatMessageOutlineThickness;
         _chatMaxLines = settings.ChatMaxLines;
+        _chatSelfMentionBackgroundEnabled = settings.ChatSelfMentionBackgroundEnabled;
         _chatLineHeightMultiplier = settings.ChatLineHeightMultiplier;
         _chatMessageSpacing = settings.ChatMessageSpacing;
         _selectedRoleIconPosition = settings.ChatRoleIconPosition;
@@ -1084,6 +1086,13 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         set => SetAndSave(ref _chatMessageOutlineEnabled, value, settings => settings with { ChatMessageOutlineEnabled = value });
     }
 
+    public bool ChatSelfMentionBackgroundEnabled
+    {
+        get => _chatSelfMentionBackgroundEnabled;
+        set => SetAndSave(ref _chatSelfMentionBackgroundEnabled, value,
+            settings => settings with { ChatSelfMentionBackgroundEnabled = value });
+    }
+
     public double ChatNicknameOutlineThickness
     {
         get => _chatNicknameOutlineThickness;
@@ -1879,6 +1888,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
         _chatNicknameOutlineThickness = settings.ChatNicknameOutlineThickness;
         _chatMessageOutlineThickness = settings.ChatMessageOutlineThickness;
         _chatLineHeightMultiplier = settings.ChatLineHeightMultiplier;
+        _chatSelfMentionBackgroundEnabled = settings.ChatSelfMentionBackgroundEnabled;
         _chatMessageSpacing = settings.ChatMessageSpacing;
         _selectedRoleIconPosition = settings.ChatRoleIconPosition;
         _chatReactionSize = settings.ChatReactionSize;
@@ -1909,6 +1919,7 @@ internal sealed class FoundationViewModel : INotifyPropertyChanged, IDisposable
             nameof(ChatFontSizePoints),
             nameof(ChatNicknameOutlineEnabled),
             nameof(ChatMessageOutlineEnabled),
+            nameof(ChatSelfMentionBackgroundEnabled),
             nameof(ChatNicknameOutlineThickness),
             nameof(ChatMessageOutlineThickness),
             nameof(ChatOutlineThickness),

@@ -54,31 +54,7 @@ public sealed class GtaEventVocabulary
         "5X", "6X",
     });
 
-    public static IReadOnlyList<GtaGlossaryEntry> Glossary { get; } = Array.AsReadOnly(new[]
-    {
-        Curated("special_cargo", "Special Cargo", "특수 화물", "Business", "Special Cargo Sales"),
-        Curated("air_freight_cargo", "Air Freight Cargo", "항공 화물", "Business", "Air Freight"),
-        Curated("bunker", "Bunker", "벙커", "Business", "Gunrunning"),
-        Curated("nightclub", "Nightclub", "나이트클럽", "Business"),
-        Curated("acid_lab", "Acid Lab", "산성 연구소", "Business"),
-        Curated("salvage_yard", "Salvage Yard", "폐차장", "Business", "Salvage Yard Robbery"),
-        Curated("gun_van", "Gun Van", "건 밴", "System"),
-        Curated("time_trial", "Time Trial", "타임 트라이얼", "Activity"),
-        Curated("hsw_time_trial", "HSW Time Trial", "HSW 타임 트라이얼", "Activity"),
-        Curated("rc_time_trial", "RC Time Trial", "RC 타임 트라이얼", "Activity"),
-        Curated("community_series", "Community Series", "커뮤니티 시리즈", "Activity"),
-        Curated("adversary_mode", "Adversary Mode", "대적 모드", "Activity"),
-        Curated("survival", "Survival", "서바이벌", "Activity"),
-        Curated("contact_mission", "Contact Mission", "연락책 임무", "Activity"),
-        Curated("special_vehicle_work", "Special Vehicle Work", "특수 차량 임무", "Activity"),
-        Curated("auto_shop_contract", "Auto Shop Contract", "튜닝 샵 계약", "Activity"),
-        Curated("security_contract", "Security Contract", "보안 계약", "Activity"),
-        Curated("payphone_hit", "Payphone Hit", "공중전화 암살", "Activity"),
-        Curated("casino_chips", "Casino Chips", "카지노 칩", "Reward"),
-        Curated("research_progress", "Research Progress", "연구 진행도", "Reward"),
-        Fallback("unknown_entity", "Unknown Entity", "Entity"),
-        Fallback("future_activity", "Future Activity", "Activity"),
-    });
+    public static IReadOnlyList<GtaGlossaryEntry> Glossary { get; } = GtaTranslationGlossary.Default.Entries;
 
     public static int HeadingFamilyCount => FamilyPatterns.Count;
 
@@ -149,16 +125,6 @@ public sealed class GtaEventVocabulary
         return true;
     }
 
-    private static GtaGlossaryEntry Curated(
-        string id,
-        string english,
-        string korean,
-        string category,
-        params string[] aliases) =>
-        new(id, english, aliases, korean, category, GtaTranslationSource.Curated);
-
-    private static GtaGlossaryEntry Fallback(string id, string english, string category) =>
-        new(id, english, Array.Empty<string>(), english, category, GtaTranslationSource.OriginalFallback);
 }
 
 public sealed record GtaUnknownVocabularyEntry(string Kind, string Value, int Count);

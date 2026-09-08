@@ -35,6 +35,14 @@
             </Border>
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
+                    <TextBlock Margin="8,0,0,6" FontSize="11" Text="{Binding ClientDetectionText}" ToolTip="{Binding ClientDetectionHint}">
+                        <TextBlock.Style><Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                            <Style.Triggers><DataTrigger Binding="{Binding ClientDetectionNeedsAttention}" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource StatusWarningBrush}"/>
+                            </DataTrigger></Style.Triggers>
+                        </Style></TextBlock.Style>
+                    </TextBlock>
                     <Border Margin="0,0,0,6" Padding="8" Background="{DynamicResource GtaCompanionCardSurfaceBrush}" CornerRadius="7"
                             Visibility="{Binding ShowDaily, Converter={StaticResource BoolVisibility}}">
                         <StackPanel>

@@ -70,6 +70,7 @@
   <data name="ColorThemeMonokaiDescription" xml:space="preserve"><value>고대비 · 비비드</value></data>
   <data name="SettingsNicknameOutline" xml:space="preserve"><value>닉네임 외곽선</value></data>
   <data name="SettingsMessageOutline" xml:space="preserve"><value>메시지 외곽선</value></data>
+  <data name="SettingsSelfMentionBackground" xml:space="preserve"><value>나를 멘션한 메시지 배경 강조</value></data>
   <data name="SettingsOutlineThickness" xml:space="preserve"><value>외곽선 두께</value></data>
   <data name="SettingsMaxLines" xml:space="preserve"><value>메시지 최대 줄 수</value></data>
   <data name="SettingsShowImages" xml:space="preserve"><value>이미지 미리보기 표시</value></data>

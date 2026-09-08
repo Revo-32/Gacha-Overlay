@@ -55,6 +55,7 @@ public partial class HudWindow : Window
         ChatSurface.Background = ColorThemeManager.CreateOpacityBrush(
             SemanticColorToken.SurfaceRaised,
             chatAlpha);
+        NotificationContent.PanelBackground = ColorThemeManager.CreateOpacityBrush(SemanticColorToken.SurfaceRaised, 255);
         ChatSurface.BorderBrush = ColorThemeManager.CreateOpacityBrush(
             SemanticColorToken.BorderSubtle,
             chatAlpha == 0 ? (byte)0 : (byte)Math.Max(24, chatAlpha / 3));

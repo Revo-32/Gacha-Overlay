@@ -35,6 +35,7 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ChatViewModel Chat { get; }
+    public NotificationCenterViewModel? Notifications { get; set; }
 
     public ILocalizationService Localization => _localization;
 
@@ -89,6 +90,7 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
     public void ApplySettings(AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        Notifications?.ApplySettings(settings);
         Session.ApplySettings(settings);
         Timers.ApplySettings(settings);
         if (_minimalHudMode == settings.MinimalHudMode)
@@ -111,6 +113,7 @@ internal sealed class HudShellViewModel : INotifyPropertyChanged
         {
             _isLocked = state.IsLocked;
             Chat.IsHudUnlocked = !state.IsLocked;
+            if (state.IsLocked) Notifications?.Close();
             OnPropertyChanged(nameof(IsUnlocked));
             OnPropertyChanged(nameof(IsFloatingEditStripVisible));
         }

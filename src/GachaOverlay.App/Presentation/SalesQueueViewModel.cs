@@ -401,10 +401,12 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
 
     private void RefreshDetailItems()
     {
+        var previousItems = DetailItems.ToDictionary(item => item.MessageId, StringComparer.Ordinal);
         DetailItems.Clear();
         for (var index = 0; index < _snapshot.ActiveItems.Count; index++)
         {
             var entry = _snapshot.ActiveItems[index];
+            previousItems.TryGetValue(entry.MessageId, out var previous);
             var isSelf = IsOwnActivePost(entry, index);
             _remoteEvidence.TryGetValue(entry.MessageId, out var evidence);
             var isPending = _pendingStatusActions.TryGetValue(
@@ -435,7 +437,8 @@ internal sealed class SalesQueueViewModel : INotifyPropertyChanged
                     _failedStatusActions.GetValueOrDefault(entry.MessageId)),
                 _localization["SalesStatusCompleted"],
                 status => ExecuteStatusActionAsync(entry.MessageId, status),
-                entry.CreatedAt, entry.DetailSource, index == 1 && isSelf));
+                entry.CreatedAt, entry.DetailSource, index == 1 && isSelf,
+                previous?.DetailSource == entry.DetailSource ? previous?.DetailTokens : null));
         }
 
         OwnCompletionItem = DetailItems.FirstOrDefault(item => item.IsSelf);
@@ -713,11 +716,12 @@ internal sealed class SalesQueueDetailItem : INotifyPropertyChanged
         string statusText,
         string completedLabel,
         Func<SalesStatus, Task> action,
-        DateTimeOffset? createdAt = null, string? detailSource = null, bool isNextSelf = false)
+        DateTimeOffset? createdAt = null, string? detailSource = null, bool isNextSelf = false,
+        IReadOnlyList<ChatTokenViewModel>? retainedDetailTokens = null)
     {
         CreatedAt = createdAt;
         DetailSource = detailSource;
-        DetailTokens = ChatPresentationSynchronizer
+        DetailTokens = retainedDetailTokens ?? ChatPresentationSynchronizer
             .TokenizeDiscordMarkup(detailSource ?? string.Empty)
             .Select(token => new ChatTokenViewModel(token))
             .ToArray();

@@ -159,6 +159,6 @@ public sealed class M10SalesNormalizationTests
         Assert.Equal("5대창 x3 벙커", Assert.Single(engine.Current.ActiveItems).DetailSource);
         engine.ApplySourceUpdate(SalesTestFactory.Message("100", guildId: Guild, content: "벙나"));
         Assert.Equal(SaleParseStatus.Parsed, Assert.Single(engine.Current.ActiveItems).ParseStatus);
-        Assert.Null(Assert.Single(engine.Current.ActiveItems).DetailSource);
+        Assert.Equal("벙나", Assert.Single(engine.Current.ActiveItems).DetailSource);
     }
 }

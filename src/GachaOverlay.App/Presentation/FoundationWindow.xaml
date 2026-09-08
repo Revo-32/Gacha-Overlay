@@ -145,6 +145,7 @@
                 <TextBlock Margin="0,7,0,0" FontFamily="{Binding SelectedChatFontPreviewFamily}" FontWeight="{Binding SelectedChatFontPreviewWeight}" Text="{Binding Localization[SettingsFontPreviewSample]}"/><TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding SelectedChatFontNotice}" TextWrapping="Wrap"/>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsChatFontSize]}"/><Slider Minimum="8" Maximum="32" TickFrequency="0.5" Tag="{Binding ChatFontSizePoints, Converter={StaticResource SliderValueText}, ConverterParameter=Points}" Value="{Binding ChatFontSizePoints, Mode=TwoWay}"/>
                 <UniformGrid Columns="2" Margin="0,14,0,0"><CheckBox IsChecked="{Binding ChatNicknameOutlineEnabled, Mode=TwoWay}" Content="{Binding Localization[SettingsNicknameOutline]}"/><CheckBox IsChecked="{Binding ChatMessageOutlineEnabled, Mode=TwoWay}" Content="{Binding Localization[SettingsMessageOutline]}"/></UniformGrid>
+                <CheckBox Margin="0,12,0,0" IsChecked="{Binding ChatSelfMentionBackgroundEnabled, Mode=TwoWay}" Content="{Binding Localization[SettingsSelfMentionBackground]}"/>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsNicknameOutlineThickness]}"/><Slider Minimum="0" Maximum="10" TickFrequency="0.25" IsSnapToTickEnabled="True" Tag="{Binding ChatNicknameOutlineThickness, Converter={StaticResource SliderValueText}, ConverterParameter=DipDecimal}" Value="{Binding ChatNicknameOutlineThickness, Mode=TwoWay}"/>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsMessageOutlineThickness]}"/><Slider Minimum="0" Maximum="10" TickFrequency="0.25" IsSnapToTickEnabled="True" Tag="{Binding ChatMessageOutlineThickness, Converter={StaticResource SliderValueText}, ConverterParameter=DipDecimal}" Value="{Binding ChatMessageOutlineThickness, Mode=TwoWay}"/>
                 <TextBlock Style="{StaticResource SettingLabel}" Text="{Binding Localization[SettingsChatLineHeight]}"/><Slider Minimum="1.0" Maximum="1.65" TickFrequency="0.05" IsSnapToTickEnabled="True" Tag="{Binding ChatLineHeightMultiplier, Converter={StaticResource SliderValueText}}" Value="{Binding ChatLineHeightMultiplier, Mode=TwoWay}"/>
@@ -349,7 +350,7 @@
                           ItemTemplate="{StaticResource OptionTemplate}"
                           SelectedValuePath="Minutes"
                           SelectedValue="{Binding BusinessTimerEarlyAlertMinutes, Mode=TwoWay}"/>
-                <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="GTA Online 상태가 명확할 때만 생산 시간이 누적되며, 연결 불명 상태에서는 자동으로 일시 정지합니다." TextWrapping="Wrap"/>
+                <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="내 PC에서 GTA가 실행 중일 때 생산 시간이 누적됩니다(스토리 모드 포함). Alt+Tab은 누적을 멈추지 않으며, GTA 종료 또는 실행 미확인 시 일시 정지합니다." TextWrapping="Wrap"/>
             </StackPanel>
         </DataTemplate>
 

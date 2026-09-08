@@ -52,6 +52,19 @@ internal sealed class GtaCompanionViewModel : INotifyPropertyChanged, IDisposabl
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public string ClientDetectionText { get; private set; } = "GTA 미감지";
+    public string ClientDetectionHint { get; private set; } = "내 PC의 GTA 실행 상태를 확인합니다.";
+    public bool ClientDetectionNeedsAttention { get; private set; }
+    public void ApplyClientState(GachaOverlay.Core.Hud.Game.GtaClientState state, bool active)
+    {
+        ClientDetectionText = state.ProcessRunning ? "GTA 감지됨" : "GTA 미감지";
+        ClientDetectionNeedsAttention = !state.ProcessRunning && active;
+        ClientDetectionHint = ClientDetectionNeedsAttention
+            ? "GTA 실행을 확인할 수 없어 생산 타이머를 일시 정지합니다."
+            : "GTA 실행 시간 기준이며 스토리 모드를 포함합니다. Alt+Tab은 누적을 멈추지 않습니다.";
+        foreach (var name in new[] { nameof(ClientDetectionText), nameof(ClientDetectionHint), nameof(ClientDetectionNeedsAttention) })
+            PropertyChanged?.Invoke(this, new(name));
+    }
 
     public ILocalizationService Localization { get; }
 

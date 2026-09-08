@@ -33,6 +33,7 @@ public sealed class DiscordMessagePipeline : IGuildNicknameObservationSink, IOve
     }
 
     public event Action<DiscordMessageState>? StateChanged;
+    public event Action<DiscordMessageMutation>? LiveMainMutationAccepted;
 
     public DiscordMessageState Current
     {
@@ -124,6 +125,7 @@ public sealed class DiscordMessagePipeline : IGuildNicknameObservationSink, IOve
         ArgumentNullException.ThrowIfNull(mutation);
 
         DiscordMessageState? state = null;
+        var acceptedMain = false;
         lock (_sync)
         {
             if (generation != _generation || _targets is null)
@@ -138,16 +140,16 @@ public sealed class DiscordMessagePipeline : IGuildNicknameObservationSink, IOve
                 return true;
             }
 
-            if (!ApplyToTarget(mutation, _mainStore, _salesStore, _targets))
-            {
-                return false;
-            }
-
-            state = CaptureState() with { LastMutation = mutation };
+            acceptedMain = mutation.ChannelId == _targets.MainChannelId;
+            if (ApplyToTarget(mutation, _mainStore, _salesStore, _targets))
+                state = CaptureState() with { LastMutation = mutation };
         }
 
-        StateChanged?.Invoke(state);
-        return true;
+        if (state is not null) StateChanged?.Invoke(state);
+        // Retention eviction is not deletion: accepted updates/deletes still reach
+        // bounded attention history, even when the source is outside Latest20.
+        if (acceptedMain) LiveMainMutationAccepted?.Invoke(mutation);
+        return state is not null;
     }
 
     public bool CompleteBootstrap(

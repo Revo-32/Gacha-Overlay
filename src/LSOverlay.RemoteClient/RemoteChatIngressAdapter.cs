@@ -219,6 +219,7 @@ public sealed class RemoteChatIngressAdapter : IDisposable
                 message.Reference.ChannelId?.ToString(),
                 message.Reference.MessageId?.ToString())
             {
+                ResolvedAuthorId = message.Reference.ResolvedMessage?.Author?.UserId.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ResolvedAuthorName = ResolveAuthorName(message.Reference.ResolvedMessage?.Author),
                 ResolvedContent = message.Reference.ResolvedMessage?.Content,
             },

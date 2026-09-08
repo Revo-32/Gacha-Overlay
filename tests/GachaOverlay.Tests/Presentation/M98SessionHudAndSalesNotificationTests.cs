@@ -469,6 +469,25 @@ public sealed class M98SessionHudAndSalesNotificationTests
     }
 
     [Fact]
+    public void AttentionUsesCanonicalSaleIdentityWithoutChangingSoundPolicy()
+    {
+        var fixture = Notification();
+        var events = new List<(string Id, bool Current)>();
+        fixture.Coordinator.TurnChanged += (id, current) => events.Add((id, current));
+        fixture.Coordinator.Observe(Presentation(SalesQueueContentMode.Normal), false);
+        var first = Presentation(SalesQueueContentMode.CurrentTurnSelf);
+        fixture.Coordinator.Observe(first, false);
+        fixture.Coordinator.Observe(first, false);
+        var second = first with { CurrentMessageId = "second-sale" };
+        fixture.Coordinator.Observe(second, false);
+        fixture.Coordinator.Observe(second, false);
+        fixture.Coordinator.Observe(first, true); // Reconnect/handoff is a silent baseline.
+        fixture.Coordinator.Observe(first, false);
+        Assert.Equal(new[] { ("current", true), ("second-sale", true) }, events);
+        Assert.Single(fixture.Sound.Played);
+    }
+
+    [Fact]
     public void AuthenticationRefresh_ReestablishesSilentStartupBaseline()
     {
         var fixture = Notification();

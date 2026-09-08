@@ -105,6 +105,7 @@
   <data name="ColorThemeMonokaiDescription" xml:space="preserve"><value>High contrast · Vivid</value></data>
   <data name="SettingsNicknameOutline" xml:space="preserve"><value>Nickname outline</value></data>
   <data name="SettingsMessageOutline" xml:space="preserve"><value>Message outline</value></data>
+  <data name="SettingsSelfMentionBackground" xml:space="preserve"><value>Highlight self-mention background</value></data>
   <data name="SettingsOutlineThickness" xml:space="preserve"><value>Outline thickness</value></data>
   <data name="SettingsMaxLines" xml:space="preserve"><value>Maximum message lines</value></data>
   <data name="SettingsShowImages" xml:space="preserve"><value>Show image previews</value></data>

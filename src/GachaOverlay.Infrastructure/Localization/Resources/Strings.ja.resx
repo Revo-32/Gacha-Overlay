@@ -70,6 +70,7 @@
   <data name="ColorThemeMonokaiDescription" xml:space="preserve"><value>高コントラスト · ビビッド</value></data>
   <data name="SettingsNicknameOutline" xml:space="preserve"><value>ニックネーム輪郭</value></data>
   <data name="SettingsMessageOutline" xml:space="preserve"><value>メッセージ輪郭</value></data>
+  <data name="SettingsSelfMentionBackground" xml:space="preserve"><value>自分へのメンションの背景を強調</value></data>
   <data name="SettingsOutlineThickness" xml:space="preserve"><value>輪郭の太さ</value></data>
   <data name="SettingsMaxLines" xml:space="preserve"><value>メッセージ最大行数</value></data>
   <data name="SettingsShowImages" xml:space="preserve"><value>画像プレビューを表示</value></data>

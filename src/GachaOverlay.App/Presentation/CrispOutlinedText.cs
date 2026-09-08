@@ -449,7 +449,7 @@ public sealed class CrispOutlinedText : System.Windows.Controls.Control
         var weight = style switch
         {
             TextSegmentStyle.SelfMention => FontWeights.Bold,
-            TextSegmentStyle.Mention => FontWeights.SemiBold,
+            TextSegmentStyle.Mention => FontWeight,
             _ => FontWeight,
         };
         return new UnifiedTextRunProperties(

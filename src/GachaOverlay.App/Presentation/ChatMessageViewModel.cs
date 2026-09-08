@@ -53,6 +53,7 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
     private bool _showImages;
     private bool _canEnlarge;
     private bool _showNicknameOutline;
+    public bool ShowSelfMentionBackground { get; private set; } = true;
     private bool _showMessageOutline;
     private double _nicknameOutlineThickness;
     private double _messageOutlineThickness;
@@ -449,8 +450,12 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    public ChatAttention Attention { get; private set; }
+
     public void Update(ChatMessagePresentation presentation)
     {
+        Attention = presentation.Attention;
+        OnPropertyChanged(nameof(Attention));
         CancelEnrichment();
         Revision = presentation.Revision;
         Generation = presentation.Generation;
@@ -524,6 +529,11 @@ internal sealed class ChatMessageViewModel : INotifyPropertyChanged, IDisposable
         }
 
         FontSizeDip = settings.ChatFontSizePoints * 96d / 72d;
+        if (ShowSelfMentionBackground != settings.ChatSelfMentionBackgroundEnabled)
+        {
+            ShowSelfMentionBackground = settings.ChatSelfMentionBackgroundEnabled;
+            OnPropertyChanged(nameof(ShowSelfMentionBackground));
+        }
         LineHeight = ChatVisualMetrics.CalculateLineHeight(
             FontSizeDip,
             settings.ChatLineHeightMultiplier);

@@ -2,12 +2,21 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:GachaOverlay.App.Presentation"
+             xmlns:chat="clr-namespace:GachaOverlay.Core.Chat;assembly=GachaOverlay.Core"
              ClipToBounds="False"
              SnapsToDevicePixels="True"
              UseLayoutRounding="True">
     <!-- ChatNicknameBrush is the white no-role fallback; per-message role colors override it. -->
     <UserControl.Resources>
         <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
+        <Style TargetType="{x:Type local:CrispOutlinedText}">
+            <Setter Property="SelfMentionBackground" Value="{DynamicResource ChatSelfMentionBackgroundBrush}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.ShowSelfMentionBackground, RelativeSource={RelativeSource AncestorType={x:Type local:ChatMessageView}}}" Value="False">
+                    <Setter Property="SelfMentionBackground" Value="Transparent"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <DataTemplate x:Key="ReactionTemplate">
             <Border Margin="0,3,4,0"
                     Padding="5,2"
@@ -54,7 +63,6 @@
                                              OutlineBrush="{DynamicResource ChatOutlineBrush}"
                                              OutlineEnabled="{Binding DataContext.ShowMessageOutline, RelativeSource={RelativeSource AncestorType={x:Type local:ChatMessageView}}}"
                                              OutlineThickness="{Binding DataContext.MessageOutlineThickness, RelativeSource={RelativeSource AncestorType={x:Type local:ChatMessageView}}}"
-                                             SelfMentionBackground="{DynamicResource ChatSelfMentionBackgroundBrush}"
                                              SelfMentionForeground="{DynamicResource ChatSelfMentionBrush}"
                                              TextWrapping="Wrap"
                                              Visibility="{Binding HasText, Converter={StaticResource BoolVisibility}}" />
@@ -188,12 +196,11 @@
                                              IsHitTestVisible="False"
                                              LineHeight="{Binding LineHeight}"
                                              MaxHeight="{Binding MessageMaxHeight}"
-                                             MentionBackground="{DynamicResource ChatMentionBackgroundBrush}"
-                                             MentionForeground="{DynamicResource ChatMentionBrush}"
+                                             MentionBackground="Transparent"
+                                             MentionForeground="{DynamicResource ChatMessageBrush}"
                                              OutlineBrush="{DynamicResource ChatOutlineBrush}"
                                              OutlineEnabled="{Binding ShowMessageOutline}"
                                              OutlineThickness="{Binding MessageOutlineThickness}"
-                                             SelfMentionBackground="{DynamicResource ChatSelfMentionBackgroundBrush}"
                                              SelfMentionForeground="{DynamicResource ChatSelfMentionBrush}"
                                              TextTrimming="CharacterEllipsis"
                                              TextWrapping="Wrap"
@@ -282,12 +289,11 @@
                                                  IsHitTestVisible="False"
                                                  LineHeight="{Binding LineHeight}"
                                                  MaxHeight="{Binding MessageMaxHeight}"
-                                                 MentionBackground="{DynamicResource ChatMentionBackgroundBrush}"
-                                                 MentionForeground="{DynamicResource ChatMentionBrush}"
+                                                 MentionBackground="Transparent"
+                                                 MentionForeground="{DynamicResource ChatMessageBrush}"
                                                  OutlineBrush="{DynamicResource ChatOutlineBrush}"
                                                  OutlineEnabled="{Binding ShowMessageOutline}"
                                                  OutlineThickness="{Binding MessageOutlineThickness}"
-                                                 SelfMentionBackground="{DynamicResource ChatSelfMentionBackgroundBrush}"
                                                  SelfMentionForeground="{DynamicResource ChatSelfMentionBrush}"
                                                  TextTrimming="CharacterEllipsis"
                                                  TextWrapping="Wrap"
@@ -369,12 +375,11 @@
                                              IsHitTestVisible="False"
                                              LineHeight="{Binding LineHeight}"
                                              MaxHeight="{Binding MessageMaxHeight}"
-                                             MentionBackground="{DynamicResource ChatMentionBackgroundBrush}"
-                                             MentionForeground="{DynamicResource ChatMentionBrush}"
+                                             MentionBackground="Transparent"
+                                             MentionForeground="{DynamicResource ChatMessageBrush}"
                                              OutlineBrush="{DynamicResource ChatOutlineBrush}"
                                              OutlineEnabled="{Binding ShowMessageOutline}"
                                              OutlineThickness="{Binding MessageOutlineThickness}"
-                                             SelfMentionBackground="{DynamicResource ChatSelfMentionBackgroundBrush}"
                                              SelfMentionForeground="{DynamicResource ChatSelfMentionBrush}"
                                              TextTrimming="CharacterEllipsis"
                                              TextWrapping="NoWrap"
@@ -395,9 +400,34 @@
     <Grid Margin="{Binding MessageMargin}" ClipToBounds="False">
         <Border x:Name="MessageSurface"
                 Padding="3,0,3,0"
-                Background="Transparent"
                 ClipToBounds="False"
                 CornerRadius="4">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Attention}" Value="{x:Static chat:ChatAttention.EveryoneHere}">
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+                            <Setter Property="BorderThickness" Value="1,0,0,0"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Attention}" Value="{x:Static chat:ChatAttention.ReplyToSelf}">
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
+                            <Setter Property="BorderThickness" Value="2,0,0,0"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Attention}" Value="{x:Static chat:ChatAttention.DirectSelfMention}">
+                            <Setter Property="BorderBrush" Value="{DynamicResource ChatSelfMentionBrush}"/>
+                            <Setter Property="BorderThickness" Value="2,0,0,0"/>
+                        </DataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding Attention}" Value="{x:Static chat:ChatAttention.DirectSelfMention}"/>
+                                <Condition Binding="{Binding ShowSelfMentionBackground}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <StackPanel ClipToBounds="False">
                 <!-- Only the selected density's existing visual tree is instantiated. -->
                 <ContentControl Content="{Binding}" HorizontalContentAlignment="Stretch">

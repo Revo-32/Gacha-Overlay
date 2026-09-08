@@ -6,45 +6,34 @@ namespace GachaOverlay.App.Services;
 
 internal sealed class RemoteOnlinePlaytimeStatusSource : IOnlinePlaytimeStatusSource
 {
-    private readonly Dictionary<int, HostPresenceSnapshot> _hosts = new();
-    private SessionHostSelection _selection;
-    private bool _connected;
+    private OnlinePlaytimeAvailability _current = OnlinePlaytimeAvailability.Unknown;
 
-    public RemoteOnlinePlaytimeStatusSource(AppSettings settings) => _selection = settings.SelectedSessionHost;
+    public RemoteOnlinePlaytimeStatusSource(AppSettings settings) { }
 
     public OnlinePlaytimeAvailability Current
     {
         get
         {
-            if (!_connected || !_hosts.TryGetValue((int)_selection, out var host))
-                return OnlinePlaytimeAvailability.Unknown;
-            return host.State switch
-            {
-                HostPresenceState.GtaOnline => OnlinePlaytimeAvailability.Online,
-                HostPresenceState.Offline or HostPresenceState.OnlineButNotGtaOnline =>
-                    OnlinePlaytimeAvailability.Offline,
-                _ => OnlinePlaytimeAvailability.Unknown,
-            };
+            return _current;
         }
     }
 
-    public void ApplySettings(AppSettings settings) => _selection = settings.SelectedSessionHost;
+    public void ApplyProcess(GachaOverlay.Core.Hud.Game.GtaClientState state) =>
+        _current = state.ProcessRunning && state.ValidTrackedProcess
+            ? OnlinePlaytimeAvailability.Online : OnlinePlaytimeAvailability.Offline;
+
+    // Compatibility adapters deliberately cannot override local GTA process authority.
+    public void ApplySettings(AppSettings settings) { }
 
     public void ApplyBootstrap(BootstrapResponse bootstrap)
     {
-        _hosts.Clear();
-        foreach (var host in bootstrap.TrackedHosts) _hosts[host.HostSlot] = host;
-        _connected = true;
     }
 
     public void ApplyPresence(HostPresenceSnapshot presence)
     {
-        _hosts[presence.HostSlot] = presence;
-        _connected = true;
     }
 
     public void ApplyConnection(RemoteChatSnapshot snapshot)
     {
-        _connected = snapshot.Health == RemoteChatHealthState.Live;
     }
 }

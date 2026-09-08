@@ -64,6 +64,7 @@ public sealed record ChatMessagePresentation(
     long Generation,
     int Revision)
 {
+    public ChatAttention Attention { get; init; }
     public string AuthorId { get; init; } = string.Empty;
 
     public DiscordAuthorStyle? AuthorStyle { get; init; }
@@ -209,10 +210,11 @@ public sealed partial class ChatPresentationSynchronizer
             media,
             stickers,
             Math.Max(0, media.Count - 1),
-            tokens.Any(token => token.IsSelfMention),
+            ChatAttentionPolicy.Classify(message, authenticatedUserId) == ChatAttention.DirectSelfMention,
             generation,
             revision)
         {
+            Attention = ChatAttentionPolicy.Classify(message, authenticatedUserId),
             AuthorId = message.AuthorId,
             AuthorStyle = message.AuthorStyle,
             Reactions = message.Reactions,
@@ -446,6 +448,7 @@ public sealed partial class ChatPresentationSynchronizer
         string.Join('|', message.Stickers.Select(x => $"{x.StickerId}:{x.Name}:{x.FormatType}:{x.AssetUrl}")),
         string.Join('|', message.Reactions.Select(x => $"{x.Emoji.EmojiId}:{x.Emoji.Name}:{x.Emoji.Animated}:{x.Count}")),
         message.RemoteMetadata?.MessageType,
+        message.RemoteMetadata?.MentionedEveryone,
         CreateReplyFingerprint(message.RemoteMetadata?.Reply),
         message.RemoteMetadata?.Poll?.Question,
         string.Join('|', message.RemoteMetadata?.ForwardedSnapshots.Select(
@@ -454,7 +457,7 @@ public sealed partial class ChatPresentationSynchronizer
 
     private static string CreateReplyFingerprint(DiscordReplyMetadata? reply) => reply is null
         ? string.Empty
-        : $"{reply.Kind}:{reply.GuildId}:{reply.ChannelId}:{reply.MessageId}:{reply.ResolvedAuthorName}:{reply.ResolvedContent}";
+        : $"{reply.Kind}:{reply.GuildId}:{reply.ChannelId}:{reply.MessageId}:{reply.ResolvedAuthorId}:{reply.ResolvedAuthorName}:{reply.ResolvedContent}";
 
     private static string CreateForwardFingerprint(DiscordForwardSnapshotMetadata snapshot) =>
         string.Join(

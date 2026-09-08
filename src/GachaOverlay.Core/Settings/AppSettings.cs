@@ -149,6 +149,7 @@ public sealed record AppSettings
     public bool ChatNicknameOutlineEnabled { get; init; } = true;
 
     public bool ChatMessageOutlineEnabled { get; init; } = true;
+    public bool ChatSelfMentionBackgroundEnabled { get; init; } = true;
 
     public double ChatOutlineThickness { get; init; } = 1.5;
 

@@ -4,4 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Gta/TranslationGlossary.ko.json" WithCulture="false" LogicalName="GachaOverlay.Core.Gta.TranslationGlossary.ko.json" />
+  </ItemGroup>
 </Project>

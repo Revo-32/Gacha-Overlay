@@ -1,0 +1,55 @@
+<UserControl x:Class="GachaOverlay.App.Presentation.NotificationCenterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:GachaOverlay.App.Presentation">
+    <UserControl.Resources>
+        <local:BooleanToVisibilityConverter x:Key="VisibleBool"/>
+        <Style x:Key="NotificationBody" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{Binding DataContext.MessageFontFamily, RelativeSource={RelativeSource AncestorType={x:Type local:NotificationCenterView}}}"/>
+            <Setter Property="FontWeight" Value="{Binding DataContext.MessageFontWeight, RelativeSource={RelativeSource AncestorType={x:Type local:NotificationCenterView}}}"/>
+            <Setter Property="FontSize" Value="{Binding DataContext.FontSizeDip, RelativeSource={RelativeSource AncestorType={x:Type local:NotificationCenterView}}}"/>
+            <Setter Property="LineHeight" Value="{Binding DataContext.LineHeight, RelativeSource={RelativeSource AncestorType={x:Type local:NotificationCenterView}}}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        </Style>
+        <Style x:Key="NotificationContext" TargetType="TextBlock" BasedOn="{StaticResource NotificationBody}">
+            <Setter Property="FontFamily" Value="{Binding DataContext.ContextFontFamily, RelativeSource={RelativeSource AncestorType={x:Type local:NotificationCenterView}}}"/>
+            <Setter Property="FontWeight" Value="{Binding DataContext.ContextFontWeight, RelativeSource={RelativeSource AncestorType={x:Type local:NotificationCenterView}}}"/>
+        </Style>
+    </UserControl.Resources>
+    <Border Padding="14" CornerRadius="8" ClipToBounds="True"
+            Background="{Binding PanelBackground, RelativeSource={RelativeSource AncestorType={x:Type local:NotificationCenterView}}}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1"
+            Visibility="{Binding IsOpen, Converter={StaticResource VisibleBool}}">
+        <DockPanel>
+            <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" Text="알림센터" TextTrimming="CharacterEllipsis" Style="{StaticResource NotificationContext}"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="모두 읽음" Padding="8,5" Command="{Binding MarkAllReadCommand}"/>
+                    <Button Content="닫기" Margin="6,0,0,0" Padding="8,5" Command="{Binding ToggleCommand}"/>
+                </StackPanel>
+            </Grid>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemTemplate><DataTemplate>
+                        <Border Padding="5,10" Margin="0,0,0,6" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
+                            <StackPanel>
+                                <TextBlock Text="{Binding TypeLabel}" Style="{StaticResource NotificationBody}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding Context}" Margin="0,3,0,0" Style="{StaticResource NotificationContext}"/>
+                                <TextBlock Text="{Binding Preview}" Margin="0,5,0,0" Style="{StaticResource NotificationBody}"/>
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Time}" Style="{StaticResource NotificationBody}"
+                                               FontSize="{Binding DataContext.CaptionFontSize, RelativeSource={RelativeSource AncestorType={x:Type local:NotificationCenterView}}}"
+                                               VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    <Button Grid.Column="1" Content="{Binding ReadLabel}" Padding="8,4" Command="{Binding MarkReadCommand}" IsEnabled="{Binding IsUnread}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</UserControl>

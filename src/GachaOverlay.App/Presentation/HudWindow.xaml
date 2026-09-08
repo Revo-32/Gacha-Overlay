@@ -20,6 +20,14 @@
         UseLayoutRounding="True">
     <Window.Resources>
         <local:BooleanToVisibilityConverter x:Key="BoolVisibility" />
+        <DataTemplate x:Key="NotificationBellTemplate">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Path Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource TextPrimaryBrush}" StrokeThickness="1.5"
+                      Data="M 2,12 L 4,10 L 4,5 C 4,0 12,0 12,5 L 12,10 L 14,12 Z M 6,14 Q 8,17 10,14"/>
+                <TextBlock Margin="5,0,0,0" Text="{Binding UnreadCount}" Foreground="{DynamicResource AccentPrimaryBrush}"
+                           Visibility="{Binding HasUnread, Converter={StaticResource BoolVisibility}}"/>
+            </StackPanel>
+        </DataTemplate>
     </Window.Resources>
     <Border x:Name="HudSurface"
             Background="Transparent"
@@ -57,6 +65,9 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Margin="12,0,0,0" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Button x:Name="HeaderNotificationButton" Height="30" MinWidth="30" Margin="0,0,6,0" Padding="7,4" Focusable="False"
+                            IsEnabled="{Binding IsUnlocked}" Command="{Binding Notifications.ToggleCommand}" ToolTip="알림센터"
+                            Content="{Binding Notifications}" ContentTemplate="{StaticResource NotificationBellTemplate}"/>
                     <Button x:Name="HeaderSettingsButton" Width="30" Height="30" Padding="7" Focusable="False" IsEnabled="{Binding IsUnlocked}"
                             ToolTip="{Binding Localization[HudOpenSettings]}" PreviewMouseLeftButtonDown="OnSettingsMouseDown" Click="OnSettingsClick">
                         <Path Data="M12,1 L14,1 14.7,3.3 16.5,4.1 18.7,3 20,4.3 18.9,6.5 19.7,8.3 22,9 22,11 19.7,11.7 18.9,13.5 20,15.7 18.7,17 16.5,15.9 14.7,16.7 14,19 12,19 11.3,16.7 9.5,15.9 7.3,17 6,15.7 7.1,13.5 6.3,11.7 4,11 4,9 6.3,8.3 7.1,6.5 6,4.3 7.3,3 9.5,4.1 11.3,3.3 Z M13,7 A3,3 0 1 0 13,13 A3,3 0 1 0 13,7" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform"/>
@@ -74,6 +85,9 @@
                     <Border Width="76" Height="28" Background="Transparent" Cursor="SizeAll" MouseLeftButtonDown="OnDragSurfaceMouseLeftButtonDown">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><Rectangle Width="36" Height="2" Fill="{DynamicResource TextSecondaryBrush}"/><Rectangle Width="24" Height="2" Margin="0,4,0,0" Fill="{DynamicResource TextSecondaryBrush}"/></StackPanel>
                     </Border>
+                    <Button x:Name="FloatingNotificationButton" Height="28" MinWidth="28" Margin="0,0,6,0" Padding="7,4" Focusable="False"
+                            IsEnabled="{Binding IsUnlocked}" Command="{Binding Notifications.ToggleCommand}" ToolTip="알림센터"
+                            Content="{Binding Notifications}" ContentTemplate="{StaticResource NotificationBellTemplate}"/>
                     <Button x:Name="FloatingSettingsButton" Width="28" Height="28" Padding="6" Focusable="False" IsEnabled="{Binding IsUnlocked}"
                             ToolTip="{Binding Localization[HudOpenSettings]}" PreviewMouseLeftButtonDown="OnSettingsMouseDown" Click="OnSettingsClick">
                         <Path Data="M12,1 L14,1 14.7,3.3 16.5,4.1 18.7,3 20,4.3 18.9,6.5 19.7,8.3 22,9 22,11 19.7,11.7 18.9,13.5 20,15.7 18.7,17 16.5,15.9 14.7,16.7 14,19 12,19 11.3,16.7 9.5,15.9 7.3,17 6,15.7 7.1,13.5 6.3,11.7 4,11 4,9 6.3,8.3 7.1,6.5 6,4.3 7.3,3 9.5,4.1 11.3,3.3 Z M13,7 A3,3 0 1 0 13,13 A3,3 0 1 0 13,7" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform"/>
@@ -127,6 +141,11 @@
                     </Grid>
                 </Border>
                 <local:SalesQueueView x:Name="SalesContent" Grid.Row="2" DataContext="{Binding Sales}" />
+                <local:NotificationCenterView x:Name="NotificationContent" Grid.Row="0" Panel.ZIndex="8"
+                                              Visibility="{Binding IsOpen, Converter={StaticResource BoolVisibility}}"
+                                              IsHitTestVisible="{Binding DataContext.IsUnlocked, RelativeSource={RelativeSource AncestorType=Window}}"
+                                              IsEnabled="{Binding DataContext.IsUnlocked, RelativeSource={RelativeSource AncestorType=Window}}"
+                                              DataContext="{Binding Notifications}" />
             </Grid>
         </Grid>
     </Border>

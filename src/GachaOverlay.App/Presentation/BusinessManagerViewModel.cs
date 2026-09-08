@@ -63,6 +63,8 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
     public string GeneralTimerStatus => _generalTimers.GeneralStatus;
     public bool IsGeneralTimerAttentionActive => DateTimeOffset.UtcNow < _generalAttentionUntil;
     internal int PresentationRebuildCount { get; private set; }
+    public bool HasActiveProduction { get; private set; }
+    public event Action<bool>? ProductionActivityChanged;
 
     public bool IsInteractive
     {
@@ -107,6 +109,13 @@ internal sealed class BusinessManagerViewModel : INotifyPropertyChanged, IDispos
         var now = DateTimeOffset.UtcNow;
         var snapshots = _engine.Update(_online.Current, _settings.BusinessTimerEarlyAlertMinutes)
             .ToDictionary(item => item.TimerId, StringComparer.Ordinal);
+        var activeProduction = snapshots.Values.Any(item => item.ClockMode == TimerClockMode.OnlinePlaytime &&
+            item.State is SharedTimerState.Running or SharedTimerState.Paused);
+        if (activeProduction != HasActiveProduction)
+        {
+            HasActiveProduction = activeProduction;
+            ProductionActivityChanged?.Invoke(activeProduction);
+        }
         _metrics?.SetGauge(RuntimeMetricNames.BusinessActiveTimers,
             snapshots.Values.Count(item => item.State == SharedTimerState.Running));
         _metrics?.SetGauge(RuntimeMetricNames.BusinessWallClockTimers,

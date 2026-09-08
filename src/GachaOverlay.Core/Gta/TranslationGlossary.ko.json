@@ -1,0 +1,209 @@
+{
+  "version": "2.3-1",
+  "entries": [
+    {
+      "canonicalId": "special_cargo",
+      "englishName": "Special Cargo",
+      "englishAliases": [
+        "Special Cargo Sales"
+      ],
+      "koreanDisplayName": "특수 화물",
+      "category": "Business",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "air_freight_cargo",
+      "englishName": "Air Freight Cargo",
+      "englishAliases": [
+        "Air Freight"
+      ],
+      "koreanDisplayName": "항공 화물",
+      "category": "Business",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "bunker",
+      "englishName": "Bunker",
+      "englishAliases": [
+        "Gunrunning"
+      ],
+      "koreanDisplayName": "벙커",
+      "category": "Business",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "nightclub",
+      "englishName": "Nightclub",
+      "englishAliases": [],
+      "koreanDisplayName": "나이트클럽",
+      "category": "Business",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "acid_lab",
+      "englishName": "Acid Lab",
+      "englishAliases": [],
+      "koreanDisplayName": "산성 연구소",
+      "category": "Business",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "salvage_yard",
+      "englishName": "Salvage Yard",
+      "englishAliases": [
+        "Salvage Yard Robbery"
+      ],
+      "koreanDisplayName": "폐차장",
+      "category": "Business",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "gun_van",
+      "englishName": "Gun Van",
+      "englishAliases": [],
+      "koreanDisplayName": "건 밴",
+      "category": "System",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "time_trial",
+      "englishName": "Time Trial",
+      "englishAliases": [],
+      "koreanDisplayName": "타임 트라이얼",
+      "category": "Activity",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "hsw_time_trial",
+      "englishName": "HSW Time Trial",
+      "englishAliases": [],
+      "koreanDisplayName": "HSW 타임 트라이얼",
+      "category": "Activity",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "rc_time_trial",
+      "englishName": "RC Time Trial",
+      "englishAliases": [],
+      "koreanDisplayName": "RC 타임 트라이얼",
+      "category": "Activity",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "community_series",
+      "englishName": "Community Series",
+      "englishAliases": [],
+      "koreanDisplayName": "커뮤니티 시리즈",
+      "category": "Activity",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "adversary_mode",
+      "englishName": "Adversary Mode",
+      "englishAliases": [],
+      "koreanDisplayName": "대적 모드",
+      "category": "Activity",
+      "translationSource": "RockstarOfficial",
+      "note": "https://www.rockstargames.com/kr/newswire/article/ak32aka841114k/the-overflod-suzume-supercar-and-new-safeguard-deliveries-now-in-gta-o"
+    },
+    {
+      "canonicalId": "survival",
+      "englishName": "Survival",
+      "englishAliases": [],
+      "koreanDisplayName": "서바이벌",
+      "category": "Activity",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "contact_mission",
+      "englishName": "Contact Mission",
+      "englishAliases": [],
+      "koreanDisplayName": "연락책 임무",
+      "category": "Activity",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "special_vehicle_work",
+      "englishName": "Special Vehicle Work",
+      "englishAliases": [],
+      "koreanDisplayName": "특수 차량 임무",
+      "category": "Activity",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "auto_shop_contract",
+      "englishName": "Auto Shop Contract",
+      "englishAliases": [],
+      "koreanDisplayName": "튜닝 샵 계약",
+      "category": "Activity",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "security_contract",
+      "englishName": "Security Contract",
+      "englishAliases": [],
+      "koreanDisplayName": "보안 계약",
+      "category": "Activity",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "payphone_hit",
+      "englishName": "Payphone Hit",
+      "englishAliases": [],
+      "koreanDisplayName": "공중전화 암살",
+      "category": "Activity",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "casino_chips",
+      "englishName": "Casino Chips",
+      "englishAliases": [],
+      "koreanDisplayName": "카지노 칩",
+      "category": "Reward",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "research_progress",
+      "englishName": "Research Progress",
+      "englishAliases": [],
+      "koreanDisplayName": "연구 진행도",
+      "category": "Reward",
+      "translationSource": "Curated",
+      "note": "2.2 검수 용어 계승 — 공식 용어로 확인되지 않은 항목은 Curated로 유지"
+    },
+    {
+      "canonicalId": "unknown_entity",
+      "englishName": "Unknown Entity",
+      "englishAliases": [],
+      "koreanDisplayName": "Unknown Entity",
+      "category": "Entity",
+      "translationSource": "OriginalFallback"
+    },
+    {
+      "canonicalId": "future_activity",
+      "englishName": "Future Activity",
+      "englishAliases": [],
+      "koreanDisplayName": "Future Activity",
+      "category": "Activity",
+      "translationSource": "OriginalFallback"
+    }
+  ]
+}

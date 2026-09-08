@@ -34,7 +34,7 @@
     <Border x:Name="QueueBar"
             Grid.Row="0"
             Margin="0,8,0,0"
-            Padding="10,7"
+            Padding="10,10"
             AutomationProperties.Name="{Binding AccessibleStatus}"
             CornerRadius="{DynamicResource CornerRadius.Sales}"
             Style="{StaticResource SalesBarStyle}"
@@ -56,26 +56,27 @@
                     <ColumnDefinition Width="34" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <local:SalesStatusIconHost x:Name="StatusIcon" Grid.Column="0" Margin="0,0,6,0" />
+                <local:SalesStatusIconHost x:Name="StatusIcon" Grid.Column="0" Margin="0,0,6,0" HorizontalAlignment="Left" VerticalAlignment="Center" />
 
-                <StackPanel x:Name="ContentHost" Grid.Column="1">
-                    <TextBlock FontSize="12"
+                <StackPanel x:Name="ContentHost" Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock x:Name="PrimaryStatusText" FontSize="14"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                Text="{Binding PrimaryLine}"
-                               TextTrimming="CharacterEllipsis" />
+                               TextAlignment="Left"
+                               TextWrapping="Wrap" />
                     <TextBlock Margin="0,2,0,0"
                                FontSize="12"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Text="{Binding SecondaryLine}"
+                               TextAlignment="Left"
                                TextTrimming="CharacterEllipsis"
                                Visibility="{Binding IsSecondLineVisible, Converter={StaticResource BoolVisibility}}" />
                 </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Button x:Name="CompleteOwnSaleButton"
-                        Grid.Column="2"
                         Margin="8,0,0,0"
                         Padding="8,3"
                         VerticalAlignment="Center"
@@ -86,7 +87,6 @@
                         AutomationProperties.HelpText="{Binding OwnCompletionHint}"
                         Visibility="{Binding IsOwnCompletionVisible, Converter={StaticResource BoolVisibility}}" />
                 <Button x:Name="QueueDetailToggle"
-                        Grid.Column="3"
                         Width="28"
                         Height="28"
                         Margin="6,0,0,0"
@@ -107,14 +107,16 @@
                         </Path.RenderTransform>
                     </Path>
                 </Button>
+                </StackPanel>
                 <TextBlock x:Name="CompletionFeedback"
                            Grid.Row="1"
                            Grid.Column="1"
-                           Grid.ColumnSpan="3"
+                           Grid.ColumnSpan="2"
                            Margin="0,4,0,0"
                            FontSize="11"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Text="{Binding OwnCompletionItem.StatusText}"
+                           TextAlignment="Left"
                            TextWrapping="Wrap"
                            Visibility="{Binding IsCompletionFeedbackVisible, Converter={StaticResource BoolVisibility}}" />
             </Grid>
@@ -170,7 +172,7 @@
                                 <Grid Grid.Column="1">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" MaxWidth="145"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Grid.Column="1" Margin="8,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ProductName}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="1" Margin="8,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ProductName}" TextTrimming="CharacterEllipsis" ToolTip="파싱된 상품 요약"/>
                                 </Grid>
                                 <StackPanel Grid.Column="2" Margin="8,0,0,0" Orientation="Horizontal">
                                     <TextBlock Margin="0,0,6,0" Foreground="{DynamicResource StatusLiveBrush}" Text="{Binding CurrentLabel}" Visibility="{Binding IsCurrent, Converter={StaticResource BoolVisibility}}" />
@@ -183,7 +185,6 @@
                                                                EmojiExtent="16"
                                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                                IsHitTestVisible="False"
-                                                               MaxHeight="80"
                                                                OutlineEnabled="False"
                                                                TextTrimming="CharacterEllipsis"
                                                                TextWrapping="Wrap"

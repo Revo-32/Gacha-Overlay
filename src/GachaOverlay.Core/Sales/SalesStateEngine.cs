@@ -695,7 +695,10 @@ public sealed class SalesStateEngine
     }
 
     private NormalizedSalePost MapPost(string guildId, NormalizedDiscordMessage message) =>
-        SalesPostNormalizer.Parse(guildId, message.Content, message.CustomEmojis, _productCatalog, _locale);
+        SalesPostNormalizer.Parse(guildId, message.Content, message.CustomEmojis, _productCatalog, _locale)
+            // Display authority is the received message, never the parser's success/failure output.
+            with
+        { DetailSource = message.Content };
 
     private GuildDisplayNameResolution ResolveDisplayName(
         string guildId,

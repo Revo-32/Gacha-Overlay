@@ -30,6 +30,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
     private readonly ISalesTurnNotificationObserver? _turnNotification;
     private readonly System.Windows.Threading.Dispatcher _dispatcher;
     private readonly DiscordMediaAssetService? _media;
+    private readonly Func<string, bool, CancellationToken, Task<CachedMediaAsset?>>? _loadDetailEmoji;
     private readonly SalesHistoryTransitionRecorder? _salesHistory;
     private readonly Dictionary<string, NormalizedDiscordMessage> _remoteSource =
         new(StringComparer.Ordinal);
@@ -66,7 +67,8 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         IRuntimeMetrics? metrics = null,
         ISalesTurnNotificationObserver? turnNotification = null,
         DiscordMediaAssetService? media = null,
-        ISalesHistoryStore? salesHistory = null)
+        ISalesHistoryStore? salesHistory = null,
+        Func<string, bool, CancellationToken, Task<CachedMediaAsset?>>? detailEmojiLoader = null)
     {
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
@@ -81,6 +83,8 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         _turnNotification = turnNotification;
         _dispatcher = dispatcher;
         _media = media;
+        _loadDetailEmoji = detailEmojiLoader ?? (media is null ? null : media.GetEmojiMediaAsync);
+        _viewModel.DetailItemsRefreshed += OnDetailItemsRefreshed;
         _salesHistory = salesHistory is null
             ? null
             : new SalesHistoryTransitionRecorder(salesHistory);
@@ -371,6 +375,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         }
 
         _disposed = true;
+        _viewModel.DetailItemsRefreshed -= OnDetailItemsRefreshed;
         var cancellation = Interlocked.Exchange(ref _detailEmojiCancellation, null);
         cancellation?.Cancel();
         cancellation?.Dispose();
@@ -582,7 +587,6 @@ internal sealed class SalesPresentationCoordinator : IDisposable
             health,
             ProductionServerProfile.SalesChannelName,
             change);
-        StartDetailEmojiEnrichment();
         var presentation = _viewModel.Presentation;
         try
         {
@@ -612,15 +616,18 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         }
     }
 
+    private void OnDetailItemsRefreshed(IReadOnlyList<string> _) => StartDetailEmojiEnrichment();
+
     private void StartDetailEmojiEnrichment()
     {
+        if (_disposed) return;
         StopDetailAnimations();
         var cancellation = Interlocked.Exchange(
             ref _detailEmojiCancellation,
-            _media is null ? null : new CancellationTokenSource());
+            _loadDetailEmoji is null ? null : new CancellationTokenSource());
         cancellation?.Cancel();
         cancellation?.Dispose();
-        if (_media is null || _detailEmojiCancellation is null)
+        if (_loadDetailEmoji is null || _detailEmojiCancellation is null)
         {
             return;
         }
@@ -630,7 +637,8 @@ internal sealed class SalesPresentationCoordinator : IDisposable
         {
             foreach (var detailToken in item.DetailTokens.Where(detailToken =>
                          detailToken.Kind == GachaOverlay.Core.Chat.ChatTokenKind.CustomEmoji &&
-                         !string.IsNullOrWhiteSpace(detailToken.Identity)))
+                         !string.IsNullOrWhiteSpace(detailToken.Identity) &&
+                         (detailToken.Image is null || detailToken.IsAnimatedEmoji)))
             {
                 _ = EnrichDetailEmojiAsync(item, detailToken, token);
             }
@@ -644,7 +652,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
     {
         try
         {
-            var asset = await _media!.GetEmojiMediaAsync(
+            var asset = await _loadDetailEmoji!(
                 token.Identity!, token.IsAnimatedEmoji, cancellationToken);
             if (asset is null || cancellationToken.IsCancellationRequested)
             {
@@ -660,7 +668,7 @@ internal sealed class SalesPresentationCoordinator : IDisposable
                     token.Image = asset.Preview;
                     if (_settings.AnimatedMediaPlaybackEnabled && _animationsVisible && asset.IsAnimated)
                     {
-                        var handle = _media.Play(asset, frame =>
+                        var handle = _media?.Play(asset, frame =>
                         {
                             if (!cancellationToken.IsCancellationRequested &&
                                 _viewModel.DetailItems.Contains(item) && item.DetailTokens.Contains(token))

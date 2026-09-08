@@ -40,6 +40,9 @@ internal sealed class ApplicationHost : IDisposable
     private TrayIconService? _trayIcon;
     private HudWindowController? _hudController;
     private GtaCompanionWindowController? _gtaCompanionController;
+    private GtaProcessMonitor? _gtaProcessMonitor;
+    private NotificationCenterViewModel? _notifications;
+    private DiscordMessagePipeline? _attentionIngress;
     private BusinessManagerWindowController? _businessManagerController;
     private RemoteOnlinePlaytimeStatusSource? _onlinePlaytimeStatus;
     private RemoteChatProductionCoordinator? _remoteChatCoordinator;
@@ -159,6 +162,9 @@ internal sealed class ApplicationHost : IDisposable
             sessionViewModel,
             timerViewModel);
         var typographyResolver = new ChatTypographyResolver(Logger);
+        _notifications = new NotificationCenterViewModel(
+            System.IO.Path.Combine(paths.DataDirectory, "attention-history.json"), hudWindow.Dispatcher, Logger);
+        hudViewModel.Notifications = _notifications;
         var mediaAssetService = new DiscordMediaAssetService(Logger, _runtimeMetrics);
         var chatCoordinator = new ChatPresentationCoordinator(
             chatViewModel,
@@ -203,6 +209,7 @@ internal sealed class ApplicationHost : IDisposable
             salesTurnNotifications,
             mediaAssetService,
             salesHistoryStore);
+        salesTurnNotifications.TurnChanged += (id, current) => _notifications?.Sales(id, current);
         _salesCoordinator.Start();
         _hudController = new HudWindowController(
             hudWindow,
@@ -249,6 +256,19 @@ internal sealed class ApplicationHost : IDisposable
             timerViewModel,
             _runtimeMetrics);
         businessManagerViewModel.NotificationRequested += OnBusinessTimerNotification;
+        var currentGtaState = GachaOverlay.Core.Hud.Game.GtaClientState.Empty;
+        businessManagerViewModel.ProductionActivityChanged += active => gtaCompanionViewModel.ApplyClientState(currentGtaState, active);
+        gtaCompanionViewModel.ApplyClientState(currentGtaState, businessManagerViewModel.HasActiveProduction);
+        _gtaProcessMonitor = new GtaProcessMonitor();
+        _gtaProcessMonitor.Changed += state => DispatchToUi(() =>
+        {
+            currentGtaState = state;
+            _onlinePlaytimeStatus?.ApplyProcess(state);
+            var active = businessManagerViewModel.HasActiveProduction;
+            gtaCompanionViewModel.ApplyClientState(state, active);
+            _notifications?.Gta(state, active);
+        });
+        _gtaProcessMonitor.Start();
         _businessManagerController = new BusinessManagerWindowController(
             businessManagerWindow,
             businessManagerViewModel,
@@ -260,6 +280,8 @@ internal sealed class ApplicationHost : IDisposable
         var remoteMessagePipeline = new DiscordMessagePipeline(
             Logger,
             metrics: _runtimeMetrics);
+        _attentionIngress = remoteMessagePipeline;
+        remoteMessagePipeline.LiveMainMutationAccepted += OnAttentionLiveMutation;
         _remoteAccessCredentials = new DpapiRemoteAccessCredentialStore(
             paths.RemoteAccessTokenFilePath,
             Logger);
@@ -436,6 +458,12 @@ internal sealed class ApplicationHost : IDisposable
         _salesCoordinator = null;
         _businessManagerController?.Dispose();
         _businessManagerController = null;
+        _gtaProcessMonitor?.Dispose();
+        _gtaProcessMonitor = null;
+        _notifications?.Dispose();
+        _notifications = null;
+        if (_attentionIngress is not null) _attentionIngress.LiveMainMutationAccepted -= OnAttentionLiveMutation;
+        _attentionIngress = null;
         _onlinePlaytimeStatus = null;
         if (_timerHudViewModel is not null)
         {
@@ -509,6 +537,7 @@ internal sealed class ApplicationHost : IDisposable
     private void OnRemoteMessageStateChanged(DiscordMessageState state)
     {
         _lastRemoteMessageState = state;
+        _notifications?.Observe(state);
         _runtimeMetrics.SetGauge(RuntimeMetricNames.ChatActiveMainMessages, state.MainChat.Count);
         _hudController?.OnDiscordMessageStateChanged(state);
         if (!state.IsBootstrapping)
@@ -535,9 +564,14 @@ internal sealed class ApplicationHost : IDisposable
 
     private void OnRemoteAuthenticatedUserChanged(DiscordAuthenticatedUser user)
     {
+        _notifications?.SetOwner(user.UserId);
         _salesCoordinator?.SetAuthenticatedUser(user.UserId);
         _hudController?.OnAuthenticatedUserChanged(user);
     }
+
+    private void OnAttentionLiveMutation(DiscordMessageMutation mutation) =>
+        _notifications?.ObserveLiveMutation(mutation,
+            _lastRemoteMessageState.MainChat.FirstOrDefault(message => message.MessageId == mutation.MessageId));
 
     private void OnRemoteSalesBootstrapReady(LSOverlay.Protocol.SalesBootstrapResponse bootstrap) =>
         _salesCoordinator?.ApplyRemoteSalesBootstrap(bootstrap);

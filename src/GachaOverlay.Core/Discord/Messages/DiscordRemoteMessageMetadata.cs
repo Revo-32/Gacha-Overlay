@@ -50,6 +50,8 @@ public sealed record DiscordReplyMetadata(
     string? ChannelId,
     string? MessageId)
 {
+    public string? ResolvedAuthorId { get; init; }
+
     public string? ResolvedAuthorName { get; init; }
 
     public string? ResolvedContent { get; init; }

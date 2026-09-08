@@ -24,11 +24,13 @@ internal interface ISalesTurnNotificationObserver
 
 internal sealed class SalesTurnNotificationCoordinator : ISalesTurnNotificationObserver
 {
+    public event Action<string, bool>? TurnChanged;
     private readonly object _sync = new();
     private readonly Func<AppSettings> _settings;
     private readonly ISalesNotificationSoundService _sound;
     private readonly IAppLogger _logger;
     private PersonalSalesPosition _lastPosition;
+    private string? _lastSourceId;
     private bool _hasBaseline;
 
     public SalesTurnNotificationCoordinator(
@@ -57,10 +59,13 @@ internal sealed class SalesTurnNotificationCoordinator : ISalesTurnNotificationO
                 SalesQueueContentMode.NextTurnSelf => PersonalSalesPosition.Next,
                 _ => PersonalSalesPosition.Waiting,
             };
+            var sourceId = position == PersonalSalesPosition.Current ? presentation.CurrentMessageId :
+                position == PersonalSalesPosition.Next ? presentation.NextMessageId : null;
             if (!_hasBaseline || providerHandoff)
             {
                 _hasBaseline = true;
                 _lastPosition = position;
+                _lastSourceId = sourceId;
                 _logger.Information(
                     "SALES-SOUND",
                     providerHandoff
@@ -69,12 +74,19 @@ internal sealed class SalesTurnNotificationCoordinator : ISalesTurnNotificationO
                 return;
             }
 
-            if (_lastPosition == position)
+            var positionChanged = _lastPosition != position;
+            if (!positionChanged && _lastSourceId == sourceId)
             {
                 return;
             }
 
             _lastPosition = position;
+            _lastSourceId = sourceId;
+            if (sourceId is not null && position is PersonalSalesPosition.Current or PersonalSalesPosition.Next)
+                TurnChanged?.Invoke(sourceId, position == PersonalSalesPosition.Current);
+            // A new canonical sale can occupy the same position. Record it without
+            // changing the established position-transition-only sound policy.
+            if (!positionChanged) return;
             var settings = _settings();
             if (!settings.SalesTurnSoundEnabled || settings.SalesTurnSoundVolume <= 0)
             {
@@ -100,6 +112,7 @@ internal sealed class SalesTurnNotificationCoordinator : ISalesTurnNotificationO
         {
             _hasBaseline = false;
             _lastPosition = PersonalSalesPosition.Waiting;
+            _lastSourceId = null;
         }
     }
 
