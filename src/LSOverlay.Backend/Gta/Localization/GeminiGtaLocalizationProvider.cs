@@ -8,13 +8,14 @@ internal sealed record LocalizationProviderResult(string? Json, string Category,
 internal interface IGtaLocalizationProvider
 {
     string Model { get; }
-    Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput protectedInput, bool repair, CancellationToken cancellationToken);
+    Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput protectedInput, bool repair, CancellationToken cancellationToken,
+        LocalizationRepairFeedback? feedback = null);
 }
 
 internal sealed class GeminiGtaLocalizationProvider : IGtaLocalizationProvider, IDisposable
 {
     public const string DefaultModel = "gemini-3.5-flash-lite";
-    public const string PromptVersion = "gta-ko-3.2";
+    public const string PromptVersion = "gta-ko-3.3";
     public const string SchemaVersion = "fields-1";
     private readonly HttpClient _http;
     private readonly string? _key;
@@ -35,7 +36,8 @@ internal sealed class GeminiGtaLocalizationProvider : IGtaLocalizationProvider, 
         { Timeout = Timeout.InfiniteTimeSpan };
     }
 
-    public async Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput protectedInput, bool repair, CancellationToken cancellationToken)
+    public async Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput protectedInput, bool repair, CancellationToken cancellationToken,
+        LocalizationRepairFeedback? feedback = null)
     {
         if (!IsConfigured) return new(null, "MissingCredential", 0);
         var clock = Stopwatch.StartNew();
@@ -43,13 +45,23 @@ internal sealed class GeminiGtaLocalizationProvider : IGtaLocalizationProvider, 
         timeout.CancelAfter(TimeSpan.FromSeconds(45));
         try
         {
+            var contents = new List<object>
+            {
+                new { role = "user", parts = new[] { new { text = JsonSerializer.Serialize(protectedInput, JsonOptions) } } }
+            };
+            if (repair && feedback is not null)
+            {
+                if (feedback.PreviousResponse is not null)
+                    contents.Add(new { role = "model", parts = new[] { new { text = feedback.PreviousResponse } } });
+                contents.Add(new { role = "user", parts = new[] { new { text = feedback.Instructions } } });
+            }
             using var request = new HttpRequestMessage(HttpMethod.Post,
                 $"https://generativelanguage.googleapis.com/v1beta/models/{Model}:generateContent");
             request.Headers.Add("x-goog-api-key", _key);
             request.Content = JsonContent.Create(new
             {
-                systemInstruction = new { parts = new[] { new { text = Prompt + (repair ? "\nPrevious attempt failed validation. Preserve each placeholder exactly once in its original item. Return strictly the requested JSON." : "") } } },
-                contents = new[] { new { role = "user", parts = new[] { new { text = JsonSerializer.Serialize(protectedInput, JsonOptions) } } } },
+                systemInstruction = new { parts = new[] { new { text = Prompt } } },
+                contents,
                 generationConfig = new
                 {
                     temperature = 0.1,
@@ -98,6 +110,8 @@ internal sealed class GeminiGtaLocalizationProvider : IGtaLocalizationProvider, 
         No new, missing or renamed items. No Markdown, comments or additional fields.
         Every [[L000_0000]]-style placeholder contains protected facts, approved terminology or a proper name.
         Keep each placeholder exactly once in the same item; never spell out, change or invent placeholders.
+        Placeholders are machine tokens, not language. Copy them byte-for-byte without changing brackets or characters.
+        Reordering within one field is allowed; moving tokens to another field or repeating a count is forbidden.
         protectedTerms provides read-only meanings/approved renderings for choosing word order and particles.
         Use those meanings to distinguish temporal phrases (this week, dates, times), percentages, rewards,
         quantities and activities. Output the placeholder, NOT its dictionary value.

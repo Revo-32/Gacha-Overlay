@@ -27,9 +27,15 @@ internal static class LocalizationValidation
 
     public static bool TryValidate(PreparedLocalization prepared, string? json,
         out IReadOnlyDictionary<string, string> translations, out string reason)
+        => TryValidate(prepared, json, out translations, out reason, out _);
+
+    public static bool TryValidate(PreparedLocalization prepared, string? json,
+        out IReadOnlyDictionary<string, string> translations, out string reason,
+        out IReadOnlyList<PlaceholderFieldDiagnostic> diagnostics)
     {
         translations = new Dictionary<string, string>();
         reason = "Schema";
+        diagnostics = [PlaceholderDiagnostics.Failure(-1, PlaceholderFailure.Structural)];
         if (!prepared.Input.IsComplete || string.IsNullOrWhiteSpace(json) || json.Length > 128 * 1024) return false;
         try
         {
@@ -39,20 +45,51 @@ internal static class LocalizationValidation
                 !root.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array ||
                 items.GetArrayLength() != prepared.Fields.Count) return false;
             var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            var failures = new List<PlaceholderFieldDiagnostic>();
+            var owners = prepared.Fields.SelectMany((field, index) => field.Tokens.Keys.Select(key => (key, index)))
+                .ToDictionary(p => p.key, p => p.index, StringComparer.Ordinal);
+            string? firstReason = null;
             for (var i = 0; i < items.GetArrayLength(); i++)
             {
                 var row = items[i];
                 if (row.ValueKind != JsonValueKind.Object || row.EnumerateObject().Count() != 2 ||
                     !row.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String ||
                     id.GetString() != prepared.Input.Items[i].Id || !row.TryGetProperty("textKo", out var text) ||
-                    text.ValueKind != JsonValueKind.String) return false;
-                if (!LocalizationProtection.TryRestore(prepared.Fields[i], text.GetString(), out var restored, out reason)) return false;
+                    text.ValueKind != JsonValueKind.String)
+                {
+                    failures.Add(PlaceholderDiagnostics.Failure(i, PlaceholderFailure.Structural));
+                    firstReason ??= "Schema";
+                    continue;
+                }
+                var body = text.GetString()!;
+                if (body.Length <= 4096 && PlaceholderDiagnostics.Inspect(i, prepared.Fields[i], body, owners) is { } failure)
+                {
+                    failures.Add(failure);
+                    firstReason ??= "Placeholder";
+                    continue;
+                }
+                if (!LocalizationProtection.TryRestore(prepared.Fields[i], body, out var restored, out var fieldReason))
+                {
+                    failures.Add(PlaceholderDiagnostics.Failure(i, PlaceholderFailure.ValueValidation) with
+                    {
+                        ValueFailure = Enum.TryParse<LocalizationValueFailure>(fieldReason, out var rule) ? rule : LocalizationValueFailure.Content
+                    });
+                    firstReason ??= fieldReason;
+                    continue;
+                }
                 // Never truncate validated output in the existing wire field.
                 var maximum = prepared.Input.Items[i].Type is "Bonus" or "Discount" or "FreeItem" or
                     "LoginReward" or "RotatingContent" or "Note" or "challenge" ? 512 : 256;
-                if (restored.Length > maximum) { reason = "OutputSize"; return false; }
+                if (restored.Length > maximum)
+                {
+                    failures.Add(PlaceholderDiagnostics.Failure(i, PlaceholderFailure.ValueValidation) with { ValueFailure = LocalizationValueFailure.OutputSize });
+                    firstReason ??= "OutputSize";
+                    continue;
+                }
                 result[prepared.Fields[i].Source] = restored;
             }
+            diagnostics = failures.AsReadOnly();
+            if (failures.Count > 0) { reason = firstReason!; return false; }
             translations = result;
             reason = "Valid";
             return true;

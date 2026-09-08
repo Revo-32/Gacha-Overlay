@@ -68,7 +68,13 @@ internal sealed class GtaLocalizationService : BackgroundService
         {
             if (_stopping) return Task.FromResult(false);
             if (_inFlight.TryGetValue(identity, out var existing)) { _joins++; return existing.Task; }
-            if (_memory.ContainsKey(identity)) { _hits++; return Task.FromResult(true); }
+            if (_memory.ContainsKey(identity))
+            {
+                _hits++;
+                // One structural proof per process, not a per-request cache log.
+                if (_hits == 1) _logger.LogInformation("GTA localization first cache hit revision={Revision} generation_requests={Requests}.", input.SourceRevision, _requests);
+                return Task.FromResult(true);
+            }
             if (_failed.TryGetValue(identity, out var at) && DateTimeOffset.UtcNow - at < TimeSpan.FromMinutes(10)) return Task.FromResult(false);
             var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             if (!_queue.Writer.TryWrite(new(identity, prepared, completion))) return Task.FromResult(false);
@@ -78,7 +84,8 @@ internal sealed class GtaLocalizationService : BackgroundService
     }
     private string Identity(PublicGtaLocalizationInput input) => GtaLocalizationGlossary.Digest(string.Join('|',
         TrustedGtaLocalizationSourcePolicy.Version, _glossary.Hash, _overrides.Hash, GeminiGtaLocalizationProvider.PromptVersion,
-        GeminiGtaLocalizationProvider.SchemaVersion, KoreanLocalizationSurface.Version, LocalizationProtection.Version, _provider.Model, JsonSerializer.Serialize(input, GeminiGtaLocalizationProvider.JsonOptions)));
+        GeminiGtaLocalizationProvider.SchemaVersion, KoreanLocalizationSurface.Version, LocalizationProtection.Version, LocalizationRepairFeedback.Version,
+        _provider.Model, JsonSerializer.Serialize(input, GeminiGtaLocalizationProvider.JsonOptions)));
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -88,6 +95,8 @@ internal sealed class GtaLocalizationService : BackgroundService
             {
                 var success = false;
                 var reason = "Unavailable";
+                var correlation = Guid.NewGuid().ToString("N");
+                LocalizationRepairFeedback? feedback = null;
                 try
                 {
                     var overrides = _overrides.Resolve(job.Prepared);
@@ -99,15 +108,19 @@ internal sealed class GtaLocalizationService : BackgroundService
                     if (overrides.Count == job.Prepared.Fields.Count) { success = true; continue; }
                     for (var attempt = 0; attempt < 2 && !stoppingToken.IsCancellationRequested; attempt++)
                     {
-                        var response = await _provider.TranslateAsync(job.Prepared.ProtectedInput, attempt == 1, stoppingToken).ConfigureAwait(false);
+                        var response = await _provider.TranslateAsync(job.Prepared.ProtectedInput, attempt == 1, stoppingToken, feedback).ConfigureAwait(false);
                         lock (_sync) if (response.Category != "MissingCredential") _requests++;
                         reason = response.Category;
                         _logger.LogInformation("GTA localization model={Model} revision={Revision} result={Result} elapsed_ms={Elapsed} attempt={Attempt}.",
                             _provider.Model, job.Prepared.Input.SourceRevision, reason, response.ElapsedMilliseconds, attempt + 1);
                         if (response.Json is null) break;
-                        if (!LocalizationValidation.TryValidate(job.Prepared, response.Json, out var view, out reason))
+                        if (!LocalizationValidation.TryValidate(job.Prepared, response.Json, out var view, out reason, out var diagnostics))
                         {
-                            _logger.LogInformation("GTA localization validation rejected category={Category} attempt={Attempt}.", reason, attempt + 1);
+                            feedback = LocalizationRepairFeedback.Create(diagnostics, response.Json);
+                            _logger.LogInformation("GTA localization validation rejected correlation={Correlation} revision={Revision} category={Category} attempt={Attempt} model={Model} prompt={Prompt} protection={Protection} repair={Repair} diagnostics={Diagnostics}.",
+                                correlation, job.Prepared.Input.SourceRevision, reason, attempt + 1, _provider.Model,
+                                GeminiGtaLocalizationProvider.PromptVersion, LocalizationProtection.Version, LocalizationRepairFeedback.Version,
+                                JsonSerializer.Serialize(feedback.Fields, LocalizationRepairFeedback.DiagnosticJson));
                             continue;
                         }
                         if (stoppingToken.IsCancellationRequested) break;

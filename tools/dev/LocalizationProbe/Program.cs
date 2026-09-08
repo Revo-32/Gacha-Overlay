@@ -132,7 +132,7 @@ internal sealed class LocalGateway(BackendConnectionHealth health) : IDiscordGat
 internal sealed class MockProvider : IGtaLocalizationProvider
 {
     public string Model => GeminiGtaLocalizationProvider.DefaultModel;
-    public Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput input, bool repair, CancellationToken token) =>
+    public Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput input, bool repair, CancellationToken token, LocalizationRepairFeedback? feedback = null) =>
         Task.FromResult(new LocalizationProviderResult(JsonSerializer.Serialize(new
         {
             items = input.Items.Select(i => new
@@ -148,9 +148,9 @@ internal sealed class ObservedProvider(List<object> observations) : IGtaLocaliza
 {
     private readonly GeminiGtaLocalizationProvider _inner = new(Environment.GetEnvironmentVariable("GEMINI_API_KEY"));
     public string Model => _inner.Model;
-    public async Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput input, bool repair, CancellationToken token)
+    public async Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput input, bool repair, CancellationToken token, LocalizationRepairFeedback? feedback = null)
     {
-        var result = await _inner.TranslateAsync(input, repair, token);
+        var result = await _inner.TranslateAsync(input, repair, token, feedback);
         observations.Add(new
         {
             교정요청 = repair,

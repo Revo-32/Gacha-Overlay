@@ -385,7 +385,7 @@ public sealed class GtaLocalizationTests : IDisposable
         public string Model { get; set; } = GeminiGtaLocalizationProvider.DefaultModel;
         public int Calls;
         public string? Failure;
-        public Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput input, bool repair, CancellationToken token)
+        public Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput input, bool repair, CancellationToken token, LocalizationRepairFeedback? feedback = null)
         {
             Calls++;
             if (Failure == "ThrowSecret") throw new HttpRequestException("SYNTHETIC-SECRET");

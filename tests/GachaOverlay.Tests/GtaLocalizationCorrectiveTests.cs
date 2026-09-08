@@ -198,7 +198,7 @@ public sealed class GtaLocalizationCorrectiveTests
     private sealed class Provider : IGtaLocalizationProvider
     {
         public string Model => GeminiGtaLocalizationProvider.DefaultModel;
-        public Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput input, bool retry, CancellationToken cancellationToken) =>
+        public Task<LocalizationProviderResult> TranslateAsync(PublicGtaLocalizationInput input, bool retry, CancellationToken cancellationToken, LocalizationRepairFeedback? feedback = null) =>
             Task.FromResult(new LocalizationProviderResult(GtaLocalizationTests.ValidResponse(input), "Success", 0));
     }
 }
