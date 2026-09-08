@@ -26,6 +26,7 @@ public sealed record GtaEventSourceInput(
     ulong AuthorId = 0);
 
 public sealed record CanonicalEventBlock(string Kind, string Text);
+public sealed record GtaInputIntegrity(bool IsComplete, int OriginalLength, string? TruncationReason);
 
 public sealed record CanonicalEventDocument(
     ulong SourceMessageId,
@@ -38,7 +39,10 @@ public sealed record CanonicalEventDocument(
     IReadOnlyList<CanonicalEventBlock> CanonicalBlocks,
     string CanonicalText,
     ulong AuthorId = 0,
-    string? OwnCanonicalText = null);
+    string? OwnCanonicalText = null)
+{
+    public GtaInputIntegrity OwnInputIntegrity { get; init; } = new(true, 0, null);
+}
 
 public enum GtaEventClassificationKind
 {

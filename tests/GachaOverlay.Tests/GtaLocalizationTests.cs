@@ -83,7 +83,7 @@ public sealed class GtaLocalizationTests : IDisposable
         Assert.Equal("클러킹 벨 농장 기습", glossary.Match("The Cluckin' Bell Farm Raid", 0)!.Value.Output);
         Assert.Null(glossary.Match("Freecrawler", 0));
         Assert.Equal("플리카 습격", glossary.Match("플리카 작업", 0)!.Value.Output);
-        foreach (var name in new[] { "Bravado Banshee GTS", "Grotti Turismo Omaggio", "UnknownCreator Turbo Van", "\"my strange lowercase job\"", "KnoWay Out", "Mansion Raid" })
+        foreach (var name in new[] { "Bravado Banshee GTS", "Grotti Turismo Omaggio", "KnoWay Out", "Mansion Raid" })
         {
             var prepared = new LocalizationProtection(glossary).Protect("Get " + name + " for free");
             Assert.Contains(name, prepared.Tokens.Values);

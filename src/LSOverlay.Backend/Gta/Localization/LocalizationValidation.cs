@@ -10,7 +10,7 @@ internal static class LocalizationValidation
 {
     public static PreparedLocalization Prepare(PublicGtaLocalizationInput input, GtaLocalizationGlossary glossary)
     {
-        if (input.Items.Count is 0 or > 64 || input.Items.Sum(i => i.Text.Length) > 12000 ||
+        if (!input.IsComplete || input.Items.Count is 0 or > 64 || input.Items.Sum(i => i.Text.Length) > 12000 ||
             input.Items.Select(i => i.Id).Distinct(StringComparer.Ordinal).Count() != input.Items.Count)
             throw new InvalidDataException("InputSizeOrIdentity");
         var protector = new LocalizationProtection(glossary);
@@ -30,7 +30,7 @@ internal static class LocalizationValidation
     {
         translations = new Dictionary<string, string>();
         reason = "Schema";
-        if (string.IsNullOrWhiteSpace(json) || json.Length > 128 * 1024) return false;
+        if (!prepared.Input.IsComplete || string.IsNullOrWhiteSpace(json) || json.Length > 128 * 1024) return false;
         try
         {
             using var doc = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 8 });

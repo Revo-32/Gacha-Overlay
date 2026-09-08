@@ -6,7 +6,7 @@ namespace LSOverlay.Backend.Gta.Localization;
 
 internal sealed record PublicGtaText(string Id, string Type, string Text,
     IReadOnlyDictionary<string, string>? ProtectedTerms = null);
-internal sealed record PublicGtaLocalizationInput(string SourceRevision, IReadOnlyList<PublicGtaText> Items);
+internal sealed record PublicGtaLocalizationInput(string SourceRevision, IReadOnlyList<PublicGtaText> Items, bool IsComplete = true);
 
 internal static class TrustedGtaLocalizationSourcePolicy
 {
@@ -17,7 +17,7 @@ internal static class TrustedGtaLocalizationSourcePolicy
 
     public static PublicGtaLocalizationInput? Extract(CanonicalEventDocument document)
     {
-        if (!Allows(document.ChannelId, document.AuthorId) || string.IsNullOrWhiteSpace(document.OwnCanonicalText) ||
+        if (!document.OwnInputIntegrity.IsComplete || !Allows(document.ChannelId, document.AuthorId) || string.IsNullOrWhiteSpace(document.OwnCanonicalText) ||
             document.OwnCanonicalText.Length > 16 * 1024) return null;
         var text = document.OwnCanonicalText;
         // Content is allowlisted; embedded Discord references/identity and URLs are

@@ -116,7 +116,7 @@ public sealed class KoreanLocalizationSurfaceTests
     [InlineData("2Xtreme")]
     public void ProtectedNamesAreNotSurfaceRewritten(string name)
     {
-        var p = new LocalizationProtection(GtaLocalizationGlossary.Default).Protect(name);
+        var p = new LocalizationProtection(GtaLocalizationGlossary.Default).Protect(name, entityKind: LocalizationEntityKind.CreatorJobTitle);
         Assert.True(LocalizationProtection.TryRestore(p, p.Text, out var restored, out _));
         Assert.Equal(name, restored);
     }
@@ -124,7 +124,7 @@ public sealed class KoreanLocalizationSurfaceTests
     [Fact]
     public void UnknownPronunciationDoesNotGuessOrLeakMechanicalParticles()
     {
-        var p = new LocalizationProtection(GtaLocalizationGlossary.Default).Protect("UnknownCreatorName");
+        var p = new LocalizationProtection(GtaLocalizationGlossary.Default).Protect("UnknownCreatorName", entityKind: LocalizationEntityKind.CreatorJobTitle);
         Assert.False(LocalizationProtection.TryRestore(p, p.Text + "을(를) 완료", out _, out var reason));
         Assert.Equal("KoreanSurface", reason);
         Assert.False(LocalizationProtection.TryRestore(p, p.Text + " 안내를(을) 확인", out _, out _));
@@ -133,7 +133,7 @@ public sealed class KoreanLocalizationSurfaceTests
     [Fact]
     public void PromptAndSurfaceVersionsInvalidateOldMemory()
     {
-        Assert.Equal("gta-ko-3.1", GeminiGtaLocalizationProvider.PromptVersion);
+        Assert.Equal("gta-ko-3.2", GeminiGtaLocalizationProvider.PromptVersion);
         Assert.Equal("ko-surface-1", KoreanLocalizationSurface.Version);
     }
 }

@@ -14,7 +14,7 @@ internal interface IGtaLocalizationProvider
 internal sealed class GeminiGtaLocalizationProvider : IGtaLocalizationProvider, IDisposable
 {
     public const string DefaultModel = "gemini-3.5-flash-lite";
-    public const string PromptVersion = "gta-ko-3.1";
+    public const string PromptVersion = "gta-ko-3.2";
     public const string SchemaVersion = "fields-1";
     private readonly HttpClient _http;
     private readonly string? _key;
@@ -106,27 +106,25 @@ internal sealed class GeminiGtaLocalizationProvider : IGtaLocalizationProvider, 
         "for free" means 무료로; "this week" is a temporal modifier, not part of an item name.
         Do not add conditions like playing for a duration if the source states only a duration.
         Never introduce numbers, Latin words, currencies, dates or facts outside placeholders.
-        Translate the remaining grammar into concise natural Korean, without opinions or tips.
-        Unknown vehicles and creator titles and unverified activities are protected; never rename them.
-        Style references only (preserve actual placeholders, not these example variables):
-        Earn {multiplier} GTA$ and RP on {activity} -> {activity}에서 {rewards}를 {multiplier}로 획득할 수 있습니다.
-        Get {discount} off {item} -> {item}을 {discount} 할인된 가격에 이용할 수 있습니다.
-        Complete {activity} to receive {reward} -> {activity}를 완료하면 {reward}을 받을 수 있습니다.
-        Available through {date} -> {date}까지 이용할 수 있습니다.
-        Claim {item} for free -> {item}을 무료로 획득할 수 있습니다.
-        Surface-style examples (output actual input placeholders, never copy literal facts):
-        Earn 3X GTA$ and RP on Acid Lab Sell Missions. -> LSD 제조실 판매 임무에서 GTA 달러와 RP를 3배로 획득할 수 있습니다.
-        Earn 1.5X GTA$ and RP for 90 minutes. -> 90분 동안 GTA 달러와 RP를 1.5배로 획득할 수 있습니다.
-        Complete The Cayo Perico Heist to receive GTA$1,000,000. -> 카요 페리코 습격을 완료하면 GTA$1,000,000을 받을 수 있습니다.
+        Translate ALL remaining prose into concise natural Korean, without opinions or tips.
+        Only placeholders are protected. Capitalized or quoted text outside placeholders is NOT protected:
+        localize it into Korean, transliterating unlisted names if needed, with no residual Latin spelling.
+        Positively identified vehicles, creator titles and unverified activities are protected; never rename them.
+        Equal amounts with different placeholders are distinct facts: a sales target and a reward must BOTH remain.
+        Keep the original relations: a multiplier governing cash, RP and research speed applies to all three,
+        not only cash and RP. Do not turn an activity's research-speed bonus into a separate activity.
+        For bonus headings with a colon, keep ALL reward metrics together on the same side of the colon,
+        followed by their one shared multiplier; keep the activity and its requirements on the other side.
+        A placeholder's Korean meaning is already complete. Do not repeat its final word outside the placeholder.
+        Use neutral Korean event labels where appropriate; do not force every item into a reward sentence.
         Duration/multiplier placeholders already restore to Korean units (분, 시간, 배); do not append another unit.
         For currency-and-RP coordination put 와 between the two corresponding placeholders, never write literal RP.
         Do not use parenthesized particles. For unknown pronunciations, prefer a neutral list/label formulation.
         Use natural Korean particles, but factual fidelity always has priority over fluency.
         CRITICAL OUTPUT CHECK: Every key in each item's protectedTerms MUST occur exactly once in that item's textKo.
         This includes RP and temporal terms such as this week / 이번 주. Even Korean dictionary values must NOT replace tokens.
-        The plain-language style examples above explain the FINAL UI text, not the JSON you must return.
-        Example protected input: Earn [[L002_0000]] [[L002_0001]] and [[L002_0002]] on [[L002_0003]].
-        Correct protected output: [[L002_0003]]에서 [[L002_0001]]와 [[L002_0002]]를 [[L002_0000]]로 획득할 수 있습니다.
+        Before returning each row, compare its placeholder set with THAT ROW's protectedTerms keys.
+        Never borrow a placeholder from a previous row. Never merge equal-valued placeholders.
         Never output "RP" in place of [[L002_0002]]. Never output "이번 주" in place of its corresponding token.
         Before returning JSON, compare the placeholder set and counts of every item against its protectedTerms keys.
         """;

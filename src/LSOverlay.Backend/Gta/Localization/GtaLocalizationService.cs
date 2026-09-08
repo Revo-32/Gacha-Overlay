@@ -24,6 +24,8 @@ internal sealed class GtaLocalizationService : BackgroundService
     private readonly Dictionary<string, TaskCompletionSource<bool>> _inFlight = new(StringComparer.Ordinal);
     private readonly Dictionary<string, DateTimeOffset> _failed = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Stored> _memory = new(StringComparer.Ordinal);
+    // Retired identities remain bounded on disk, but can never serve current translations.
+    private readonly Dictionary<string, Stored> _retired = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _views = new(StringComparer.Ordinal);
     private long _requests, _hits, _joins, _rejected, _failures;
     private bool _stopping;
@@ -76,7 +78,7 @@ internal sealed class GtaLocalizationService : BackgroundService
     }
     private string Identity(PublicGtaLocalizationInput input) => GtaLocalizationGlossary.Digest(string.Join('|',
         TrustedGtaLocalizationSourcePolicy.Version, _glossary.Hash, _overrides.Hash, GeminiGtaLocalizationProvider.PromptVersion,
-        GeminiGtaLocalizationProvider.SchemaVersion, KoreanLocalizationSurface.Version, _provider.Model, JsonSerializer.Serialize(input, GeminiGtaLocalizationProvider.JsonOptions)));
+        GeminiGtaLocalizationProvider.SchemaVersion, KoreanLocalizationSurface.Version, LocalizationProtection.Version, _provider.Model, JsonSerializer.Serialize(input, GeminiGtaLocalizationProvider.JsonOptions)));
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -103,7 +105,11 @@ internal sealed class GtaLocalizationService : BackgroundService
                         _logger.LogInformation("GTA localization model={Model} revision={Revision} result={Result} elapsed_ms={Elapsed} attempt={Attempt}.",
                             _provider.Model, job.Prepared.Input.SourceRevision, reason, response.ElapsedMilliseconds, attempt + 1);
                         if (response.Json is null) break;
-                        if (!LocalizationValidation.TryValidate(job.Prepared, response.Json, out var view, out reason)) continue;
+                        if (!LocalizationValidation.TryValidate(job.Prepared, response.Json, out var view, out reason))
+                        {
+                            _logger.LogInformation("GTA localization validation rejected category={Category} attempt={Attempt}.", reason, attempt + 1);
+                            continue;
+                        }
                         if (stoppingToken.IsCancellationRequested) break;
                         var merged = new Dictionary<string, string>(view, StringComparer.Ordinal);
                         foreach (var pair in overrides) merged[pair.Key] = pair.Value;
@@ -177,15 +183,22 @@ internal sealed class GtaLocalizationService : BackgroundService
                 if (entries is null || entries.Length > MaximumEntries) continue;
                 foreach (var entry in entries)
                 {
-                    if (entry is null || entry.Input is null || entry.Input.Items is null || entry.Identity != Identity(entry.Input)) continue;
+                    if (entry is null || entry.Input is null || entry.Input.Items is null ||
+                        entry.Identity is null || entry.Identity.Length != 64 || entry.Response is null || entry.Response.Length > 128 * 1024) continue;
                     var prepared = LocalizationValidation.Prepare(entry.Input, _glossary);
+                    if (entry.Identity != Identity(entry.Input)) { _retired[entry.Identity] = entry; continue; }
                     if (!LocalizationValidation.TryValidate(prepared, entry.Response, out var view, out _)) continue;
                     var merged = new Dictionary<string, string>(view, StringComparer.Ordinal);
                     foreach (var pair in _overrides.Resolve(prepared)) merged[pair.Key] = pair.Value;
                     _memory[entry.Identity] = entry;
                     _views[entry.Identity] = merged;
                 }
-                if (_memory.Count > 0 || entries.Length == 0) return;
+                if (_memory.Count > 0 || _retired.Count > 0 || entries.Length == 0)
+                {
+                    _logger.LogInformation("GTA translation memory loaded current={Current} retired={Retired} policy={Policy}.",
+                        _memory.Count, _retired.Count, LocalizationProtection.Version);
+                    return;
+                }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or ArgumentException or InvalidOperationException or NullReferenceException)
             { _logger.LogWarning("GTA translation memory invalid; checking Last-Good backup."); }
@@ -199,9 +212,15 @@ internal sealed class GtaLocalizationService : BackgroundService
             string json;
             lock (_sync)
             {
-                json = JsonSerializer.Serialize(_memory.Values.ToArray(), GeminiGtaLocalizationProvider.JsonOptions);
-                while (System.Text.Encoding.UTF8.GetByteCount(json) > MaximumStoreBytes && _memory.Count > 1)
-                { Remove(_memory.Keys.First()); json = JsonSerializer.Serialize(_memory.Values.ToArray(), GeminiGtaLocalizationProvider.JsonOptions); }
+                string Serialize() => JsonSerializer.Serialize(_retired.Values.Concat(_memory.Values).ToArray(), GeminiGtaLocalizationProvider.JsonOptions);
+                json = Serialize();
+                while ((_retired.Count + _memory.Count > MaximumEntries || System.Text.Encoding.UTF8.GetByteCount(json) > MaximumStoreBytes) &&
+                    _retired.Count + _memory.Count > 1)
+                {
+                    if (_retired.Count > 0) _retired.Remove(_retired.Keys.First());
+                    else Remove(_memory.Keys.First());
+                    json = Serialize();
+                }
             }
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             File.WriteAllText(temporary, json);

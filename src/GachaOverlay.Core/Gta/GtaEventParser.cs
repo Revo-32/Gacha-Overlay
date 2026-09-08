@@ -162,7 +162,7 @@ public sealed partial class GtaEventParser
             {
                 planned.Add(new GtaCampaignWeek(
                     range!.StartAt.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-                    Bound(line, 256),
+                    line,
                     range.StartAt,
                     range.EndAt));
             }
@@ -174,11 +174,11 @@ public sealed partial class GtaEventParser
 
             if (section == "goals")
             {
-                goals.Add(Bound(line, 256));
+                goals.Add(line);
             }
             else if (section == "rewards")
             {
-                rewards.Add(Bound(line, 256));
+                rewards.Add(line);
             }
         }
 
@@ -186,7 +186,7 @@ public sealed partial class GtaEventParser
             .Concat(ranges.Select(range => $"{range.StartAt:yyyyMMdd}-{range.EndAt:yyyyMMdd}")));
         return new GtaEventCampaign(
             StableKey("campaign", keyMaterial),
-            Bound(title, 256),
+            title,
             ranges.Count == 0 ? null : ranges.Min(range => range.StartAt),
             ranges.Count == 0 ? null : ranges.Max(range => range.EndAt),
             goals.Distinct(StringComparer.OrdinalIgnoreCase).Take(16).ToArray(),
@@ -230,9 +230,9 @@ public sealed partial class GtaEventParser
             var semantic = $"{action}|{GtaEventTextNormalizer.NormalizeIdentity(target)}|{count}|{reward}";
             return new GtaSemanticChallenge(
                 StableKey("challenge", semantic),
-                Bound(text, 512),
+                text,
                 action,
-                Bound(target, 384),
+                target,
                 count,
                 null,
                 reward,
@@ -348,8 +348,8 @@ public sealed partial class GtaEventParser
         return new GtaSemanticEventItem(
             StableKey("item", semantic),
             kind,
-            Bound(original, 512),
-            string.IsNullOrWhiteSpace(activity) ? null : Bound(activity, 256),
+            original,
+            string.IsNullOrWhiteSpace(activity) ? null : activity,
             multiplier,
             discount,
             rewards,
@@ -445,9 +445,6 @@ public sealed partial class GtaEventParser
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
         return $"{prefix}_{Convert.ToHexString(bytes.AsSpan(0, 10)).ToLowerInvariant()}";
     }
-
-    private static string Bound(string value, int maximum) =>
-        value.Length <= maximum ? value : value[..maximum].TrimEnd();
 
     [GeneratedRegex(@"(?<multiplier>\d{1,2})\s*[X×]\s*(?<body>.+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex MultiplierRegex();

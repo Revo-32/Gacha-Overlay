@@ -6,8 +6,8 @@ namespace GachaOverlay.Core.Gta;
 public sealed partial class CanonicalEventDocumentBuilder
 {
     public const int MaximumBlocks = 64;
-    public const int MaximumBlockLength = 2048;
     public const int MaximumCanonicalLength = 16 * 1024;
+    public const int MaximumBlockLength = MaximumCanonicalLength;
 
     public CanonicalEventDocument Build(GtaEventSourceInput source)
     {
@@ -19,10 +19,12 @@ public sealed partial class CanonicalEventDocumentBuilder
 
         var blocks = new List<CanonicalEventBlock>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var originalLength = 0;
+        string? truncationReason = null;
 
         void Add(string kind, string? value)
         {
-            if (blocks.Count >= MaximumBlocks || string.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(value))
             {
                 return;
             }
@@ -33,11 +35,15 @@ public sealed partial class CanonicalEventDocumentBuilder
                 return;
             }
 
-            normalized = normalized.Length <= MaximumBlockLength
-                ? normalized
-                : normalized[..MaximumBlockLength].TrimEnd();
             if (seen.Add(normalized))
             {
+                originalLength += normalized.Length + (seen.Count > 1 ? 1 : 0);
+                if (blocks.Count >= MaximumBlocks) { truncationReason = "BlockCountLimit"; return; }
+                if (normalized.Length > MaximumBlockLength)
+                {
+                    truncationReason = "CanonicalLengthLimit";
+                    normalized = normalized[..MaximumBlockLength].TrimEnd();
+                }
                 blocks.Add(new CanonicalEventBlock(kind, normalized));
             }
         }
@@ -54,8 +60,11 @@ public sealed partial class CanonicalEventDocumentBuilder
         var canonical = string.Join('\n', blocks.Select(block => block.Text));
         if (canonical.Length > MaximumCanonicalLength)
         {
+            truncationReason = "CanonicalLengthLimit";
             canonical = canonical[..MaximumCanonicalLength].TrimEnd();
         }
+        var own = source.ForwardedSnapshots?.Count > 0
+            ? Build(source with { ForwardedSnapshots = Array.Empty<GtaEventForwardInput>() }) : null;
 
         var publisher = FirstMeaningful(
             source.SourcePublisher,
@@ -73,9 +82,10 @@ public sealed partial class CanonicalEventDocumentBuilder
             blocks,
             canonical,
             source.AuthorId,
-            source.ForwardedSnapshots?.Count > 0
-                ? Build(source with { ForwardedSnapshots = Array.Empty<GtaEventForwardInput>() }).CanonicalText
-                : canonical);
+            own?.CanonicalText ?? canonical)
+        {
+            OwnInputIntegrity = own?.OwnInputIntegrity ?? new(truncationReason is null, originalLength, truncationReason)
+        };
     }
 
     private static void AddEmbeds(

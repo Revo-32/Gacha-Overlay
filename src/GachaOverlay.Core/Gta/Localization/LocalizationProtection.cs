@@ -10,28 +10,25 @@ public sealed record ProtectedLocalizationText(string Source, string Text, IRead
 
 public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
 {
-    // Unknown words are preserved, not guessed. This deliberately favors safe English
-    // fragments over inventing a vehicle, creator-job or new activity name.
-    private static readonly HashSet<string> Grammar = new(("a an the and or on in at to for from with of by " +
-        "earn get off complete receive claim available through log login this week weekly all your " +
-        "you can will be is are as during including plus only each every win play sell purchase " +
-        "rewards reward bonus bonuses discounts discount missions jobs races vehicles times days hours minutes " +
-        "seconds weeks months collect deliver participate finish survive destroy steal source first " +
-        "time completion new double triple now until enjoy take part unlock free more than least " +
-        "requirements requirement inventory select selected receive completing winning selling once twice")
-        .Split(' '), StringComparer.OrdinalIgnoreCase);
-    private static readonly Regex Fact = new(@"\G(?:\b(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}(?:,?\s+\d{4})?|(?:GTA\$|\$)?\d[\d,]*(?:[.:/-]\d+)*(?:\s*(?:%|[X×]|RP|seconds?|minutes?|hours?|days?|weeks?|months?))?)",
+    public const string Version = "gta-protect-2";
+    private static readonly string[] NumberWords = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+    private static readonly Regex NumberWord = new(@"\G(?:one|two|three|four|five|six|seven|eight|nine|ten)\b(?:\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?))?",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+    private static readonly Regex Fact = new(@"\G(?:\b(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)\s+\d{1,2}(?:-\d{1,2})?(?:,?\s+\d{4})?|(?:GTA\$|\$)?\d[\d,]*(?:[.:/-]\d+)*(?:\s*(?:%|[X×]|RP|seconds?|minutes?|hours?|days?|weeks?|months?))?)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
     private static readonly Regex Word = new(@"\G[\p{L}\p{N}]+(?:['’_-][\p{L}\p{N}]+)*", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
     private static readonly Regex Token = new(@"\[\[L\d{3}_\d{4}\]\]", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+    private static readonly Regex Platform = new(@"\G(?:PS[345]|PlayStation [345]|Xbox Series X\|S|Xbox One|PC Enhanced|PC Legacy)(?![\p{L}\p{N}_])",
+        RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
 
-    public ProtectedLocalizationText Protect(string source, int fieldIndex = 0)
+    public ProtectedLocalizationText Protect(string source, int fieldIndex = 0, LocalizationEntityKind? entityKind = null)
     {
         if (string.IsNullOrWhiteSpace(source) || source.Length > 2048 || source.Contains("[[", StringComparison.Ordinal) ||
             source.Contains("]]", StringComparison.Ordinal) || source.Contains('\uFFFD')) throw new InvalidDataException("InputText");
         var tokens = new Dictionary<string, string>(StringComparer.Ordinal);
         var quantities = new Dictionary<string, LocalizationQuantity>(StringComparer.Ordinal);
         var output = new StringBuilder();
+        var entities = LocalizationEntities.Extract(source, entityKind);
         void Append(string value, LocalizationQuantity? quantity = null)
         {
             var key = $"[[L{fieldIndex:D3}_{tokens.Count:D4}]]";
@@ -41,35 +38,34 @@ public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
         }
         for (var i = 0; i < source.Length;)
         {
-            if (source[i] is '"' or '“')
-            {
-                var end = source.IndexOf(source[i] == '“' ? '”' : '"', i + 1);
-                if (end > i + 1) { Append(source[i..(end + 1)]); i = end + 1; continue; }
-            }
-            if (glossary.Match(source, i) is { } term)
-            {
-                Append(term.Output); i += term.Length; continue;
-            }
+            var platform = Platform.Match(source, i);
+            if (platform.Success) { Append(platform.Value); i += platform.Length; continue; }
             var fact = Fact.Match(source, i);
             if (fact.Success && (i + fact.Length == source.Length || !char.IsLetterOrDigit(source[i + fact.Length])))
             {
                 var quantity = KoreanLocalizationSurface.ParseQuantity(fact.Value);
                 Append(quantity?.Display ?? fact.Value, quantity); i += fact.Length; continue;
             }
-            var word = Word.Match(source, i);
-            if (word.Success && !Grammar.Contains(word.Value) && word.Value.Any(c => c <= 127 && char.IsLetterOrDigit(c)))
+            // Longest approved compound wins before any inferred entity/prose handling.
+            if (glossary.Match(source, i) is { } term)
             {
-                var end = i + word.Length;
-                // Preserve a whole unknown proper-name span, including class-like words
-                // inside it (e.g. an unknown model ending in "Sport" or "Van").
-                while (end < source.Length && source[end] == ' ')
-                {
-                    var next = Word.Match(source, end + 1);
-                    if (!next.Success || Grammar.Contains(next.Value)) break;
-                    end += 1 + next.Length;
-                }
-                Append(source[i..end]); i = end; continue;
+                Append(term.Output); i += term.Length; continue;
             }
+            if (entities.FirstOrDefault(e => e.Start == i) is { } entity)
+            {
+                Append(source.Substring(i, entity.Length)); i += entity.Length; continue;
+            }
+            var numericWord = NumberWord.Match(source, i);
+            if (numericWord.Success)
+            {
+                var parts = numericWord.Value.Split(' ', 2);
+                var number = (Array.FindIndex(NumberWords, word => word.Equals(parts[0], StringComparison.OrdinalIgnoreCase)) + 1)
+                    .ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var quantity = parts.Length == 2 ? KoreanLocalizationSurface.ParseQuantity(number + " " + parts[1]) : null;
+                Append(quantity?.Display ?? number, quantity); i += numericWord.Length; continue;
+            }
+            // Unknown prose is translatable. Neither capitalization nor dictionary absence is evidence.
+            var word = Word.Match(source, i);
             if (word.Success) { output.Append(word.Value); i += word.Length; }
             else { output.Append(source[i]); i++; }
         }
@@ -96,6 +92,12 @@ public sealed class LocalizationProtection(GtaLocalizationGlossary glossary)
         // Normalize only known reward coordination between separate protected atoms.
         // Never rewrite a quoted creator name or a monetary amount containing these characters.
         var display = new Dictionary<string, string>(input.Tokens, StringComparer.Ordinal);
+        foreach (var term in input.Tokens)
+        {
+            var finalWord = Regex.Match(term.Value, @"(?:^|\s)([가-힣]{2,})$", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+            if (finalWord.Success && Regex.IsMatch(text, Regex.Escape(term.Key) + @"\s+" + finalWord.Groups[1].Value + @"(?=\s|$|[.,:;])",
+                RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100))) { reason = "RepeatedTerm"; return false; }
+        }
         foreach (var fact in input.Quantities)
         {
             // Units belong to the protected semantic atom, never to model-generated grammar.
