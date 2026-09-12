@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 
 namespace LSOverlay.Backend.Configuration;
 
@@ -8,6 +9,8 @@ internal sealed record BackendDeploymentOptions(
     string DataDirectory,
     string? VolumeMountPath)
 {
+    public IPAddress? TrustedCloudflaredPeer { get; init; }
+
     public static BackendDeploymentOptions Resolve(Func<string, string?> environment)
     {
         string? Read(string key)
@@ -82,7 +85,22 @@ internal sealed record BackendDeploymentOptions(
             listen = parsed;
         }
 
-        return new BackendDeploymentOptions(railway, listen, Path.GetFullPath(data), mount);
+        IPAddress? trustedPeer = null;
+        var cloudflaredPeer = Read("LSO_TRUSTED_CLOUDFLARED_PEER");
+        if (!string.IsNullOrEmpty(cloudflaredPeer))
+        {
+            // This mode is exclusively for a local cloudflared connector and a
+            // loopback-only origin. Do not widen it to private networks or Railway.
+            if (railway || !IPAddress.TryParse(cloudflaredPeer, out trustedPeer) ||
+                !IPAddress.IsLoopback(trustedPeer) || cloudflaredPeer != trustedPeer.ToString() ||
+                !IPAddress.TryParse(listen.Host, out var listener) || !IPAddress.IsLoopback(listener))
+                throw new BackendDeploymentException("Cloudflared forwarding requires one explicit loopback peer and a loopback-only local listener.");
+        }
+
+        return new BackendDeploymentOptions(railway, listen, Path.GetFullPath(data), mount)
+        {
+            TrustedCloudflaredPeer = trustedPeer,
+        };
     }
 
     internal static bool IsWithin(string root, string path)

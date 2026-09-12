@@ -12,6 +12,20 @@ internal static class BackendTransportHosting
     {
         var configuration = app.ApplicationServices.GetRequiredService<BackendConfiguration>();
         var railway = configuration.Deployment?.IsRailway == true;
+        if (configuration.Deployment?.TrustedCloudflaredPeer is { } trustedPeer)
+        {
+            app.Use(async (context, next) =>
+            {
+                if (!CloudflaredClientAddress.Apply(context, trustedPeer))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
+                }
+
+                await next(context).ConfigureAwait(false);
+            });
+        }
+
         if (railway)
         {
             // The trusted boundary is the isolated, single-service Railway environment,
