@@ -94,6 +94,7 @@ struct Options {
     std::filesystem::path chatFixture, chatVerificationDirectory;
     unsigned phaseSeconds = 15;
     bool noHotkeys = false;
+    bool chatCaptureOnly = false;
 };
 
 class Shell final {
@@ -167,6 +168,7 @@ private:
         input.seekg(0); std::string bytes(static_cast<std::size_t>(length),'\0');
         if (!input.read(bytes.data(),length)) throw std::runtime_error("Cannot read chat fixture");
         renderer_.setChatSnapshot(std::make_shared<core::Json>(bytes)); queueDraw();
+        renderer_.setConnectionStatus(L"로컬 채팅 Snapshot · 실시간 연결 아님");
     }
     bool verifying() const { return !options_.verificationDirectory.empty(); }
     void assertion(bool value, const char* name) {
@@ -406,6 +408,29 @@ private:
         auto* chat = renderer_.chat();
         if (!chat) throw std::runtime_error("Chat test view missing");
         ++chatTicks_;
+        if (options_.chatCaptureOnly) {
+            if (chatTicks_ == 1) {
+                assertion(chat->messageCount() > 0,"Captured canonical chat is not empty");
+                chat->followLatest(); renderNow();
+                renderer_.savePng(options_.chatVerificationDirectory / "captured-chat-latest.png");
+                chat->scroll(-chat->scrolling().maximum()); renderNow();
+                renderer_.savePng(options_.chatVerificationDirectory / "captured-chat-first.png");
+                chatBefore_ = measure(); chatStarted_ = Clock::now(); chatIdleRenders_ = renderer_.renderCount();
+                return;
+            }
+            if (chatTicks_ < 4) return;
+            const auto after = measure();
+            const double elapsed = std::chrono::duration<double>(Clock::now()-chatStarted_).count();
+            assertion(renderer_.renderCount() == chatIdleRenders_,"Captured chat idle does not repaint");
+            std::ofstream output(options_.chatVerificationDirectory / "captured-chat-metrics.json");
+            output << "{\"scope\":\"offline captured chat rendering; NOT OAuth/live stream/media parity\",\"messages\":" << chat->messageCount()
+                << ",\"assertions\":" << assertions_ << ",\"privateBytes\":" << after.privateBytes << ",\"workingSet\":" << after.workingSet
+                << ",\"seconds\":" << elapsed << ",\"cpuOneCorePercent\":" << static_cast<double>(after.cpu100ns-chatBefore_.cpu100ns)/100000.0/elapsed
+                << ",\"idleRenders\":0}";
+            output.flush(); if (!output) throw std::runtime_error("Captured chat report failed");
+            DestroyWindow(window_);
+            return;
+        }
         if (chatTicks_ == 1) {
             assertion(chat->messageCount() == 20 && chat->scrolling().following(),"Chat20 initially follows latest");
             renderer_.savePng(options_.chatVerificationDirectory / "chat20.png");
@@ -665,6 +690,7 @@ Options parseOptions() {
         else if (arg == L"--fixture-verify" && i + 1 < count) options.fixtureVerificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--chat-fixture" && i + 1 < count) options.chatFixture = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--chat-verify" && i + 1 < count) options.chatVerificationDirectory = std::filesystem::absolute(argv[++i]);
+        else if (arg == L"--chat-capture" && i + 1 < count) { options.chatCaptureOnly = true; options.chatVerificationDirectory = std::filesystem::absolute(argv[++i]); }
         else if (arg == L"--phase-seconds" && i + 1 < count) {
             std::size_t used = 0;
             const std::wstring value = argv[++i];
@@ -680,7 +706,7 @@ Options parseOptions() {
             throw std::runtime_error("Fixture mode requires explicit HTTP loopback, separate from shell verification");
     } else if (!options.fixtureVerificationDirectory.empty()) throw std::runtime_error("Fixture verification requires an explicit fixture endpoint");
     if (!options.chatFixture.empty() && (!options.fixtureEndpoint.empty() || !options.verificationDirectory.empty())) throw std::runtime_error("Chat fixture mode is separate from network/shell verification");
-    if (!options.chatVerificationDirectory.empty() && options.chatFixture.empty()) throw std::runtime_error("Chat verification requires synthetic chat fixture");
+    if (!options.chatVerificationDirectory.empty() && options.chatFixture.empty()) throw std::runtime_error("Chat verification requires a local semantic snapshot");
     return options;
 }
 }

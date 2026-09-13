@@ -19,7 +19,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "E:\CODEX\Worktrees\Gach
 
 다른 터미널에서 `http://127.0.0.1:15188/healthz`를 확인한다. 이 경로는 SSH 암호화 안의 loopback HTTP다. `http://192.168.0.10:5188` 같은 운영 origin 노출 우회는 사용하지 않는다. 보안 검증을 통과하지 않은 직접 LAN HTTP를 제품에 허용하지 않는다.
 
-합성 fixture가 발급한 임시 token도 콘솔/로그에 기록하지 않는다. 실제 Discord 데이터 통합은 별도 개발 앱/OAuth·봇 구성과 사용자 승인이 준비된 뒤 검증해야 한다. 제품의 auth/Remote 저장 파일, 운영 OAuth/DNS는 변경하지 않는다.
+합성 fixture가 발급한 임시 token도 콘솔/로그에 기록하지 않는다. 사용자 승인에 따른 실제 Discord 일회 조회는 별도 `LSOverlay.CoreReadProbe`와 [실데이터 검증 안내](DISCORD-SETUP.ko.md)를 사용한다. **합성 fixture에 운영 credential을 넣지 않는다.** 제품의 auth/Remote 저장 파일, 운영 OAuth/DNS는 변경하지 않는다.
 
 네이티브 HTTP/WebSocket probe는 loopback 합성 manifest를 확인한 뒤에만 동작한다.
 
