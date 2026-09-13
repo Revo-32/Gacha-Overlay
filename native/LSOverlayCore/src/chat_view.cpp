@@ -308,7 +308,7 @@ void ChatView::paintBlock(ID2D1RenderTarget* target, ChatBlock& block, float x, 
 void ChatView::paintMedia(ID2D1RenderTarget* target, const std::string& id, D2D1_RECT_F bounds) {
     if (!media_ || bounds.bottom <= viewport_.top || bounds.top >= viewport_.bottom || bounds.right <= viewport_.left || bounds.left >= viewport_.right) return;
     visibleMedia_.insert(id);
-    if (recordingMedia_) { mediaPlacements_.push_back({id,bounds}); return; }
+    if (recordingMedia_) { mediaPlacements_.push_back({id,bounds,viewport_}); return; }
     const auto pixels = media_->frame(id);
     if (!pixels) { target->DrawRectangle(bounds,brush(target,0x57606a)); return; }
     const auto key = media_->sourceKey(id); visibleBitmaps_.insert(key);
@@ -344,9 +344,12 @@ bool ChatView::mediaUpdated() {
 }
 void ChatView::pauseMedia() { if (media_) media_->setVisible({}); mediaBitmaps_.clear(); }
 void ChatView::drawMedia(ID2D1RenderTarget* target) {
-    visibleBitmaps_.clear(); target->PushAxisAlignedClip(viewport_,D2D1_ANTIALIAS_MODE_ALIASED);
-    for (const auto& placement : mediaPlacements_) paintMedia(target,placement.id,placement.bounds);
-    target->PopAxisAlignedClip();
+    visibleBitmaps_.clear(); const auto original = viewport_;
+    for (const auto& placement : mediaPlacements_) {
+        viewport_ = placement.clip; target->PushAxisAlignedClip(viewport_,D2D1_ANTIALIAS_MODE_ALIASED);
+        paintMedia(target,placement.id,placement.bounds); target->PopAxisAlignedClip();
+    }
+    viewport_ = original;
     std::erase_if(mediaBitmaps_,[&](const auto& pair) { return !visibleBitmaps_.contains(pair.first); });
 }
 void ChatView::draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport) {
@@ -383,7 +386,10 @@ void ChatView::draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport) {
     }
     target->PopAxisAlignedClip();
     recordingMedia_ = false;
-    if (media_) media_->setVisible(visibleMedia_);
+}
+void ChatView::drawExternal(ID2D1RenderTarget* target, ChatBlock& block, float x, float y, D2D1_RECT_F clip) {
+    const auto original = viewport_; viewport_ = clip; recordingMedia_ = true;
+    paintBlock(target,block,x,y); recordingMedia_ = false; viewport_ = original;
 }
 bool ChatView::pressScrollbar(float x, float y) {
     if (scroll_.maximum() <= 0 || x < viewport_.right-10 || x > viewport_.right ||

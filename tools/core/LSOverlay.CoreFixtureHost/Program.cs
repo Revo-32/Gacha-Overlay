@@ -3,6 +3,11 @@ using LSOverlay.CoreFixtureHost;
 using System.Text;
 
 // Synthetic contract fixture only. Never imports Production settings/credentials.
+if (args is ["--export-sales",var salesDirectory])
+{
+    SalesFixtureData.Export(salesDirectory);
+    return;
+}
 if (args is ["--export-chat", var directory])
 {
     ChatFixtureData.Export(directory);

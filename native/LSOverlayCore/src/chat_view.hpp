@@ -43,7 +43,16 @@ public:
     void setMedia(std::shared_ptr<MediaStore> media) { media_ = std::move(media); }
     bool mediaUpdated();
     bool hasMedia() const { return media_ != nullptr; }
+    bool failedMedia(const ChatBlock& block) const {
+        if (!media_) return false;
+        for (const auto& item : block.images) if (media_->failed(item.id)) return true;
+        return !block.mediaId.empty() && media_->failed(block.mediaId);
+    }
     void drawMedia(ID2D1RenderTarget* target);
+    void commitMediaVisibility() { if (media_) media_->setVisible(visibleMedia_); }
+    ChatBlock externalRuns(yyjson_val* values, float size) const { return runs(values,size); }
+    void layoutExternal(ChatBlock& block, float width) { layout(block,width); }
+    void drawExternal(ID2D1RenderTarget* target, ChatBlock& block, float x, float y, D2D1_RECT_F clip);
     void pauseMedia();
     void draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport);
     void scroll(float delta) { scroll_.scroll(delta); }
@@ -87,7 +96,7 @@ private:
     std::unordered_map<std::string,MediaBitmap> mediaBitmaps_;
     std::set<std::string> visibleMedia_;
     std::set<std::string> visibleBitmaps_;
-    struct MediaPlacement { std::string id; D2D1_RECT_F bounds; };
+    struct MediaPlacement { std::string id; D2D1_RECT_F bounds, clip; };
     std::vector<MediaPlacement> mediaPlacements_;
     bool recordingMedia_ = false;
     float mediaDpi_ = 96;

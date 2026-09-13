@@ -1,5 +1,6 @@
 #include "renderer.hpp"
 #include "chat_view.hpp"
+#include "sales_view.hpp"
 #include <wincodec.h>
 #include <cstdio>
 #include <string>
@@ -28,11 +29,14 @@ void Renderer::setConnectionStatus(std::wstring status) {
 }
 void Renderer::setChatSnapshot(std::shared_ptr<const Json> snapshot) {
     if (!chat_) chat_ = std::make_unique<ChatView>(write_.Get());
+    if (!sales_) sales_ = std::make_unique<SalesView>();
+    sales_->setSnapshot(snapshot,*chat_);
     chat_->setSnapshot(std::move(snapshot));
-    setConnectionStatus(L"M3 합성 채팅 검증 · 실제 Discord 데이터 아님");
+    setConnectionStatus(L"Core Snapshot · 연결 상태는 별도 표시");
 }
 
 void Renderer::discardSurface() noexcept {
+    if (sales_) sales_->releaseTargetResources();
     if (chat_) chat_->releaseTargetResources();
     staticLayer_.Reset(); brush_.Reset(); target_.Reset();
     if (dc_ && original_ && original_ != HGDI_ERROR) SelectObject(dc_, original_);
@@ -144,7 +148,13 @@ void Renderer::drawOnce(HWND window, int width, int height, unsigned dpi, const 
     text(layouts_[0].Get(), 24, 13, D2D1::ColorF(0xf0f6fc));
     text(layouts_[1].Get(), 24, 57, D2D1::ColorF(0x8b949e));
     if (chat_) {
-        chat_->draw(target_.Get(),D2D1::RectF(24,96,w-24,h-60));
+        const float salesHeight = sales_ ? sales_->measure(*chat_,w-48,std::max(0.0f,h-320)) : 0;
+        chat_->draw(target_.Get(),D2D1::RectF(24,sales_ ? 112.0f : 96.0f,w-24,h-60-salesHeight-(salesHeight > 0 ? 8 : 0)));
+        if (sales_) {
+            sales_->drawSession(target_.Get(),*chat_,D2D1::RectF(28,85,w-28,109));
+            if (salesHeight > 0) sales_->draw(target_.Get(),*chat_,D2D1::RectF(24,h-60-salesHeight,w-24,h-60));
+        }
+        chat_->commitMediaVisibility();
         text(layouts_[6].Get(),24,h-35,D2D1::ColorF(0x8b949e));
     } else {
     text(layouts_[2].Get(), 24, 103, D2D1::ColorF(0x58a6ff));

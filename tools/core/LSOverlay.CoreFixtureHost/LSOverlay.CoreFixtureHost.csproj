@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../src/LSOverlay.Backend/LSOverlay.Backend.csproj" />
+    <ProjectReference Include="../../../src/GachaOverlay.Infrastructure/GachaOverlay.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

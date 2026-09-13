@@ -2,6 +2,7 @@
 #include "fixture_client.hpp"
 #include "transport.hpp"
 #include "chat_view.hpp"
+#include "sales_view.hpp"
 #include <windowsx.h>
 #include <shellapi.h>
 #include <psapi.h>
@@ -22,6 +23,7 @@ constexpr UINT menuShow = 100, menuLock = 101, menuOpacity = 102, menuExit = 103
 constexpr UINT menuFont = 104, menuLarger = 105, menuSmaller = 106, menuMention = 107, menuLatest = 108;
 constexpr UINT menuOutline = 109;
 constexpr UINT menuRolePosition = 110;
+constexpr UINT menuHost = 111;
 constexpr int minWidthDip = 360, minHeightDip = 480;
 using Clock = std::chrono::steady_clock;
 
@@ -93,6 +95,7 @@ struct Options {
     std::wstring fixtureEndpoint;
     std::filesystem::path chatFixture, chatVerificationDirectory;
     std::filesystem::path mediaFixture, mediaVerificationDirectory;
+    std::filesystem::path salesVerificationDirectory;
     unsigned phaseSeconds = 15;
     bool noHotkeys = false;
     bool chatCaptureOnly = false;
@@ -117,7 +120,7 @@ public:
             80,80,640,520,nullptr,nullptr,instance,this);
         if (!window_) throw std::runtime_error("Native window creation failed");
         dpi_ = GetDpiForWindow(window_);
-        SetWindowPos(window_, nullptr,0,0,core::toPixels(640,dpi_),core::toPixels(options_.mediaVerificationDirectory.empty() ? 520.0f : 880.0f,dpi_),SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+        SetWindowPos(window_, nullptr,0,0,core::toPixels(640,dpi_),core::toPixels(options_.mediaVerificationDirectory.empty() && options_.salesVerificationDirectory.empty() ? 520.0f : 880.0f,dpi_),SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
         if (!options_.noHotkeys) {
             showRegistered_ = RegisterHotKey(window_,showHotkey,MOD_NOREPEAT,VK_F9) != FALSE;
             lockRegistered_ = RegisterHotKey(window_,lockHotkey,MOD_NOREPEAT,VK_F10) != FALSE;
@@ -161,6 +164,10 @@ public:
         if (!options_.mediaVerificationDirectory.empty()) {
             std::filesystem::create_directories(options_.mediaVerificationDirectory);
             if (!SetTimer(window_,4,1000,nullptr)) throw std::runtime_error("Media verification timer unavailable");
+        }
+        if (!options_.salesVerificationDirectory.empty()) {
+            std::filesystem::create_directories(options_.salesVerificationDirectory);
+            if (!SetTimer(window_,5,1000,nullptr)) throw std::runtime_error("Sales verification timer unavailable");
         }
         MSG message{};
         int result = 0;
@@ -237,6 +244,7 @@ private:
         AppendMenuW(popup,MF_STRING,menuOpacity,state_.backgroundOpacity == 0 ? L"배경 불투명도 85%" : L"배경 불투명도 0% 검증");
         AppendMenuW(popup,MF_SEPARATOR,0,nullptr);
         if (renderer_.chat()) {
+            AppendMenuW(popup,MF_STRING,menuHost,L"세션 호스트 변경");
             AppendMenuW(popup,MF_STRING,menuFont,(L"글꼴 변경 · "+renderer_.chat()->fontName()).c_str());
             AppendMenuW(popup,MF_STRING,menuLarger,L"채팅 글자 크게");
             AppendMenuW(popup,MF_STRING,menuSmaller,L"채팅 글자 작게");
@@ -558,10 +566,44 @@ private:
             DestroyWindow(window_);
         }
     }
+    void salesTick() {
+        ++salesTicks_; auto* sales = renderer_.sales(); assertion(sales != nullptr,"Native canonical Sales view exists");
+        const auto load = [&](const wchar_t* name) { loadChat(options_.chatFixture.parent_path()/name); renderNow(); };
+        const auto captureSales = [&](const wchar_t* name) { renderer_.savePng(options_.salesVerificationDirectory/name); };
+        if (salesTicks_ == 1) {
+            assertion(sales->visible() && sales->count() == 3,"Canonical queue and next turn displayed");
+            assertion(sales->sessionLabel() == L"12 / 30","Session player count from server");
+            captureSales(L"sales-next.png");
+            const auto header = sales->headerBounds(); const auto x = (header.left+header.right)/2, y = (header.top+header.bottom)/2;
+            assertion(!sales->click(x,y,false),"Locked Sales header is not interactive");
+            assertion(sales->click(x,y,true) && !sales->expanded(),"Unlocked header collapses details"); renderNow();
+            assertion(sales->count() == 3,"Collapse preserves canonical queue"); captureSales(L"sales-collapsed.png");
+            const auto collapsed = sales->headerBounds(); sales->click(x,(collapsed.top+collapsed.bottom)/2,true); load(L"current.json");
+        } else if (salesTicks_ == 2) {
+            assertion(sales->headline().find(L"판매할 차례") != std::wstring::npos,"Own current turn uses canonical headline");
+            assertion(sales->headline().find(L"벙커") == std::wstring::npos,"Headline does not repeat product details");
+            captureSales(L"sales-current.png"); load(L"recovering.json");
+        } else if (salesTicks_ == 3) {
+            assertion(sales->count() == 3 && sales->headline().find(L"판매할 차례") != std::wstring::npos,"Recovery retains Full current alert state");
+            assertion(sales->sessionLabel() == L"세션 정보 확인 중","Unknown session is not fabricated zero players");
+            captureSales(L"sales-recovering.png"); load(L"completed.json");
+        } else if (salesTicks_ == 4) {
+            assertion(sales->count() == 2 && sales->headline().find(L"판매할 차례") == std::wstring::npos,"Server completion removes prior seller");
+            sales->cycleHost(); renderNow(); assertion(sales->sessionLabel() == L"호스트 오프라인","Host selection preserves offline meaning");
+            captureSales(L"sales-completed.png"); load(L"empty.json");
+        } else if (salesTicks_ == 5) {
+            assertion(!sales->visible() && sales->count() == 0,"Canonical empty live queue hides panel");
+            captureSales(L"sales-empty.png");
+            std::ofstream output(options_.salesVerificationDirectory/"native-sales-checks.json");
+            output << "{\"status\":\"PASS\",\"synthetic\":true,\"discordWrites\":0,\"assertions\":" << assertions_ << "}";
+            output.flush(); if (!output) throw std::runtime_error("Sales verification write failed");
+            DestroyWindow(window_);
+        }
+    }
     void fail(const char* reason) noexcept {
         failure_ = true;
-        if (verifying() || !options_.fixtureVerificationDirectory.empty() || !options_.chatVerificationDirectory.empty() || !options_.mediaVerificationDirectory.empty()) {
-            const auto& directory = verifying() ? options_.verificationDirectory : !options_.fixtureVerificationDirectory.empty() ? options_.fixtureVerificationDirectory : !options_.chatVerificationDirectory.empty() ? options_.chatVerificationDirectory : options_.mediaVerificationDirectory;
+        if (verifying() || !options_.fixtureVerificationDirectory.empty() || !options_.chatVerificationDirectory.empty() || !options_.mediaVerificationDirectory.empty() || !options_.salesVerificationDirectory.empty()) {
+            const auto& directory = verifying() ? options_.verificationDirectory : !options_.fixtureVerificationDirectory.empty() ? options_.fixtureVerificationDirectory : !options_.chatVerificationDirectory.empty() ? options_.chatVerificationDirectory : !options_.mediaVerificationDirectory.empty() ? options_.mediaVerificationDirectory : options_.salesVerificationDirectory;
             try { std::ofstream(directory / "native-shell-error.txt") << reason; } catch (...) {}
         } else {
             MessageBoxA(window_,reason,"LS Overlay Core - native shell error",MB_OK | MB_ICONERROR);
@@ -628,10 +670,15 @@ private:
             if (wparam == showHotkey) toggleVisible();
             else if (wparam == lockHotkey) toggleLocked();
             return 0;
-        case WM_MOUSEWHEEL:
+        case WM_MOUSEWHEEL: {
+            POINT pointer{GET_X_LPARAM(lparam),GET_Y_LPARAM(lparam)}; ScreenToClient(window_,&pointer);
+            if (renderer_.sales() && !state_.locked && renderer_.sales()->scroll(static_cast<float>(pointer.x)*96/dpi_,static_cast<float>(pointer.y)*96/dpi_,
+                -static_cast<float>(GET_WHEEL_DELTA_WPARAM(wparam))/WHEEL_DELTA*48)) { queueDraw(); return 0; }
             if (renderer_.chat() && !state_.locked) { renderer_.chat()->scroll(-static_cast<float>(GET_WHEEL_DELTA_WPARAM(wparam))/WHEEL_DELTA*64); queueDraw(); }
             return 0;
+        }
         case WM_LBUTTONDOWN:
+            if (renderer_.sales() && renderer_.sales()->click(static_cast<float>(GET_X_LPARAM(lparam))*96/dpi_,static_cast<float>(GET_Y_LPARAM(lparam))*96/dpi_,!state_.locked)) { queueDraw(); return 0; }
             if (renderer_.chat() && !state_.locked && renderer_.chat()->pressScrollbar(
                 static_cast<float>(GET_X_LPARAM(lparam))*96/dpi_,static_cast<float>(GET_Y_LPARAM(lparam))*96/dpi_)) {
                 SetCapture(window_); queueDraw();
@@ -683,12 +730,14 @@ private:
             case menuMention: if (renderer_.chat()) { renderer_.chat()->toggleMentionBackground(); queueDraw(); } break;
             case menuOutline: if (renderer_.chat()) { renderer_.chat()->toggleOutline(); queueDraw(); } break;
             case menuRolePosition: if (renderer_.chat()) { renderer_.chat()->cycleRolePosition(); queueDraw(); } break;
+            case menuHost: if (renderer_.sales()) { renderer_.sales()->cycleHost(); queueDraw(); } break;
             case menuLatest: if (renderer_.chat()) { renderer_.chat()->followLatest(); queueDraw(); } break;
             default: break;
             }
             return 0;
         case mediaMessage: {
-            const bool reflow = renderer_.chat() && renderer_.chat()->mediaUpdated();
+            bool reflow = renderer_.chat() && renderer_.chat()->mediaUpdated();
+            if (renderer_.sales() && renderer_.chat()) reflow = renderer_.sales()->mediaUpdated(*renderer_.chat()) || reflow;
             queueDraw(!reflow); return 0;
         }
         case WM_TIMER:
@@ -696,6 +745,7 @@ private:
             else if (!options_.fixtureVerificationDirectory.empty() && wparam == 2) fixtureTick();
             else if (!options_.chatVerificationDirectory.empty() && wparam == 3) chatTick();
             else if (!options_.mediaVerificationDirectory.empty() && wparam == 4) mediaTick();
+            else if (!options_.salesVerificationDirectory.empty() && wparam == 5) salesTick();
             return 0;
         case WM_CLOSE: DestroyWindow(window); return 0;
         case WM_DESTROY: {
@@ -703,6 +753,7 @@ private:
             KillTimer(window,2);
             KillTimer(window,3);
             KillTimer(window,4);
+            KillTimer(window,5);
             if (renderer_.chat()) renderer_.chat()->setMedia(nullptr);
             media_.reset();
             connectionWorker_.request_stop();
@@ -750,6 +801,7 @@ private:
     std::uint64_t chatIdleRenders_ = 0;
     std::vector<double> chatResizeMs_;
     unsigned mediaTicks_ = 0;
+    unsigned salesTicks_ = 0;
     Metrics mediaBefore_{};
     core::MediaStatistics mediaVisibleBefore_{}, mediaVisibleAfter_{};
     std::uint64_t mediaIdleDecoded_ = 0, mediaIdleRenders_ = 0, mediaLayoutBefore_ = 0;
@@ -772,6 +824,7 @@ Options parseOptions() {
         else if (arg == L"--chat-capture" && i + 1 < count) { options.chatCaptureOnly = true; options.chatVerificationDirectory = std::filesystem::absolute(argv[++i]); }
         else if (arg == L"--media-fixture" && i + 1 < count) options.mediaFixture = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--media-verify" && i + 1 < count) options.mediaVerificationDirectory = std::filesystem::absolute(argv[++i]);
+        else if (arg == L"--sales-verify" && i + 1 < count) options.salesVerificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--phase-seconds" && i + 1 < count) {
             std::size_t used = 0;
             const std::wstring value = argv[++i];
@@ -790,6 +843,7 @@ Options parseOptions() {
     if (!options.chatVerificationDirectory.empty() && options.chatFixture.empty()) throw std::runtime_error("Chat verification requires a local semantic snapshot");
     if (!options.mediaFixture.empty() && (options.chatFixture.empty() || !options.chatVerificationDirectory.empty())) throw std::runtime_error("Media fixture requires a separate local chat snapshot mode");
     if (!options.mediaVerificationDirectory.empty() && options.mediaFixture.empty()) throw std::runtime_error("Media verification requires explicit media fixture");
+    if (!options.salesVerificationDirectory.empty() && (options.chatFixture.empty() || !options.chatVerificationDirectory.empty() || !options.mediaVerificationDirectory.empty())) throw std::runtime_error("Sales verification requires separate local canonical fixtures");
     return options;
 }
 }
@@ -804,12 +858,15 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         if (!options.verificationDirectory.empty()) std::filesystem::create_directories(options.verificationDirectory);
         if (!options.chatVerificationDirectory.empty()) std::filesystem::create_directories(options.chatVerificationDirectory);
         if (!options.mediaVerificationDirectory.empty()) std::filesystem::create_directories(options.mediaVerificationDirectory);
+        if (!options.salesVerificationDirectory.empty()) std::filesystem::create_directories(options.salesVerificationDirectory);
         Shell shell(options); result = shell.run(instance);
     } catch (const std::exception& error) {
         if (!options.verificationDirectory.empty()) {
             try { std::ofstream(options.verificationDirectory / "native-shell-error.txt") << error.what(); } catch (...) {}
         } else if (!options.mediaVerificationDirectory.empty()) {
             try { std::ofstream(options.mediaVerificationDirectory / "native-shell-error.txt") << error.what(); } catch (...) {}
+        } else if (!options.salesVerificationDirectory.empty()) {
+            try { std::ofstream(options.salesVerificationDirectory / "native-shell-error.txt") << error.what(); } catch (...) {}
         } else MessageBoxA(nullptr,error.what(),"LS Overlay Core - startup error",MB_OK | MB_ICONERROR);
     }
     CoUninitialize();

@@ -13,6 +13,7 @@ namespace core {
 class ChatView;
 class Json;
 class MediaStore;
+class SalesView;
 void require(HRESULT result, const char* operation);
 
 // Minimal per-pixel-alpha feasibility path. CPU-backed DC rendering is measured
@@ -30,6 +31,7 @@ public:
     void setChatSnapshot(std::shared_ptr<const Json> snapshot);
     void setMedia(std::shared_ptr<MediaStore> media);
     ChatView* chat() { return chat_.get(); }
+    SalesView* sales() { return sales_.get(); }
     [[nodiscard]] unsigned alphaAt(int x, int y) const;
     [[nodiscard]] std::uint64_t renderCount() const noexcept { return renderCount_; }
     [[nodiscard]] std::uint64_t layoutBuildCount() const noexcept { return layoutBuildCount_; }
@@ -55,6 +57,7 @@ private:
     bool layoutLocked_ = false, layoutHotkeys_ = false;
     std::wstring connectionStatus_;
     std::unique_ptr<ChatView> chat_;
+    std::unique_ptr<SalesView> sales_;
     std::wstring chatFooter_;
     std::uint64_t renderCount_ = 0, layoutBuildCount_ = 0;
 };

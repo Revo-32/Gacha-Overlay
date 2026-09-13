@@ -39,7 +39,7 @@ get_filename_component(CORE_ICON "../../src/GachaOverlay.App/Assets/Branding/LSO
 set(CORE_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest")
 configure_file(resources/app.rc.in "${CMAKE_CURRENT_BINARY_DIR}/app.rc" @ONLY)
 
-add_executable(LSOverlayCore WIN32 src/main.cpp src/renderer.cpp src/chat_view.cpp src/text_outline.cpp "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
+add_executable(LSOverlayCore WIN32 src/main.cpp src/renderer.cpp src/chat_view.cpp src/text_outline.cpp src/sales_view.cpp "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
 target_include_directories(LSOverlayCore PRIVATE src)
 target_link_libraries(LSOverlayCore PRIVATE d2d1 dwrite windowscodecs ole32 user32 gdi32 shell32 psapi LSOverlayCoreTransport LSOverlayCoreMedia)
 target_link_options(LSOverlayCore PRIVATE /MANIFEST:NO /DYNAMICBASE /NXCOMPAT)

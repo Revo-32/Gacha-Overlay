@@ -41,7 +41,11 @@ public sealed record CoreSale(string MessageId, string AuthorId, string DisplayN
 public sealed record CoreSaleProduct(string Id, string Name, string EmojiId, string EmojiName, int Quantity);
 public sealed record CoreSalesState(long Revision, string ObservationStatus, bool IsTrackingEnabled,
     IReadOnlyList<CoreSale> Queue, string? CurrentMessageId, string? NextMessageId,
-    int WaitingCount, bool CurrentIsSelf, bool NextIsSelf, bool ContainsUnverifiedItems);
+    int WaitingCount, bool CurrentIsSelf, bool NextIsSelf, bool ContainsUnverifiedItems,
+    CoreSalesPresentation? Presentation = null);
+public sealed record CoreSalesPresentation(string ContentMode, string HealthMode, string AccentKind,
+    string IconKind, string PrimaryText, string SecondaryText, string StatusText, bool IsVisible,
+    bool IsTrustedForNewPersonalAlert, IReadOnlyList<string> CompletionEnabledMessageIds);
 public sealed record CoreSnapshot(int ProtocolVersion, string Generation, long Revision,
     string SelfUserId, IReadOnlyList<CoreRenderMessage> Chat, CoreSalesState Sales,
     IReadOnlyList<HostPresenceSnapshot> Session);
