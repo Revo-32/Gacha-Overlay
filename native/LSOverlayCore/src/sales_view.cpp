@@ -20,6 +20,11 @@ void SalesView::setSnapshot(std::shared_ptr<const Json> snapshot, ChatView& text
     if (!visible_) { offset_ = 0; return; }
     primary_ = label(widen(textField(presentation,"primaryText")),13,true);
     secondary_ = label(optional(presentation,"secondaryText"),11); secondary_.color = 0x8b949e;
+    const auto healthText = optional(presentation,"statusText");
+    if (!healthText.empty() && secondary_.text.find(healthText) == std::wstring::npos) {
+        if (!secondary_.text.empty()) secondary_.text += L" · ";
+        secondary_.text += healthText;
+    }
     const auto accent = textField(presentation,"accentKind");
     accentColor_ = accent == "CurrentTurn" ? 0x58a6ffU : accent == "NextTurn" ? 0x9e6bffU : 0x30363dU;
     toggle_ = label(expanded_ ? L"⌃" : L"⌄",16);

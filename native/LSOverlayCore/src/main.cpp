@@ -3,6 +3,7 @@
 #include "transport.hpp"
 #include "chat_view.hpp"
 #include "sales_view.hpp"
+#include "dev_client.hpp"
 #include <windowsx.h>
 #include <shellapi.h>
 #include <psapi.h>
@@ -93,6 +94,8 @@ struct Options {
     std::filesystem::path verificationDirectory;
     std::filesystem::path fixtureVerificationDirectory;
     std::wstring fixtureEndpoint;
+    std::wstring developmentEndpoint;
+    std::filesystem::path developmentObservation;
     std::filesystem::path chatFixture, chatVerificationDirectory;
     std::filesystem::path mediaFixture, mediaVerificationDirectory;
     std::filesystem::path salesVerificationDirectory;
@@ -139,11 +142,12 @@ public:
             std::filesystem::create_directories(options_.verificationDirectory);
             if (!SetTimer(window_,1,1000,nullptr)) throw std::runtime_error("Verification timer unavailable");
         }
-        if (!options_.fixtureEndpoint.empty()) {
+        if (!options_.fixtureEndpoint.empty() || !options_.developmentEndpoint.empty()) {
             const HWND target = window_;
-            renderer_.setConnectionStatus(L"M2 합성 환경에 연결 중 · 실제 Discord 아님"); queueDraw();
+            renderer_.setConnectionStatus(options_.developmentEndpoint.empty() ? L"M2 합성 환경에 연결 중 · 실제 Discord 아님" : L"격리된 개발 연결 준비 · Full 설정은 변경하지 않습니다"); queueDraw();
             connectionWorker_ = std::jthread([this,target](std::stop_token stop) {
-                core::runFixtureClient(options_.fixtureEndpoint,stop,[this,target](std::wstring status,std::shared_ptr<const core::Json> snapshot) {
+                const auto run = options_.developmentEndpoint.empty() ? core::runFixtureClient : core::runDevelopmentClient;
+                run(options_.developmentEndpoint.empty() ? options_.fixtureEndpoint : options_.developmentEndpoint,stop,[this,target](std::wstring status,std::shared_ptr<const core::Json> snapshot) {
                     // One owned latest-value slot: no external message carries a raw pointer.
                     std::lock_guard lock(connectionMutex_);
                     latestConnectionStatus_ = std::move(status); if (snapshot) latestChatSnapshot_ = std::move(snapshot);
@@ -169,6 +173,10 @@ public:
             std::filesystem::create_directories(options_.salesVerificationDirectory);
             if (!SetTimer(window_,5,1000,nullptr)) throw std::runtime_error("Sales verification timer unavailable");
         }
+        if (!options_.developmentObservation.empty()) {
+            std::filesystem::create_directories(options_.developmentObservation);
+            if (!SetTimer(window_,6,5000,nullptr)) throw std::runtime_error("Development observation timer unavailable");
+        }
         MSG message{};
         int result = 0;
         while ((result = GetMessageW(&message,nullptr,0,0)) > 0) {
@@ -178,6 +186,24 @@ public:
         return failure_ ? 1 : static_cast<int>(message.wParam);
     }
 private:
+    unsigned developmentSamples_ = 0;
+    unsigned developmentSnapshots_ = 0;
+    std::string developmentState_ = "pending";
+    std::wstring developmentStatus_;
+    void developmentSample() {
+        if (++developmentSamples_ > 2160) { KillTimer(window_,6); return; }
+        const auto metrics=measure();
+        std::ofstream output(options_.developmentObservation/"native-observation.jsonl",std::ios::app);
+        output << "{\"sample\":" << developmentSamples_ << ",\"unixSeconds\":" << std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count()
+            << ",\"phase\":\"" << developmentState_ << "\",\"snapshots\":" << developmentSnapshots_
+            << ",\"chatCount\":" << (renderer_.chat() ? renderer_.chat()->messageCount() : 0)
+            << ",\"salesCount\":" << (renderer_.sales() ? renderer_.sales()->count() : 0)
+            << ",\"session\":" << core::jsonQuote(renderer_.sales() ? core::narrow(renderer_.sales()->sessionLabel()) : "pending")
+            << ",\"status\":" << core::jsonQuote(core::narrow(developmentStatus_))
+            << ",\"privateBytes\":" << metrics.privateBytes << ",\"workingSet\":" << metrics.workingSet << ",\"cpu100ns\":" << metrics.cpu100ns
+            << ",\"handles\":" << metrics.handles << "}\n";
+        if (!output) throw std::runtime_error("Development observation write failed");
+    }
     void loadChat(const std::filesystem::path& path) {
         std::ifstream input(path,std::ios::binary | std::ios::ate);
         const auto length = input ? static_cast<std::streamoff>(input.tellg()) : 0;
@@ -659,10 +685,14 @@ private:
             std::shared_ptr<const core::Json> snapshot;
             { std::lock_guard lock(connectionMutex_); connectionNotificationQueued_ = false; status = latestConnectionStatus_; snapshot = std::move(latestChatSnapshot_); }
             fixtureReady_ = status.find(L"M2 합성 연결 정상") == 0;
+            developmentStatus_ = status;
+            developmentState_ = status.find(L"브라우저")!=std::wstring::npos ? "approval-pending" :
+                status.find(L"개발 실시간 채팅") == 0 ? "chat-live" : status.find(L"재연결")!=std::wstring::npos ? "reconnecting" : "not-live";
             if (snapshot) {
+                ++developmentSnapshots_;
                 auto* chat = core::field(snapshot->root(),"chat");
                 // M2-only fixtures remain usable as a connection shell.
-                if (renderer_.chat() || (yyjson_arr_size(chat) && yyjson_is_str(core::field(yyjson_arr_get(chat,0),"presentationHash")))) renderer_.setChatSnapshot(std::move(snapshot));
+                if (!options_.developmentEndpoint.empty() || renderer_.chat() || (yyjson_arr_size(chat) && yyjson_is_str(core::field(yyjson_arr_get(chat,0),"presentationHash")))) renderer_.setChatSnapshot(std::move(snapshot));
             }
             renderer_.setConnectionStatus(std::move(status)); queueDraw(); return 0;
         }
@@ -741,6 +771,7 @@ private:
             queueDraw(!reflow); return 0;
         }
         case WM_TIMER:
+            if (!options_.developmentObservation.empty() && wparam == 6) { developmentSample(); return 0; }
             if (verifying() && wparam == 1) tick();
             else if (!options_.fixtureVerificationDirectory.empty() && wparam == 2) fixtureTick();
             else if (!options_.chatVerificationDirectory.empty() && wparam == 3) chatTick();
@@ -818,6 +849,8 @@ Options parseOptions() {
         const std::wstring arg = argv[i];
         if (arg == L"--verify" && i + 1 < count) options.verificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--fixture-endpoint" && i + 1 < count) options.fixtureEndpoint = argv[++i];
+        else if (arg == L"--core-dev-endpoint" && i + 1 < count) options.developmentEndpoint = argv[++i];
+        else if (arg == L"--core-dev-observe" && i + 1 < count) options.developmentObservation = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--fixture-verify" && i + 1 < count) options.fixtureVerificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--chat-fixture" && i + 1 < count) options.chatFixture = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--chat-verify" && i + 1 < count) options.chatVerificationDirectory = std::filesystem::absolute(argv[++i]);
@@ -839,6 +872,9 @@ Options parseOptions() {
         if (!endpoint.loopback || endpoint.secure || !options.verificationDirectory.empty())
             throw std::runtime_error("Fixture mode requires explicit HTTP loopback, separate from shell verification");
     } else if (!options.fixtureVerificationDirectory.empty()) throw std::runtime_error("Fixture verification requires an explicit fixture endpoint");
+    if (!options.developmentEndpoint.empty() && (!options.fixtureEndpoint.empty() || !options.chatFixture.empty() || !options.verificationDirectory.empty() || !options.mediaFixture.empty()))
+        throw std::runtime_error("Real read-only development connection is separate from synthetic fixtures");
+    if (!options.developmentObservation.empty() && options.developmentEndpoint.empty()) throw std::runtime_error("Development observations require the explicit bridge");
     if (!options.chatFixture.empty() && (!options.fixtureEndpoint.empty() || !options.verificationDirectory.empty())) throw std::runtime_error("Chat fixture mode is separate from network/shell verification");
     if (!options.chatVerificationDirectory.empty() && options.chatFixture.empty()) throw std::runtime_error("Chat verification requires a local semantic snapshot");
     if (!options.mediaFixture.empty() && (options.chatFixture.empty() || !options.chatVerificationDirectory.empty())) throw std::runtime_error("Media fixture requires a separate local chat snapshot mode");

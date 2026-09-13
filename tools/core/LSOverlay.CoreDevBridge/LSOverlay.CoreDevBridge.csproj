@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/LSOverlay.Backend/LSOverlay.Backend.csproj" />
+    <ProjectReference Include="../../../src/LSOverlay.RemoteClient/LSOverlay.RemoteClient.csproj" />
+    <ProjectReference Include="../../../src/GachaOverlay.Infrastructure/GachaOverlay.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

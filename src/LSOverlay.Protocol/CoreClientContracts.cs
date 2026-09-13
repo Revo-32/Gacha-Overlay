@@ -48,7 +48,7 @@ public sealed record CoreSalesPresentation(string ContentMode, string HealthMode
     bool IsTrustedForNewPersonalAlert, IReadOnlyList<string> CompletionEnabledMessageIds);
 public sealed record CoreSnapshot(int ProtocolVersion, string Generation, long Revision,
     string SelfUserId, IReadOnlyList<CoreRenderMessage> Chat, CoreSalesState Sales,
-    IReadOnlyList<HostPresenceSnapshot> Session);
+    IReadOnlyList<HostPresenceSnapshot> Session, string? ChatConnectionState = null);
 
 // Base64 chunking preserves exact UTF-8, including a single large message. The
 // receiver validates sequence/hash and publishes only the complete immutable doc.

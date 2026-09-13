@@ -27,7 +27,7 @@ FetchContent_MakeAvailable(yyjson)
 # Upstream C warnings are managed upstream; our native C++ stays /W4 /WX.
 target_compile_options(yyjson PRIVATE /W3 /WX-)
 
-add_library(LSOverlayCoreTransport STATIC src/core_wire.cpp src/transport.cpp src/auth.cpp src/core_connection.cpp src/fixture_client.cpp)
+add_library(LSOverlayCoreTransport STATIC src/core_wire.cpp src/transport.cpp src/auth.cpp src/core_connection.cpp src/fixture_client.cpp src/dev_client.cpp)
 target_include_directories(LSOverlayCoreTransport PUBLIC src)
 target_link_libraries(LSOverlayCoreTransport PUBLIC yyjson PRIVATE bcrypt crypt32 winhttp shell32 ole32)
 
