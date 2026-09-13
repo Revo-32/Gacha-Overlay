@@ -14,9 +14,13 @@
   <ItemGroup>
     <ProjectReference Include="..\GachaOverlay.Core\GachaOverlay.Core.csproj" />
     <ProjectReference Include="..\LSOverlay.Protocol\LSOverlay.Protocol.csproj" />
+    <ProjectReference Include="..\LSOverlay.RemoteClient\LSOverlay.RemoteClient.csproj" />
+    <ProjectReference Include="..\LSOverlay.CoreMedia\LSOverlay.CoreMedia.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\GachaOverlay.Infrastructure\Sales\DefaultSalesProductCatalog.json" LogicalName="LSOverlay.CoreSales.Catalog.json" />
+    <EmbeddedResource Include="..\GachaOverlay.Infrastructure\Localization\Resources\Strings.ko.resx" LogicalName="LSOverlay.CoreSales.Strings.ko.xml" WithCulture="false" Type="Non-Resx" />
     <Content Remove="PublicWeb\Content\**" />
     <Content Remove="Gta\Localization\gta-ko-overrides.json" />
     <EmbeddedResource Include="Gta\Localization\gta-ko-overrides.json" LogicalName="LSOverlay.GtaOverrides.json" />

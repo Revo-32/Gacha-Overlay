@@ -21,6 +21,12 @@ Renderer::Renderer() {
         reinterpret_cast<IUnknown**>(write_.GetAddressOf())), "DirectWrite factory");
 }
 Renderer::~Renderer() { discardSurface(); }
+void Renderer::saveWindowPng(HWND window,const std::filesystem::path& path) {
+    RECT r{};GetClientRect(window,&r);Renderer capture;capture.ensureSurface(r.right,r.bottom,96);
+    if(!PrintWindow(window,capture.dc_,PW_CLIENTONLY))throw std::runtime_error("Own settings window capture failed");
+    auto* bytes=static_cast<unsigned char*>(capture.pixels_);for(std::size_t i=3;i<surfaceBytes(r.right,r.bottom);i+=4)bytes[i]=255;
+    capture.savePng(path);
+}
 
 void Renderer::setConnectionStatus(std::wstring status) {
     if (connectionStatus_ == status) return;
@@ -28,8 +34,11 @@ void Renderer::setConnectionStatus(std::wstring status) {
     layoutWidth_ = 0;
 }
 void Renderer::setChatSnapshot(std::shared_ptr<const Json> snapshot) {
+    auto* selection=field(snapshot->root(),"chatSelection");auto* name=yyjson_is_obj(selection)?field(selection,"name"):nullptr;
+    const auto next=yyjson_is_str(name)?widen(stringValue(name)):std::wstring{};if(next!=channelName_){channelName_=next;channelLayout_.Reset();}
     if (!chat_) chat_ = std::make_unique<ChatView>(write_.Get());
     if (!sales_) sales_ = std::make_unique<SalesView>();
+    if(compact_) {chat_->applySettings(settings_);sales_->applySettings(settings_,*chat_);}
     sales_->setSnapshot(snapshot,*chat_);
     chat_->setSnapshot(std::move(snapshot));
     setConnectionStatus(L"Core Snapshot · 연결 상태는 별도 표시");
@@ -116,6 +125,9 @@ void Renderer::setMedia(std::shared_ptr<MediaStore> media) {
     chat_->setMedia(std::move(media));
     staticLayer_.Reset();
 }
+void Renderer::applySettings(const UserSettings& settings) {
+    compact_=true;settings_=settings;if(chat_)chat_->applySettings(settings);if(sales_ && chat_)sales_->applySettings(settings,*chat_);staticLayer_.Reset();layoutWidth_=0;
+}
 
 void Renderer::drawOnce(HWND window, int width, int height, unsigned dpi, const ShellState& state, bool hotkeysAvailable, bool retryAllowed, bool mediaOnly) {
     ensureSurface(width, height, dpi);
@@ -136,7 +148,7 @@ void Renderer::drawOnce(HWND window, int width, int height, unsigned dpi, const 
     if (!state.locked) {
         // Nonzero alpha across ALL resize pixels matters: alpha=0 bypasses native
         // hit testing even when WM_NCHITTEST would otherwise return a resize edge.
-        brush_->SetColor(D2D1::ColorF(0x58a6ff, 0.16f));
+        brush_->SetColor(D2D1::ColorF(0x161b22, compact_ ? 1.0f/255 : 0.16f));
         for (auto rect : {D2D1::RectF(0,0,w,8), D2D1::RectF(0,h-8,w,h),
                           D2D1::RectF(0,8,8,h-8), D2D1::RectF(w-8,8,w,h-8), D2D1::RectF(8,8,w-8,48)})
             target_->FillRectangle(rect, brush_.Get());
@@ -145,18 +157,35 @@ void Renderer::drawOnce(HWND window, int width, int height, unsigned dpi, const 
         for (float offset : {6.0f, 10.0f, 14.0f})
             target_->DrawLine(D2D1::Point2F(w-offset,h-3), D2D1::Point2F(w-3,h-offset), brush_.Get());
     }
-    text(layouts_[0].Get(), 24, 13, D2D1::ColorF(0xf0f6fc));
-    text(layouts_[1].Get(), 24, 57, D2D1::ColorF(0x8b949e));
+    if(!compact_) {text(layouts_[0].Get(), 24, 13, D2D1::ColorF(0xf0f6fc));
+    text(layouts_[1].Get(), 24, 57, D2D1::ColorF(0x8b949e));}
+    else {
+        brush_->SetColor(D2D1::ColorF(0x161b22,settings_.get(Setting::ChromeOpacity)/100));target_->FillRectangle(D2D1::RectF(8,8,w-8,44),brush_.Get());
+        if(!channelName_.empty()) {
+            if(!channelLayout_){ComPtr<IDWriteTextFormat> format;require(write_->CreateTextFormat(L"맑은 고딕",nullptr,DWRITE_FONT_WEIGHT_SEMI_BOLD,DWRITE_FONT_STYLE_NORMAL,DWRITE_FONT_STRETCH_NORMAL,12,L"ko-KR",&format),"Channel label format");require(write_->CreateTextLayout(channelName_.c_str(),static_cast<UINT32>(channelName_.size()),format.Get(),160,24,&channelLayout_),"Channel label");}
+            text(channelLayout_.Get(),100,17,D2D1::ColorF(0xc9d1d9));
+        }
+        if(!state.locked) {
+            brush_->SetColor(D2D1::ColorF(0x21262d));target_->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(w-44,9,w-10,41),7,7),brush_.Get());
+            brush_->SetColor(D2D1::ColorF(0xc9d1d9));const auto center=D2D1::Point2F(w-27,25);
+            target_->DrawEllipse(D2D1::Ellipse(center,7,7),brush_.Get(),2);target_->DrawEllipse(D2D1::Ellipse(center,2,2),brush_.Get(),1.5f);
+            for(int i=0;i<8;++i) {const float angle=static_cast<float>(i)*3.14159265f/4;target_->DrawLine(D2D1::Point2F(center.x+std::cos(angle)*7,center.y+std::sin(angle)*7),D2D1::Point2F(center.x+std::cos(angle)*10,center.y+std::sin(angle)*10),brush_.Get(),2);}
+        }
+    }
     if (chat_) {
-        const float salesHeight = sales_ ? sales_->measure(*chat_,w-48,std::max(0.0f,h-320)) : 0;
-        chat_->draw(target_.Get(),D2D1::RectF(24,sales_ ? 112.0f : 96.0f,w-24,h-60-salesHeight-(salesHeight > 0 ? 8 : 0)));
+        const float margin=compact_?12.0f:24.0f,bottom=compact_?10.0f:60.0f;
+        const float top=compact_?(state.locked && !settings_.enabled(Setting::ShowSession)?12.0f:46.0f):(sales_?112.0f:96.0f);
+        const float salesHeight = sales_ ? sales_->measure(*chat_,w-margin*2,std::max(0.0f,h-(compact_?180.0f:320.0f))) : 0;
+        const auto viewport=D2D1::RectF(margin,top,w-margin,h-bottom-salesHeight-(salesHeight>0?6:0));
+        if(compact_) {brush_->SetColor(D2D1::ColorF(0x0d1117,settings_.get(Setting::ChatOpacity)/100));target_->FillRoundedRectangle(D2D1::RoundedRect(viewport,8,8),brush_.Get());}
+        chat_->draw(target_.Get(),viewport,!state.locked);
         if (sales_) {
-            sales_->drawSession(target_.Get(),*chat_,D2D1::RectF(28,85,w-28,109));
-            if (salesHeight > 0) sales_->draw(target_.Get(),*chat_,D2D1::RectF(24,h-60-salesHeight,w-24,h-60));
+            sales_->drawSession(target_.Get(),*chat_,compact_?D2D1::RectF(18,17,w-54,39):D2D1::RectF(28,85,w-28,109));
+            if (salesHeight > 0) sales_->draw(target_.Get(),*chat_,D2D1::RectF(margin,h-bottom-salesHeight,w-margin,h-bottom),!state.locked);
         }
         chat_->commitMediaVisibility();
-        text(layouts_[6].Get(),24,h-35,D2D1::ColorF(0x8b949e));
-    } else {
+        if(!compact_)text(layouts_[6].Get(),24,h-35,D2D1::ColorF(0x8b949e));
+    } else if(!compact_) {
     text(layouts_[2].Get(), 24, 103, D2D1::ColorF(0x58a6ff));
     text(layouts_[3].Get(), 24, 139, D2D1::ColorF(0xf0f6fc));
     brush_->SetColor(D2D1::ColorF(0x30363d));

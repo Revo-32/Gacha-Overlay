@@ -10,15 +10,31 @@ bool inside(D2D1_RECT_F bounds,float x,float y) { return x >= bounds.left && x <
 }
 void SalesView::setSnapshot(std::shared_ptr<const Json> snapshot, ChatView& text) {
     snapshot_ = std::move(snapshot);
-    refreshSession(); auto* sales = field(snapshot_->root(),"sales"); auto* presentation = field(sales,"presentation");
+    refreshSession(); auto* sales = field(snapshot_->root(),"sales");
+    auto* presentation = yyjson_is_obj(sales) ? field(sales,"presentation") : nullptr;
     char* encoded = sales ? yyjson_val_write(sales,0,nullptr) : nullptr;
     std::string fingerprint = encoded ? encoded : "null"; free(encoded);
     fingerprint += "|"+std::string(textField(snapshot_->root(),"generation"))+"|"+narrow(optional(snapshot_->root(),"selfUserId"));
     if (fingerprint_ == fingerprint) return;
     fingerprint_ = std::move(fingerprint); rows_.clear(); width_ = 0;
-    visible_ = yyjson_is_obj(presentation) && yyjson_is_true(field(presentation,"isVisible"));
-    if (!visible_) { offset_ = 0; return; }
+    visible_ = (!settingsActive_ || settings_.enabled(Setting::SalesTracking)) && yyjson_is_obj(presentation) && (yyjson_is_true(field(presentation,"isVisible")) || action_ || actionPending_);
+    if (!visible_) offset_ = 0;
+    if (!yyjson_is_obj(presentation)) return;
     primary_ = label(widen(textField(presentation,"primaryText")),13,true);
+    if(settingsActive_ && !yyjson_is_true(field(sales,"currentIsSelf"))) {
+        std::wstring headline;
+        const auto currentId=optional(sales,"currentMessageId"),nextId=optional(sales,"nextMessageId");
+        std::size_t qi=0,qn=0;yyjson_val* entry=nullptr;
+        yyjson_arr_foreach(field(sales,"queue"),qi,qn,entry) {
+            const auto id=optional(entry,"messageId");
+            if((id==currentId && settings_.enabled(Setting::SalesCurrent)) || (id==nextId && settings_.enabled(Setting::SalesNext))) {
+                if(!headline.empty())headline+=L" · ";headline+=(id==currentId?L"현재 ":L"다음 ")+optional(entry,"displayName");
+                if(id==currentId && settings_.enabled(Setting::SalesProduct)) {std::size_t pi=0,pn=0;yyjson_val* product=nullptr;yyjson_arr_foreach(field(entry,"products"),pi,pn,product)headline+=L" · "+optional(product,"name");}
+            }
+        }
+        if(settings_.enabled(Setting::SalesWaiting)) {if(!headline.empty())headline+=L" · ";headline+=L"대기 "+std::to_wstring(numberField(sales,"waitingCount"))+L"명";}
+        primary_=label(headline.empty()?L"판매 대기열":headline,13,true);
+    }
     secondary_ = label(optional(presentation,"secondaryText"),11); secondary_.color = 0x8b949e;
     const auto healthText = optional(presentation,"statusText");
     if (!healthText.empty() && secondary_.text.find(healthText) == std::wstring::npos) {
@@ -43,7 +59,7 @@ void SalesView::setSnapshot(std::shared_ptr<const Json> snapshot, ChatView& text
             const auto quantity = numberField(item,"quantity"); if (quantity > 1) products += L" x"+std::to_wstring(quantity);
         }
         if (products.empty()) products = L"세부내용 확인";
-        row.heading = label(std::to_wstring(index+1)+L"   "+widen(textField(value,"displayName"))+L" · "+products,12,true);
+        row.heading = label(std::to_wstring(index+1)+L"   "+widen(textField(value,"displayName"))+((!settingsActive_ || settings_.enabled(Setting::SalesProduct))?L" · "+products:L""),12,true);
         row.detail = text.externalRuns(field(value,"detailRuns"),12);
         row.badge = label(std::wstring(widen(row.id) == current ? L"현재" : widen(row.id) == next ? L"다음" : L"")+(row.own ? L" · 나" : L""),11,true);
         row.badge.color = row.own ? 0x3fb950 : 0x8b949e;
@@ -55,9 +71,14 @@ float SalesView::measure(ChatView& text,float width,float availableHeight) {
     if (!visible_) return 0;
     if (font_ != text.fontName()) { width_ = 0; session_.layout.Reset(); font_ = text.fontName(); }
     if (width_ != width) {
-        text.layoutExternal(primary_,width-52);
-        text.layoutExternal(secondary_,width-52); text.layoutExternal(toggle_,22); text.layoutExternal(readonly_,width-16);
-        headerHeight_ = std::max(48.0f,primary_.height+16+(secondary_.text.empty() ? 0 : secondary_.height+2));
+        const float reserve=action_ || actionPending_?150.0f:52.0f;
+        text.layoutExternal(primary_,std::max(20.0f,width-reserve));
+        text.layoutExternal(secondary_,std::max(20.0f,width-reserve)); text.layoutExternal(toggle_,22); text.layoutExternal(readonly_,width-16);
+        text.layoutExternal(actionLabel_,82);text.layoutExternal(actionStatus_,width-28);
+        require(actionLabel_.layout->GetMetrics(&actionMetrics_),"Sales action text measurement");
+        require(primary_.layout->GetMetrics(&primaryMetrics_),"Sales headline text measurement");
+        require(secondary_.layout->GetMetrics(&secondaryMetrics_),"Sales secondary text measurement");
+        headerHeight_ = std::max(settingsActive_?36.0f:48.0f,primary_.height+12+(secondary_.text.empty() ? 0 : secondary_.height+2));
         totalHeight_ = 0;
         for (auto& row : rows_) {
             text.layoutExternal(row.heading,width-76); text.layoutExternal(row.detail,width-28); text.layoutExternal(row.badge,60);
@@ -66,27 +87,45 @@ float SalesView::measure(ChatView& text,float width,float availableHeight) {
         }
         width_ = width;
     }
-    detailHeight_ = expanded_ && !rows_.empty() ? std::min(totalHeight_,std::max(0.0f,availableHeight-headerHeight_-readonly_.height-14)) : 0;
+    detailHeight_ = expanded_ && !rows_.empty() ? std::min({totalHeight_,settingsActive_?settings_.get(Setting::DetailHeight):10000.0f,std::max(0.0f,availableHeight-headerHeight_-(settingsActive_?6:readonly_.height+14)-(actionStatus_.text.empty()?0:actionStatus_.height+6))}) : 0;
     offset_ = std::clamp(offset_,0.0f,std::max(0.0f,totalHeight_-detailHeight_));
-    return headerHeight_+(detailHeight_ > 0 ? detailHeight_+readonly_.height+14 : 0);
+    return headerHeight_+(detailHeight_ > 0 ? detailHeight_+(settingsActive_?6:readonly_.height+14) : 0)+(actionStatus_.text.empty()?0:actionStatus_.height+6);
 }
-void SalesView::draw(ID2D1RenderTarget* target,ChatView& text,D2D1_RECT_F panel) {
+void SalesView::draw(ID2D1RenderTarget* target,ChatView& text,D2D1_RECT_F panel,bool unlocked) {
     panel_ = panel;
+    controlsShown_=unlocked;actionBounds_={};actionTextBounds_={};headlineTextBounds_={};
     if (!visible_) return;
     if (!surface_) require(target->CreateSolidColorBrush(D2D1::ColorF(0x161b22,0.96f),&surface_),"Sales surface");
     if (!accent_) require(target->CreateSolidColorBrush(D2D1::ColorF(accentColor_),&accent_),"Sales accent");
     accent_->SetColor(D2D1::ColorF(accentColor_));
+    surface_->SetOpacity(settingsActive_?settings_.get(Setting::SalesOpacity)/100:0.96f);
     const auto header = D2D1::RectF(panel.left,panel.top,panel.right,panel.top+headerHeight_);
     target->FillRoundedRectangle(D2D1::RoundedRect(header,8,8),surface_.Get());
     target->DrawRoundedRectangle(D2D1::RoundedRect(header,8,8),accent_.Get(),1);
-    const auto textHeight = primary_.height+(secondary_.text.empty() ? 0 : secondary_.height+2);
+    // drawExternal uses the text layout origin, without ChatBlock inkPadding.
+    // Center the actual measured text group while preserving its left inset.
+    const auto textHeight = primaryMetrics_.height+(secondary_.text.empty() ? 0 : secondaryMetrics_.height+2);
     const auto y = panel.top+(headerHeight_-textHeight)/2;
-    text.drawExternal(target,primary_,panel.left+14,y,header);
-    if (!secondary_.text.empty()) text.drawExternal(target,secondary_,panel.left+14,y+primary_.height+2,header);
-    text.drawExternal(target,toggle_,panel.right-30,panel.top+(headerHeight_-toggle_.height)/2,header);
+    headlineTextBounds_={panel.left+14+primaryMetrics_.left,y,panel.left+14+primaryMetrics_.left+primaryMetrics_.width,y+textHeight};
+    text.drawExternal(target,primary_,panel.left+14,y-primaryMetrics_.top,header);
+    if (!secondary_.text.empty()) text.drawExternal(target,secondary_,panel.left+14,y+primaryMetrics_.height+2-secondaryMetrics_.top,header);
+    if(unlocked)text.drawExternal(target,toggle_,panel.right-30,panel.top+(headerHeight_-toggle_.height)/2,header);
+    if(unlocked && (action_ || actionPending_)) {
+        actionBounds_={panel.right-128,panel.top+5,panel.right-38,panel.top+headerHeight_-5};
+        target->DrawRoundedRectangle(D2D1::RoundedRect(actionBounds_,5,5),accent_.Get(),1);
+        // External blocks include chat ink padding in height, but drawExternal
+        // paints at the layout origin. Center the measured text, not that padded
+        // block or a fixed left inset. Applies to complete, undo and pending.
+        const auto textX=(actionBounds_.left+actionBounds_.right-actionMetrics_.width)/2-actionMetrics_.left;
+        const auto textY=(actionBounds_.top+actionBounds_.bottom-actionMetrics_.height)/2-actionMetrics_.top;
+        actionTextBounds_={textX+actionMetrics_.left,textY+actionMetrics_.top,textX+actionMetrics_.left+actionMetrics_.width,textY+actionMetrics_.top+actionMetrics_.height};
+        text.drawExternal(target,actionLabel_,textX,textY,actionBounds_);
+    }
+    if(!actionStatus_.text.empty())text.drawExternal(target,actionStatus_,panel.left+14,panel.bottom-actionStatus_.height,panel);
     details_ = D2D1::RectF(panel.left,panel.top+headerHeight_+6,panel.right,panel.top+headerHeight_+6+detailHeight_);
     if (detailHeight_ <= 0) return;
     target->PushAxisAlignedClip(details_,D2D1_ANTIALIAS_MODE_ALIASED);
+    if(settingsActive_)surface_->SetOpacity(settings_.get(Setting::DetailOpacity)/100);
     for (auto& row : rows_) {
         const auto top = details_.top+row.y-offset_;
         if (top >= details_.bottom || top+row.height <= details_.top) continue;
@@ -97,7 +136,7 @@ void SalesView::draw(ID2D1RenderTarget* target,ChatView& text,D2D1_RECT_F panel)
         if (!row.detail.text.empty()) text.drawExternal(target,row.detail,rect.left+14,top+row.heading.height+8,details_);
     }
     target->PopAxisAlignedClip();
-    text.drawExternal(target,readonly_,panel.left+8,details_.bottom+3,panel);
+    if(!settingsActive_)text.drawExternal(target,readonly_,panel.left+8,details_.bottom+3,panel);
 }
 void SalesView::refreshSession() {
     auto old = std::move(session_);
@@ -121,8 +160,10 @@ void SalesView::refreshSession() {
     if (old.text == session_.text) session_ = std::move(old);
 }
 void SalesView::drawSession(ID2D1RenderTarget* target,ChatView& text,D2D1_RECT_F bounds) {
+    if(settingsActive_ && !settings_.enabled(Setting::ShowSession))return;
     if (font_ != text.fontName()) { width_ = 0; session_.layout.Reset(); font_ = text.fontName(); }
-    if (!session_.layout) text.layoutExternal(session_,bounds.right-bounds.left);
+    session_.outlineOverride=settingsActive_ && settings_.enabled(Setting::SessionOutline)?settings_.get(Setting::SessionOutlineThickness):0;
+    if (!session_.layout) {session_.outline.clear();session_.outlineBuilt=false;text.layoutExternal(session_,bounds.right-bounds.left);}
     text.drawExternal(target,session_,bounds.left,bounds.top,bounds);
 }
 void SalesView::cycleHost() {
@@ -135,6 +176,10 @@ void SalesView::cycleHost() {
     refreshSession();
 }
 bool SalesView::mediaUpdated(ChatView& text) {
+    if (mediaRevision_!=text.mediaLayoutRevision()) {
+        mediaRevision_=text.mediaLayoutRevision();
+        if (snapshot_) {fingerprint_.clear();setSnapshot(snapshot_,text);return true;}
+    }
     for (const auto& row : rows_) if (text.failedMedia(row.detail)) {
         // Re-tokenize once into the readable original emoji name. Ordinary
         // animation updates keep all Sales layouts and the collapse/scroll state.
@@ -144,6 +189,7 @@ bool SalesView::mediaUpdated(ChatView& text) {
 }
 bool SalesView::click(float x,float y,bool unlocked) {
     if (!visible_ || !unlocked || !inside({panel_.left,panel_.top,panel_.right,panel_.top+headerHeight_},x,y)) return false;
+    if((action_ || actionPending_) && inside(actionBounds_,x,y))return true;
     expanded_ = !expanded_; toggle_ = label(expanded_ ? L"⌃" : L"⌄",16); width_ = 0; return true;
 }
 bool SalesView::scroll(float x,float y,float delta) {
@@ -153,7 +199,24 @@ bool SalesView::scroll(float x,float y,float delta) {
 void SalesView::releaseTargetResources() {
     surface_.Reset(); accent_.Reset();
     const auto clear = [](ChatBlock& block) { if (block.layout) (void)block.layout->SetDrawingEffect(nullptr,{0,static_cast<UINT32>(block.text.size())}); };
-    clear(primary_); clear(secondary_); clear(toggle_); clear(session_); clear(readonly_);
+    clear(primary_); clear(secondary_); clear(toggle_); clear(session_); clear(readonly_);clear(actionLabel_);clear(actionStatus_);
     for (auto& row : rows_) { clear(row.heading); clear(row.detail); clear(row.badge); }
+}
+void SalesView::applySettings(const UserSettings& settings,ChatView& text) {
+    if(settingsActive_ && settings_==settings)return;settings_=settings;settingsActive_=true;hostSlot_=static_cast<unsigned>(settings.get(Setting::Host));fingerprint_.clear();width_=0;
+    if(snapshot_)setSnapshot(snapshot_,text);
+}
+void SalesView::setAction(std::optional<SalesCommand> command,bool pending,std::wstring status) {
+    if(action_==command && actionPending_==pending && actionStatus_.text==status)return;
+    action_=std::move(command);actionPending_=pending;actionStatus_=label(std::move(status),11);actionStatus_.color=0x8b949e;
+    actionLabel_=label(pending?L"확인 중":action_ && action_->undo?L"완료 취소":L"판매 완료",12,true);
+    if(snapshot_) {
+        auto* sales=field(snapshot_->root(),"sales");auto* presentation=yyjson_is_obj(sales)?field(sales,"presentation"):nullptr;
+        visible_=(!settingsActive_ || settings_.enabled(Setting::SalesTracking)) && yyjson_is_obj(presentation) && (yyjson_is_true(field(presentation,"isVisible")) || action_ || actionPending_);
+    }
+    width_=0;fingerprint_.clear();
+}
+std::optional<SalesCommand> SalesView::actionAt(float x,float y,bool unlocked) const {
+    return unlocked && controlsShown_ && visible_ && !actionPending_ && inside(actionBounds_,x,y)?action_:std::nullopt;
 }
 }

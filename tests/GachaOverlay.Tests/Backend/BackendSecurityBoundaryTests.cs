@@ -80,9 +80,15 @@ public sealed class BackendSecurityBoundaryTests
             .ToArray();
         var combined = string.Join(Environment.NewLine, sources);
 
-        Assert.DoesNotContain("Regex", combined, StringComparison.Ordinal);
         Assert.DoesNotContain(".Secrets", combined, StringComparison.Ordinal);
-        Assert.DoesNotContain("SalesStateEngine", combined, StringComparison.Ordinal);
+        // Core deliberately runs canonical Sales presentation on the server.
+        // Presence/gateway code must still never parse free-form Sales content.
+        var presenceSources=Directory.GetFiles(sourceDirectory,"*.cs",SearchOption.AllDirectories)
+            .Where(path=>!path.Contains($"{Path.DirectorySeparatorChar}CoreClient{Path.DirectorySeparatorChar}",StringComparison.OrdinalIgnoreCase))
+            .Where(path=>!path.Split(Path.DirectorySeparatorChar).Any(part=>part is "obj" or "bin"))
+            .Select(File.ReadAllText);
+        Assert.DoesNotContain("Regex",string.Join(Environment.NewLine,presenceSources),StringComparison.Ordinal);
+        Assert.DoesNotContain("SalesStateEngine",string.Join(Environment.NewLine,presenceSources),StringComparison.Ordinal);
     }
 
     [Fact]
@@ -118,13 +124,15 @@ public sealed class BackendSecurityBoundaryTests
         Assert.DoesNotContain("net8.0-windows", project, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("UseWPF", project, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("GachaOverlay.App", project, StringComparison.Ordinal);
-        Assert.DoesNotContain("GachaOverlay.Infrastructure", project, StringComparison.Ordinal);
+        Assert.DoesNotContain(System.Xml.Linq.XDocument.Parse(project).Descendants("ProjectReference"),
+            item=>((string?)item.Attribute("Include"))?.Contains("GachaOverlay.Infrastructure",StringComparison.Ordinal)==true);
     }
 
     [Fact]
     public void DiscordNetPackage_IsReferencedOnlyByBackendProject()
     {
         var projectFiles = Directory.GetFiles(RepositoryRoot, "*.csproj", SearchOption.AllDirectories)
+            .Where(path=>!path.Split(Path.DirectorySeparatorChar).Any(part=>part is "artifacts" or "bin"))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
                 StringComparison.OrdinalIgnoreCase))
             .ToArray();

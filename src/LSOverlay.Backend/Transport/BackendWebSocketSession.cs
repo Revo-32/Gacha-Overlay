@@ -476,7 +476,7 @@ internal sealed class BackendWebSocketSession
         }
     }
 
-    private sealed class SalesConnectionState : IAsyncDisposable
+    internal sealed class SalesConnectionState : IAsyncDisposable
     {
         private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(90);
 
@@ -704,7 +704,7 @@ internal sealed class BackendWebSocketSession
             };
     }
 
-    private sealed class ChatConnectionState : IAsyncDisposable
+    internal sealed class ChatConnectionState : IAsyncDisposable
     {
         private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(90);
 

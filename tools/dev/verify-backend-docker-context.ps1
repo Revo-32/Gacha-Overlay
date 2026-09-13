@@ -3,7 +3,8 @@
 param(
     [string]$RepositoryRoot = (Join-Path $PSScriptRoot '../..'),
     [switch]$CheckOnly,
-    [switch]$RequireTracked
+    [switch]$RequireTracked,
+    [string]$ContextDirectory
 )
 
 Set-StrictMode -Version Latest
@@ -136,6 +137,11 @@ $graph = Get-ProjectClosure $root $entry
 $projectDirs = @($graph.Projects | ForEach-Object { ($_ -replace '/[^/]+$', '') + '/' })
 $metadata = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $publicAssets = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$sharedAssets = @{
+    'assets/branding/LS_Overlay_logo.png' = 'assets/branding/'
+    'src/GachaOverlay.Infrastructure/Sales/DefaultSalesProductCatalog.json' = 'src/GachaOverlay.Infrastructure/Sales/'
+    'src/GachaOverlay.Infrastructure/Localization/Resources/Strings.ko.resx' = 'src/GachaOverlay.Infrastructure/Localization/Resources/'
+}
 foreach ($project in $graph.Projects) {
     $directory = ($project -replace '/[^/]+$', '') + '/'
     $projectCopy = @($copies | Where-Object {
@@ -151,10 +157,10 @@ foreach ($project in $graph.Projects) {
 }
 foreach ($copy in $copies) {
     if ($graph.Projects -ccontains $copy.Source -or $projectDirs -ccontains $copy.Source) { continue }
-    # One exact immutable branding source is embedded for the public documents.
-    # Never admit the whole assets directory, icon or large banner.
-    if ($copy.Source -ceq 'assets/branding/LS_Overlay_logo.png' -and
-        $copy.Destination -ceq 'assets/branding/' -and $copy.Line -gt $restore -and $copy.Line -lt $publish -and
+    # Exact immutable assets only: branding and Core's shared Sales resources.
+    # Do not admit client Infrastructure code or an entire assets directory.
+    if ($sharedAssets.ContainsKey($copy.Source) -and
+        $copy.Destination -ceq $sharedAssets[$copy.Source] -and $copy.Line -gt $restore -and $copy.Line -lt $publish -and
         $graph.Inputs -ccontains $copy.Source) {
         if (-not $publicAssets.Add($copy.Source)) { throw 'Duplicate public asset COPY.' }
         continue
@@ -214,7 +220,8 @@ $report = [ordered]@{
     DockerImageBuild = 'NOT RUN'
 }
 if (-not $CheckOnly) {
-    $stage = Join-Path ([IO.Path]::GetTempPath()) ('LSOverlay-DockerContext-' + [Guid]::NewGuid().ToString('N'))
+    $stage = if($ContextDirectory) { [IO.Path]::GetFullPath($ContextDirectory) } else { Join-Path ([IO.Path]::GetTempPath()) ('LSOverlay-DockerContext-' + [Guid]::NewGuid().ToString('N')) }
+    if(Test-Path -LiteralPath $stage) { throw 'Refusing to overwrite an existing build context.' }
     New-Item -ItemType Directory -Path $stage | Out-Null
     foreach ($path in $selected) {
         $destination = Join-Path $stage $path

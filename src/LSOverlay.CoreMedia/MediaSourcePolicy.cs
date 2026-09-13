@@ -5,16 +5,31 @@ using System.Text.RegularExpressions;
 
 namespace LSOverlay.CoreMedia;
 
+public sealed class MediaSourceResponseException(int status,string reason) : IOException("Canonical media response rejected.")
+{
+    public int Status { get; }=status;
+    public string Reason { get; }=reason;
+}
+
 public static class MediaSourcePolicy
 {
-    // Exact Discord-controlled image origins only. No user-supplied URL HTTP
+    // Exact Discord/provider image origins only. No user-supplied URL HTTP
     // endpoint, wildcard suffix, redirect, cookies, proxy or authorization header.
+    private static bool IsImageHost(string host) => host is "cdn.discordapp.com" or "media.discordapp.net" or
+        "images-ext-1.discordapp.net" or "images-ext-2.discordapp.net" or
+        "static.klipy.com" or "static1.klipy.com" or "static2.klipy.com" or
+        "media.giphy.com" or "media0.giphy.com" or "media1.giphy.com" or "media2.giphy.com" or "media3.giphy.com" or "media4.giphy.com" or "media.tenor.com";
     public static Uri Validate(string source)
     {
         if (source.Length > 4096 || !Uri.TryCreate(source, UriKind.Absolute, out var uri) || uri.Scheme != "https" || uri.Port != 443 ||
-            uri.UserInfo.Length != 0 || uri.Fragment.Length != 0 || uri.Host is not ("cdn.discordapp.com" or "media.discordapp.net") ||
+            uri.UserInfo.Length != 0 || uri.Fragment.Length != 0 || !IsImageHost(uri.Host) ||
             source.Contains('\\') || source.Any(char.IsControl)) throw new InvalidDataException("Untrusted canonical media source.");
-        if (!Regex.IsMatch(uri.AbsolutePath, "\\A/(attachments/[0-9]+/[0-9]+/[^/]+|emojis/[0-9]+\\.(png|gif|webp)|stickers/[0-9]+\\.(png|gif|webp)|role-icons/[0-9]+/[a-zA-Z0-9]+\\.(png|gif|webp))\\z", RegexOptions.CultureInvariant) ||
+        var pathAllowed=uri.Host switch {
+            "cdn.discordapp.com" or "media.discordapp.net" => Regex.IsMatch(uri.AbsolutePath,"\\A/(attachments/[0-9]+/[0-9]+/[^/]+|emojis/[0-9]+\\.(png|gif|webp)|stickers/[0-9]+\\.(png|gif|webp)|role-icons/[0-9]+/[a-zA-Z0-9]+\\.(png|gif|webp))\\z",RegexOptions.CultureInvariant),
+            "images-ext-1.discordapp.net" or "images-ext-2.discordapp.net" => Regex.IsMatch(uri.AbsolutePath,"\\A/external/[A-Za-z0-9_-]+/https/(static[12]?\\.klipy\\.com|media[0-4]?\\.giphy\\.com|media\\.tenor\\.com)/[A-Za-z0-9_/=.%-]+\\.(gif|png|webp|jpg|jpeg)\\z",RegexOptions.CultureInvariant),
+            _ => Regex.IsMatch(uri.AbsolutePath,"\\A/[A-Za-z0-9_/=.-]+\\.(gif|png|webp|jpg|jpeg)\\z",RegexOptions.CultureInvariant)
+        };
+        if (!pathAllowed ||
             uri.AbsolutePath.Split('/').Select(Uri.UnescapeDataString).Any(segment => segment.Contains('/') || segment.Contains('\\') || segment.Contains('%') || segment.Any(char.IsControl)))
             throw new InvalidDataException("Unsupported canonical CDN path.");
         return uri;
@@ -56,7 +71,7 @@ public static class MediaSourcePolicy
             PooledConnectionLifetime = TimeSpan.FromMinutes(2),
             ConnectCallback = async (context, token) =>
             {
-                if (context.DnsEndPoint.Host is not ("cdn.discordapp.com" or "media.discordapp.net") || context.DnsEndPoint.Port != 443)
+                if (!IsImageHost(context.DnsEndPoint.Host) || context.DnsEndPoint.Port != 443)
                     throw new HttpRequestException("CDN peer rejected.");
                 var addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, token);
                 if (addresses.Length is < 1 or > 32 || addresses.Any(address => !IsPublic(address))) throw new HttpRequestException("Non-public CDN resolution rejected.");
@@ -70,23 +85,25 @@ public static class MediaSourcePolicy
         };
         return new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
     }
-    public static async Task<string> FetchAndConvertAsync(HttpClient client, DerivativeCache cache, string canonicalUrl, MediaProfile profile, CancellationToken token)
+    public static async Task<string> FetchAndConvertAsync(HttpClient client, DerivativeCache cache, string canonicalUrl, MediaProfile profile, CancellationToken token,Action<string,double>? timing=null)
     {
         var source = Validate(canonicalUrl); profile.Validate();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token); timeout.CancelAfter(TimeSpan.FromSeconds(30));
         using var request = new HttpRequestMessage(HttpMethod.Get, source) { Version = HttpVersion.Version11, VersionPolicy = HttpVersionPolicy.RequestVersionExact };
+        var timer=System.Diagnostics.Stopwatch.StartNew();
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
-        if (response.StatusCode != HttpStatusCode.OK || response.Content.Headers.ContentLength > MediaConverter.MaximumSourceBytes ||
-            response.Content.Headers.ContentEncoding.Count != 0 || response.Content.Headers.ContentType?.MediaType is not ("image/png" or "image/gif" or "image/jpeg" or "image/webp"))
-            throw new InvalidDataException("CDN response rejected; no redirect/retry.");
+        timing?.Invoke("cdnHeaders",timer.Elapsed.TotalMilliseconds);
+        var reason=response.StatusCode!=HttpStatusCode.OK ? "cdn-status" : response.Content.Headers.ContentLength>MediaConverter.MaximumSourceBytes ? "source-bytes" :
+            response.Content.Headers.ContentEncoding.Count!=0 ? "content-encoding" : response.Content.Headers.ContentType?.MediaType is not ("image/png" or "image/gif" or "image/jpeg" or "image/webp") ? "content-type" : null;
+        if (reason is not null) throw new MediaSourceResponseException((int)response.StatusCode,reason);
         await using var body = await response.Content.ReadAsStreamAsync(timeout.Token);
-        return await cache.GetOrCreateAsync(body, profile, timeout.Token);
+        return await cache.GetOrCreateAsync(body, profile, timeout.Token,timing);
     }
 }
 
 // Backend owns this short-lived catalog. Raw URLs and signed query strings never
 // appear in the Core DTO. Authorization is required on every resolve, even hits.
-public sealed class MediaCatalog(TimeProvider? clock = null)
+public sealed class MediaCatalog(TimeProvider? clock = null, TimeSpan? referenceLifetime = null)
 {
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
@@ -104,7 +121,7 @@ public sealed class MediaCatalog(TimeProvider? clock = null)
                 if (pair.Value.Viewer == viewer && pair.Value.Channel == channel && pair.Value.Message == message && pair.Value.Source == uri) return pair.Key;
             if (_entries.Count >= 512) throw new IOException("Media reference budget exhausted.");
             var id = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
-            _entries.Add(id, new(viewer, channel, message, uri, now + TimeSpan.FromMinutes(10))); return id;
+            _entries.Add(id, new(viewer, channel, message, uri, now + (referenceLifetime ?? TimeSpan.FromMinutes(10)))); return id;
         }
     }
     public async Task<string> ResolveAuthorizedAsync(string id, string viewer, Func<string, string, CancellationToken, Task<bool>> canReadMessage, CancellationToken token)

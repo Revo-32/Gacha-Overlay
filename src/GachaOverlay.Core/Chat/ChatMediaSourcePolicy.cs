@@ -85,6 +85,10 @@ public static partial class ChatMediaSourcePolicy
         {
             return MediaProvider.Klipy;
         }
+        if (normalized == "giphy.com" || normalized.EndsWith(".giphy.com", StringComparison.Ordinal))
+        {
+            return MediaProvider.Giphy;
+        }
 
         return MediaProvider.Unknown;
     }
@@ -98,5 +102,6 @@ public static partial class ChatMediaSourcePolicy
         Discord,
         Tenor,
         Klipy,
+        Giphy,
     }
 }

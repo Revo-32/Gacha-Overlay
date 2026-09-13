@@ -21,6 +21,7 @@ using LSOverlay.Backend.PublicWeb;
 using GachaOverlay.Core.Gta;
 using LSOverlay.Backend.Gta;
 using LSOverlay.Backend.Gta.Localization;
+using LSOverlay.Backend.CoreClient;
 
 namespace LSOverlay.Backend;
 
@@ -127,6 +128,12 @@ internal static class Program
             services.GetRequiredService<RemotePublicationHub>());
         builder.Services.AddSingleton<RemoteConnectionLimiter>();
         builder.Services.AddSingleton<BackendWebSocketSession>();
+        var coreEnabled = Environment.GetEnvironmentVariable("LS_CORE_ENABLED") == "1";
+        if (coreEnabled)
+        {
+            builder.Services.AddSingleton<CoreSessionRegistry>();
+            builder.Services.AddSingleton<CoreMediaGateway>();
+        }
         builder.Services.AddSingleton(_ => new DiscordSocketClient(
             DiscordGatewayPolicy.CreateSocketConfiguration()));
         builder.Services.AddSingleton<IGuildMembershipVerifier, DiscordGuildMembershipVerifier>();
@@ -178,6 +185,12 @@ internal static class Program
             configuration.Deployment?.IsRailway == true ? "Railway PORT / internal HTTP" : "Configured local endpoint",
             configuration.SessionHostIds.Count);
         app.MapTransportApi();
+        if (coreEnabled)
+        {
+            // Fail startup before exposing a partially configured public Core API.
+            _ = app.Services.GetRequiredService<CoreMediaGateway>();
+            app.MapCoreApi();
+        }
         app.MapPublicServicePages();
         return app;
     }

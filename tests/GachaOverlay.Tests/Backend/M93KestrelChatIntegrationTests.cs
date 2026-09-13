@@ -13,6 +13,7 @@ using LSOverlay.Backend.Sales;
 using LSOverlay.Backend.Transport;
 using LSOverlay.Protocol;
 using LSOverlay.RemoteClient;
+using LSOverlay.Backend.CoreClient;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -298,7 +299,7 @@ public sealed partial class M93KestrelChatIntegrationTests
         public IServiceProvider Services => _app.Services;
         public Task StopAsync() => _app.StopAsync();
 
-        public static async Task<ChatFixture> StartAsync(bool rejectAccess = false, bool shutdownTest = false)
+        public static async Task<ChatFixture> StartAsync(bool rejectAccess = false, bool shutdownTest = false, bool core = false, Func<DateTimeOffset>? credentialClock = null)
         {
             var stateDirectory = Path.Combine(
                 Path.GetTempPath(),
@@ -318,13 +319,18 @@ public sealed partial class M93KestrelChatIntegrationTests
             builder.Services.AddSingleton(configuration);
             builder.Services.AddSingleton(new TrackedHostPresenceStore(
                 configuration.SessionHostIds));
-            builder.Services.AddSingleton<ClientCredentialRegistry>();
+            builder.Services.AddSingleton(_=>new ClientCredentialRegistry(configuration,credentialClock));
             builder.Services.AddSingleton<TransportMetrics>();
             builder.Services.AddSingleton<RemotePublicationHub>();
             builder.Services.AddSingleton<RemoteConnectionLimiter>();
             builder.Services.AddSingleton<BackendWebSocketSession>();
+            if(core)
+            {
+                builder.Services.AddSingleton<CoreSessionRegistry>();
+                builder.Services.AddSingleton(_=>new CoreMediaGateway(new HttpClientHandler(),new string('a',64)));
+            }
             builder.Services.AddSingleton<IGuildMembershipVerifier, AlwaysMemberVerifier>();
-            builder.Services.AddSingleton<IChatDiscordSource>(new LoopbackChatSource { RejectAccess = rejectAccess });
+            builder.Services.AddSingleton<IChatDiscordSource>(new LoopbackChatSource { RejectAccess = rejectAccess, Core = core });
             builder.Services.AddSingleton<IRemoteGuildMemberSource,
                 NoRemoteGuildMemberSource>();
             builder.Services.AddSingleton<CanonicalRemoteAuthorResolver>();
@@ -332,7 +338,7 @@ public sealed partial class M93KestrelChatIntegrationTests
             builder.Services.AddSingleton<DiscordChatMessageNormalizer>();
             builder.Services.AddSingleton<ActiveChatStreamRegistry>();
             builder.Services.AddSingleton<RemoteChatService>();
-            if (rejectAccess || shutdownTest)
+            if (rejectAccess || shutdownTest || core)
             {
                 builder.Services.AddSingleton<ActiveSalesStreamRegistry>();
                 builder.Services.AddSingleton<RemoteSalesService>();
@@ -347,6 +353,7 @@ public sealed partial class M93KestrelChatIntegrationTests
             }
             var app = builder.Build();
             app.MapTransportApi();
+            if(core)app.MapCoreApi();
             await app.StartAsync();
             var addresses = app.Services.GetRequiredService<IServer>()
                 .Features.Get<IServerAddressesFeature>()!;
@@ -398,7 +405,9 @@ public sealed partial class M93KestrelChatIntegrationTests
 
     private sealed class LoopbackChatSource : IChatDiscordSource
     {
-        public bool RejectAccess { get; init; }
+        public bool RejectAccess { get; set; }
+        public bool Core { get; init; }
+        public TaskCompletionSource? SalesBarrier { get; set; }
 
         public Task<ChatGuildSourceResult> GetGuildAsync(
             AuthenticatedClientIdentity identity,
@@ -415,7 +424,7 @@ public sealed partial class M93KestrelChatIntegrationTests
                 new ChatGuildSnapshot(
                     123,
                     new[] { new ChatRolePermission(123, read) },
-                    new ChatMemberSnapshot(456, Array.Empty<ulong>()),
+                    new ChatMemberSnapshot(identity.DiscordUserId, Array.Empty<ulong>()),
                     new ChatMemberSnapshot(999, Array.Empty<ulong>()),
                     new[]
                     {
@@ -428,16 +437,19 @@ public sealed partial class M93KestrelChatIntegrationTests
                         new ChatChannelSnapshot(
                             new ChatChannelDescriptor(123, 791, "channel-d", 2, false),
                             Array.Empty<ChatPermissionOverwrite>()),
-                    })));
+                    }.Concat(Core ? ChannelSelection.Ids.Select((id,index)=>new ChatChannelSnapshot(new ChatChannelDescriptor(123,id,ChannelSelection.Names[index],index+3,false),Array.Empty<ChatPermissionOverwrite>())) : Array.Empty<ChatChannelSnapshot>()).ToArray())));
         }
 
-        public Task<ChatMessagesSourceResult> GetRecentMessagesAsync(
+        public async Task<ChatMessagesSourceResult> GetRecentMessagesAsync(
             ulong channelId,
             int limit,
-            CancellationToken cancellationToken) => Task.FromResult(
-            new ChatMessagesSourceResult(
+            CancellationToken cancellationToken)
+        {
+            if(Core && channelId==790 && SalesBarrier is not null)await SalesBarrier.Task.WaitAsync(cancellationToken);
+            return new ChatMessagesSourceResult(
                 ChatSourceStatus.Available,
-                Array.Empty<IMessage>()));
+                Array.Empty<IMessage>());
+        }
 
         public Task<ChatMessageSourceResult> GetMessageAsync(
             ulong channelId,

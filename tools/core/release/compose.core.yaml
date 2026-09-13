@@ -1,0 +1,13 @@
+# Use with the existing /srv/apps/lsoverlay/compose.yaml. Preserve Full endpoints,
+# existing OAuth/data/Cloudflare settings and status service; add Core routes only.
+services:
+  backend:
+    image: lsoverlay/backend:core-1.0.0-rc1
+    environment:
+      LS_CORE_ENABLED: "1"
+    volumes:
+      - type: bind
+        source: /srv/apps/lsoverlay-core-release/private/core-media-key
+        target: /run/secrets/core-media-key
+        read_only: true
+        bind: {create_host_path: false}

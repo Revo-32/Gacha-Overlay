@@ -1,6 +1,7 @@
 #include "chat_view.hpp"
 #include "renderer.hpp"
 #include "transport.hpp"
+#include "media_layout.hpp"
 #include <filesystem>
 #include <array>
 #include <cstdio>
@@ -69,15 +70,20 @@ ChatView::ChatView(IDWriteFactory* factory) : factory_(factory) {
     ComPtr<IDWriteFontCollection1> collection; require(modern->CreateFontCollectionFromFontSet(set.Get(),&collection),"Private font collection");
     require(collection.As(&fonts_),"Font collection interface");
 }
-ChatBlock ChatView::runs(yyjson_val* values, float size, std::wstring prefix) const {
+ChatBlock ChatView::runs(yyjson_val* values, float size, std::wstring prefix, bool chatEmoji) const {
     if (!yyjson_is_arr(values)) throw std::runtime_error("Invalid Core runs");
     ChatBlock block; block.size = size; block.text = std::move(prefix);
     std::size_t index = 0,count = 0; yyjson_val* run = nullptr;
     yyjson_arr_foreach(values,index,count,run) {
         const auto kind = textField(run,"kind"); auto text = widen(textField(run,"text"));
         const auto mediaId = field(run,"mediaId");
-        if (kind == "CustomEmoji" && media_ && yyjson_is_str(mediaId) && media_->dimensions(std::string(stringValue(mediaId)))) {
-            block.images.push_back({static_cast<UINT32>(block.text.size()),std::string(stringValue(mediaId)),size});
+        // Only a server-associated primary preview URL may disappear. Keep the
+        // original text before first successful paint readiness and on failure.
+        if (kind == "MediaSource" && (!settingsActive_ || (settings_.enabled(Setting::HideUrl) && settings_.enabled(Setting::Images))) && media_ && yyjson_is_str(mediaId) && media_->ready(std::string(stringValue(mediaId)))) continue;
+        const float emojiSize=settingsActive_ && chatEmoji?settings_.get(Setting::EmojiSize):size;
+        const auto physical=static_cast<unsigned>(std::ceil(emojiSize*mediaDpi_/96*1.25f));
+        if (kind == "CustomEmoji" && (!settingsActive_ || settings_.enabled(Setting::Emoji)) && media_ && yyjson_is_str(mediaId) && media_->prepare(std::string(stringValue(mediaId)),physical,physical)) {
+            block.images.push_back({static_cast<UINT32>(block.text.size()),std::string(stringValue(mediaId)),emojiSize});
             block.text += L'\xfffc'; continue;
         }
         // Preserve the name on cache miss, unsupported asset or failed decode.
@@ -86,12 +92,17 @@ ChatBlock ChatView::runs(yyjson_val* values, float size, std::wstring prefix) co
         if (kind == "Mention") block.spans.push_back({{start,static_cast<UINT32>(text.size())},
             yyjson_is_true(field(run,"isSelf")) ? 0x3fb950U : 0xc9d1d9U,yyjson_is_true(field(run,"isSelf"))});
     }
+    if (std::all_of(block.text.begin(),block.text.end(),[](wchar_t c) {return iswspace(c)!=0;})) block.text.clear();
     return block;
 }
 ChatBlock ChatView::mediaBlock(yyjson_val* asset, bool forwarded) const {
     ChatBlock block; block.size = fontSize_*0.85f; block.color = 0x8b949e;
     const std::string id(textField(asset,"id"));
-    if (media_ && media_->dimensions(id)) block.mediaId = id;
+    if (media_ && media_->prepare(id,1,1)) block.mediaId = id;
+    auto* w=field(asset,"width");auto* h=field(asset,"height");
+    if (yyjson_is_uint(w) && yyjson_is_uint(h) && yyjson_get_uint(w)>0 && yyjson_get_uint(h)>0 && yyjson_get_uint(w)<=32768 && yyjson_get_uint(h)<=32768) {
+        block.sourceWidth=static_cast<unsigned>(yyjson_get_uint(w));block.sourceHeight=static_cast<unsigned>(yyjson_get_uint(h));
+    }
     block.text = (forwarded ? L"[전달된 미디어: " : L"[미디어: ")+optionalText(asset,"name")+L" · "+
         (media_ && media_->failed(id) ? L"불러올 수 없음]" : L"미리보기 없음]");
     return block;
@@ -105,7 +116,8 @@ ChatRow ChatView::makeRow(yyjson_val* value) const {
         ChatBlock header; header.size = fontSize_; header.author = true;
         auto icon = optionalText(author,"iconUnicode");
         const auto image = optionalText(author,"iconMediaId");
-        const bool imageReady = media_ && !image.empty() && media_->dimensions(narrow(image)).has_value();
+        const auto physical=static_cast<unsigned>(std::ceil(fontSize_*mediaDpi_/96*1.25f));
+        const bool imageReady = media_ && !image.empty() && media_->prepare(narrow(image),physical,physical);
         if (imageReady) icon = L"\xfffc";
         const auto name = widen(textField(author,"displayName"));
         header.text = rolePosition_ == 0 ? (icon.empty() ? L"" : icon+L" ")+name :
@@ -116,7 +128,7 @@ ChatRow ChatView::makeRow(yyjson_val* value) const {
             else header.images.push_back({rolePosition_ == 0 ? 0U : static_cast<UINT32>(name.size()+1),narrow(image),fontSize_});
         }
         auto* color = field(author,"color"); if (yyjson_is_uint(color) && yyjson_get_uint(color) <= 0xffffff) header.color = static_cast<std::uint32_t>(yyjson_get_uint(color));
-        row.blocks.push_back(std::move(header)); row.time = localTime(value);
+        row.blocks.push_back(std::move(header)); if(!settingsActive_ || settings_.enabled(Setting::ShowTime))row.time = localTime(value);
     }
     auto* reply = field(value,"reply");
     if (yyjson_is_obj(reply)) {
@@ -136,6 +148,7 @@ ChatRow ChatView::makeRow(yyjson_val* value) const {
         if (!yyjson_is_arr(assets)) throw std::runtime_error("Invalid forwarded media metadata");
         std::size_t assetIndex = 0,assetCount = 0; yyjson_val* asset = nullptr;
         yyjson_arr_foreach(assets,assetIndex,assetCount,asset) {
+            if(settingsActive_ && !settings_.enabled(textField(asset,"kind")=="sticker"?Setting::Stickers:Setting::Images))continue;
             if (assetIndex == 0) row.blocks.push_back(mediaBlock(asset,true));
             else if (assetIndex == 1) { ChatBlock extra; extra.size = fontSize_*0.85f; extra.text = L"+"+std::to_wstring(assetCount-1)+L"개 미디어"; row.blocks.push_back(std::move(extra)); }
         }
@@ -144,17 +157,19 @@ ChatRow ChatView::makeRow(yyjson_val* value) const {
     if (!yyjson_is_arr(media)) throw std::runtime_error("Invalid Core media metadata");
     yyjson_val* item = nullptr;
     yyjson_arr_foreach(media,index,count,item) {
+        if(settingsActive_ && !settings_.enabled(textField(item,"kind")=="sticker"?Setting::Stickers:Setting::Images))continue;
         if (index == 0) row.blocks.push_back(mediaBlock(item,false));
         else if (index == 1) { ChatBlock extra; extra.size = fontSize_*0.85f; extra.text = L"+"+std::to_wstring(count-1)+L"개 미디어"; row.blocks.push_back(std::move(extra)); }
     }
     auto* reactions = field(value,"reactions");
     if (!yyjson_is_arr(reactions)) throw std::runtime_error("Invalid Core reactions");
-    ChatBlock reactionBlock; reactionBlock.size = fontSize_*0.85f; reactionBlock.color = 0xc9d1d9;
+    ChatBlock reactionBlock; reactionBlock.size = settingsActive_?settings_.get(Setting::ReactionSize):fontSize_*0.85f; reactionBlock.color = 0xc9d1d9;
     yyjson_arr_foreach(reactions,index,count,item) {
         auto* emoji = field(item,"emoji");
         const auto text = widen(textField(emoji,"text"));
         auto* mediaId = field(emoji,"mediaId");
-        if (media_ && yyjson_is_str(mediaId) && media_->dimensions(std::string(stringValue(mediaId)))) {
+        const auto physical=static_cast<unsigned>(std::ceil(reactionBlock.size*mediaDpi_/96*1.25f));
+        if ((!settingsActive_ || settings_.enabled(Setting::Emoji)) && media_ && yyjson_is_str(mediaId) && media_->prepare(std::string(stringValue(mediaId)),physical,physical)) {
             reactionBlock.images.push_back({static_cast<UINT32>(reactionBlock.text.size()),std::string(stringValue(mediaId)),reactionBlock.size});
             reactionBlock.text += L'\xfffc';
         } else reactionBlock.text += textField(emoji,"kind") == "CustomEmoji" ? L":"+text+L":" : text;
@@ -207,9 +222,22 @@ std::optional<ChatView::TextAnchor> ChatView::captureReadingAnchor() const {
 void ChatView::layout(ChatBlock& block, float width) {
     block.outline.clear(); block.outlineBuilt = false;
     if (!block.mediaId.empty() && media_) {
+        const bool large=!settingsActive_ || settings_.enabled(Setting::LargeImages);
+        auto physical=static_cast<unsigned>(std::ceil(std::max(1.0f,std::min(width,large?360.0f:132.0f))*mediaDpi_/96*1.25f));
+        if (block.sourceWidth) physical=std::min(physical,block.sourceWidth);
+        auto height=block.sourceWidth ? static_cast<unsigned>(std::ceil(static_cast<double>(physical)*block.sourceHeight/block.sourceWidth)) : std::min(8192U,16777216U/std::max(physical,1U));
+        // Unsupported dimensions fall back explicitly; never quietly downscale
+        // below the physical requirement to satisfy the safety admission limit.
+        if (physical<=8192 && height<=8192 && static_cast<std::uint64_t>(physical)*height<=16777216) media_->prepare(block.mediaId,physical,std::max(height,1U));
+        else block.mediaId.clear();
         if (const auto size = media_->dimensions(block.mediaId)) {
-            const auto drawWidth = std::min(width,static_cast<float>(size->width)*96/mediaDpi_);
-            block.height = drawWidth*static_cast<float>(size->height)/static_cast<float>(size->width); return;
+            // Before delivery use canonical aspect, or a modest placeholder for
+            // metadata-free stickers; never reserve the conversion safety bound.
+            const bool pending=!media_->frame(block.mediaId);
+            const auto ratio=pending && block.sourceWidth ? static_cast<float>(block.sourceHeight)/static_cast<float>(block.sourceWidth) :
+                pending && !block.sourceWidth && size->height==8192 ? 1.0f : static_cast<float>(size->height)/static_cast<float>(size->width);
+            const auto box=large?chatMediaBox(width,1.0f,ratio):fitMedia(std::min(width,132.0f),96,1,ratio);
+            block.imageWidth=box.width;block.height=box.height; return;
         }
         block.mediaId.clear();
     }
@@ -226,16 +254,36 @@ void ChatView::layout(ChatBlock& block, float width) {
     require(factory_->CreateTextFormat(family,fonts_.Get(),block.author ? pair.authorWeight : pair.bodyWeight,
         DWRITE_FONT_STYLE_NORMAL,DWRITE_FONT_STRETCH_NORMAL,block.size,L"ko-KR",&format),"Chat text format");
     require(format->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP),"Chat wrapping");
-    const float line = std::ceil(block.size*1.42f);
-    require(format->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM,line,block.size*1.12f),"Chat line spacing");
+    ComPtr<IDWriteFontFamily> fontFamily;ComPtr<IDWriteFont> font;DWRITE_FONT_METRICS fontMetrics{};
+    require(fonts_->GetFontFamily(index,&fontFamily),"Chat font family metrics");
+    require(fontFamily->GetFirstMatchingFont(block.author?pair.authorWeight:pair.bodyWeight,DWRITE_FONT_STRETCH_NORMAL,DWRITE_FONT_STYLE_NORMAL,&font),"Chat font metrics");
+    font->GetMetrics(&fontMetrics);
+    const float em=block.size/static_cast<float>(fontMetrics.designUnitsPerEm);
+    const float natural=em*(fontMetrics.ascent+fontMetrics.descent);
+    const float line=std::max(natural,std::ceil(block.size*(settingsActive_?settings_.get(Setting::LineHeight):1.42f)));
+    require(format->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM,line,em*fontMetrics.ascent+(line-natural)/2),"Chat line spacing");
     }
     require(factory_->CreateTextLayout(block.text.c_str(),static_cast<UINT32>(block.text.size()),format.Get(),std::max(width,1.0f),1e7f,&block.layout),"Chat layout");
     for (const auto& span : block.spans) if (span.bold) require(block.layout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD,span.range),"Mention weight");
     for (const auto& image : block.images) {
+        if (media_) {const auto physical=static_cast<unsigned>(std::ceil(image.size*mediaDpi_/96*1.25f));media_->prepare(image.id,physical,physical);}
         ComPtr<IDWriteInlineObject> object; object.Attach(new InlineMedia(image.size));
         require(block.layout->SetInlineObject(object.Get(),{image.position,1}),"Inline media layout");
     }
+    DWRITE_LINE_SPACING_METHOD method{};float line=0,baseline=0;require(format->GetLineSpacing(&method,&line,&baseline),"Chat line metrics");
+    float above=baseline,below=line-baseline;
+    for(const auto& image:block.images){above=std::max(above,image.size*0.82f);below=std::max(below,image.size*0.18f);}
+    line=above+below;
+    require(block.layout->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM,line,above),"Emoji-safe line spacing");
+    if(settingsActive_ && block.body) {
+        ComPtr<IDWriteInlineObject> ellipsis;require(factory_->CreateEllipsisTrimmingSign(format.Get(),&ellipsis),"Chat trimming sign");
+        DWRITE_TRIMMING trim{DWRITE_TRIMMING_GRANULARITY_CHARACTER,0,0};require(block.layout->SetTrimming(&trim,ellipsis.Get()),"Chat line limit trimming");
+        require(block.layout->SetMaxHeight(line*settings_.get(Setting::MaxLines)),"Chat line limit height");
+    }
     DWRITE_TEXT_METRICS metrics{}; require(block.layout->GetMetrics(&metrics),"Chat layout measurement"); block.height = metrics.height;
+    if(settingsActive_ && block.body)block.height=std::min(block.height,line*settings_.get(Setting::MaxLines));
+    block.inkPadding=settingsActive_?(settings_.enabled(block.author?Setting::NicknameOutline:Setting::MessageOutline)?std::ceil(settings_.get(block.author?Setting::NicknameThickness:Setting::MessageThickness)):0)+std::min(1.0f,settings_.get(Setting::LineHeight)):2;
+    block.height+=block.inkPadding*2;
     ++layoutBuilds_;
 }
 void ChatView::arrange(float width, float height) {
@@ -244,10 +292,10 @@ void ChatView::arrange(float width, float height) {
     const bool reflow = width_ != width;
     std::vector<ChatExtent> extents; extents.reserve(rows_.size());
     for (auto& row : rows_) {
-        float y = row.header ? 18.0f : 2.0f;
+        float y = row.header ? (settingsActive_?std::max(0.0f,settings_.get(Setting::Spacing)):18.0f) : 2.0f;
         for (auto& block : row.blocks) {
             if (reflow || !block.layout) layout(block,width-(block.author ? (row.time.empty() ? 0 : 58)+(row.icon.empty() && row.iconMediaId.empty() ? 0 : 24) : 0));
-            block.y = y; y += block.height+2;
+            block.y = y; y += block.height+(settingsActive_?2*std::min(1.0f,settings_.get(Setting::LineHeight)):2);
         }
         if (row.header && (reflow || !row.timeLayout)) {
             ChatBlock time; time.text = row.time; time.size = fontSize_*0.8f; layout(time,56); row.timeLayout = std::move(time.layout);
@@ -276,10 +324,11 @@ ID2D1SolidColorBrush* ChatView::brush(ID2D1RenderTarget* target, std::uint32_t c
 void ChatView::paintBlock(ID2D1RenderTarget* target, ChatBlock& block, float x, float y) {
     if (!block.mediaId.empty() && media_) {
         const auto size = media_->dimensions(block.mediaId);
-        if (size) paintMedia(target,block.mediaId,D2D1::RectF(x,y,x+block.height*static_cast<float>(size->width)/static_cast<float>(size->height),y+block.height));
+        if (size) paintMedia(target,block.mediaId,D2D1::RectF(x,y,x+block.imageWidth,y+block.height));
         return;
     }
-    if (outlineEnabled_ && (block.author || block.body)) {
+    const bool outlineEnabled=block.outlineOverride>=0?block.outlineOverride>0:settingsActive_ ? (block.author?settings_.enabled(Setting::NicknameOutline):block.body && settings_.enabled(Setting::MessageOutline)) : outlineEnabled_ && (block.author || block.body);
+    if (outlineEnabled) {
         if (!block.outlineBuilt) {
             ComPtr<ID2D1Factory> geometryFactory; target->GetFactory(&geometryFactory);
             block.outline = buildTextOutline(factory_.Get(),geometryFactory.Get(),block.layout.Get());
@@ -293,7 +342,7 @@ void ChatView::paintBlock(ID2D1RenderTarget* target, ChatBlock& block, float x, 
         for (const auto& outline : block.outline) {
             target->SetTransform(D2D1::Matrix3x2F::Translation(x+outline.origin.x,y+outline.origin.y)*original);
             // Same convention as Full: 1 DIP outward thickness = 2 DIP centered stroke.
-            target->DrawGeometry(outline.geometry.Get(),brush(target,0x000000),2,outlineStroke_.Get());
+            target->DrawGeometry(outline.geometry.Get(),brush(target,0x000000),block.outlineOverride>=0?2*block.outlineOverride:settingsActive_?2*settings_.get(block.author?Setting::NicknameThickness:Setting::MessageThickness):2,outlineStroke_.Get());
         }
         target->SetTransform(original);
     }
@@ -310,7 +359,17 @@ void ChatView::paintMedia(ID2D1RenderTarget* target, const std::string& id, D2D1
     visibleMedia_.insert(id);
     if (recordingMedia_) { mediaPlacements_.push_back({id,bounds,viewport_}); return; }
     const auto pixels = media_->frame(id);
-    if (!pixels) { target->DrawRectangle(bounds,brush(target,0x57606a)); return; }
+    if (!pixels) {
+        target->FillRoundedRectangle(D2D1::RoundedRect(bounds,4,4),brush(target,0x21262d));
+        if (bounds.right-bounds.left>=160 && bounds.bottom-bounds.top>=40) {
+            if (!loadingLayout_) {
+                ChatBlock loading;loading.text=L"이미지 불러오는 중…";loading.size=12;
+                layout(loading,150);loadingLayout_=std::move(loading.layout);
+            }
+            target->DrawTextLayout(D2D1::Point2F(bounds.left+8,bounds.top+8),loadingLayout_.Get(),brush(target,0x8b949e));
+        }
+        return;
+    }
     const auto key = media_->sourceKey(id); visibleBitmaps_.insert(key);
     auto& cached = mediaBitmaps_[key];
     if (!cached.bitmap || cached.index != pixels->index) {
@@ -319,14 +378,17 @@ void ChatView::paintMedia(ID2D1RenderTarget* target, const std::string& id, D2D1
         else require(cached.bitmap->CopyFromMemory(nullptr,pixels->bgra.data(),pixels->width*4),"Next native media frame");
         cached.index = pixels->index;
     }
-    target->DrawBitmap(cached.bitmap.Get(),bounds,1,D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+    const auto fitted=fitMedia(bounds.right-bounds.left,bounds.bottom-bounds.top,static_cast<float>(pixels->width),static_cast<float>(pixels->height));
+    const auto left=bounds.left+(bounds.right-bounds.left-fitted.width)/2;
+    const auto top=bounds.top+(bounds.bottom-bounds.top-fitted.height)/2;
+    target->DrawBitmap(cached.bitmap.Get(),D2D1::RectF(left,top,left+fitted.width,top+fitted.height),1,D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
 }
 bool ChatView::mediaUpdated() {
     if (!media_) return false;
     media_->acknowledge();
     // Failed assets revert to their original readable names, including inline
     // emoji. Rebuild only once per failure change; ordinary frames keep layouts.
-    bool rebuild = false;
+    const auto revision=media_->layoutRevision();bool rebuild = revision!=mediaRevision_;mediaRevision_=revision;
     for (const auto& row : rows_) {
         if (!row.iconMediaId.empty() && media_->failed(row.iconMediaId)) rebuild = true;
         for (const auto& block : row.blocks) {
@@ -350,9 +412,30 @@ void ChatView::drawMedia(ID2D1RenderTarget* target) {
         paintMedia(target,placement.id,placement.bounds); target->PopAxisAlignedClip();
     }
     viewport_ = original;
+    if(!enlargedId_.empty() && media_) {
+        const auto bounds=D2D1::RectF(viewport_.left+8,viewport_.top+36,viewport_.right-8,viewport_.bottom-8);
+        target->FillRoundedRectangle(D2D1::RoundedRect(viewport_,8,8),brush(target,0x161b22));
+        if(!enlargementLayout_) {ChatBlock close;close.text=L"확대 미리보기 · 클릭하면 닫기";close.size=12;layout(close,300);enlargementLayout_=std::move(close.layout);}
+        target->DrawTextLayout(D2D1::Point2F(viewport_.left+8,viewport_.top+8),enlargementLayout_.Get(),brush(target,0xc9d1d9));
+        if(const auto size=media_->dimensions(enlargedId_)) {
+            const auto fitted=fitMedia(bounds.right-bounds.left,bounds.bottom-bounds.top,static_cast<float>(size->width),static_cast<float>(size->height));
+            const auto width=static_cast<unsigned>(std::ceil(std::max(1.0f,fitted.width)*mediaDpi_/96*1.25f)),height=static_cast<unsigned>(std::ceil(std::max(1.0f,fitted.height)*mediaDpi_/96*1.25f));
+            if(width<=8192 && height<=8192 && static_cast<std::uint64_t>(width)*height<=16777216)media_->prepare(enlargedId_,width,height);
+            paintMedia(target,enlargedId_,bounds);
+        }else enlargedId_.clear();
+    }
     std::erase_if(mediaBitmaps_,[&](const auto& pair) { return !visibleBitmaps_.contains(pair.first); });
+    commitMediaVisibility();
 }
-void ChatView::draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport) {
+bool ChatView::clickMedia(float x,float y) {
+    if(!enlargedId_.empty()) {enlargedId_.clear();return true;}
+    if(!settingsActive_ || !settings_.enabled(Setting::Enlarge))return false;
+    for(const auto& placement:mediaPlacements_)if(placement.bounds.right-placement.bounds.left>48 && placement.bounds.bottom-placement.bounds.top>48 &&
+        x>=placement.bounds.left && x<placement.bounds.right && y>=placement.bounds.top && y<placement.bounds.bottom && y>=placement.clip.top && y<placement.clip.bottom) {enlargedId_=placement.id;return true;}
+    return false;
+}
+void ChatView::draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport, bool showScrollbar) {
+    scrollbarVisible_=showScrollbar;if(!showScrollbar)draggingScrollbar_=false;
     viewport_ = viewport;
     float dpiX = 0,dpiY = 0; target->GetDpi(&dpiX,&dpiY);
     if (mediaDpi_ != dpiX) { mediaDpi_ = dpiX; width_ = 0; }
@@ -368,15 +451,19 @@ void ChatView::draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport) {
             for (auto& block : row.blocks) {
                 if (block.body && mentionBackground_ && row.attention == "DirectSelfMention") target->FillRoundedRectangle(D2D1::RoundedRect(
                     D2D1::RectF(viewport.left,top+block.y,viewport.right-14,top+block.y+block.height),4,4),brush(target,0x23364b));
-                paintBlock(target,block,viewport.left+4,top+block.y);
+                target->PushAxisAlignedClip(D2D1::RectF(viewport.left,top+block.y,viewport.right,top+block.y+block.height),D2D1_ANTIALIAS_MODE_ALIASED);
+                const auto fullClip=viewport_;
+                viewport_.top=std::max(viewport.top,top+block.y);viewport_.bottom=std::min(viewport.bottom,top+block.y+block.height);
+                paintBlock(target,block,viewport.left+4,top+block.y+block.inkPadding);viewport_=fullClip;target->PopAxisAlignedClip();
             }
-            if (row.timeLayout) target->DrawTextLayout(D2D1::Point2F(viewport.right-68,top+18),row.timeLayout.Get(),brush(target,0x8b949e),D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
-            if (row.iconLayout) target->DrawTextLayout(D2D1::Point2F(viewport.right-94,top+18),row.iconLayout.Get(),brush(target,row.blocks.front().color),D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
-            if (!row.iconMediaId.empty()) paintMedia(target,row.iconMediaId,D2D1::RectF(viewport.right-94,top+18,viewport.right-94+fontSize_,top+18+fontSize_));
+            const float headerY=top+(settingsActive_?std::max(0.0f,settings_.get(Setting::Spacing)):18);
+            if (row.timeLayout) target->DrawTextLayout(D2D1::Point2F(viewport.right-68,headerY),row.timeLayout.Get(),brush(target,0x8b949e),D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+            if (row.iconLayout) target->DrawTextLayout(D2D1::Point2F(viewport.right-94,headerY),row.iconLayout.Get(),brush(target,row.blocks.front().color),D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+            if (!row.iconMediaId.empty()) paintMedia(target,row.iconMediaId,D2D1::RectF(viewport.right-94,headerY,viewport.right-94+fontSize_,headerY+fontSize_));
         }
         top += row.height;
     }
-    if (scroll_.maximum() > 0) {
+    if (scrollbarVisible()) {
         auto* track = brush(target,0x57606a); track->SetOpacity(0.08f);
         target->FillRectangle(D2D1::RectF(viewport.right-10,viewport.top,viewport.right,viewport.bottom),track);
         track->SetOpacity(1);
@@ -392,7 +479,7 @@ void ChatView::drawExternal(ID2D1RenderTarget* target, ChatBlock& block, float x
     paintBlock(target,block,x,y); recordingMedia_ = false; viewport_ = original;
 }
 bool ChatView::pressScrollbar(float x, float y) {
-    if (scroll_.maximum() <= 0 || x < viewport_.right-10 || x > viewport_.right ||
+    if (!scrollbarVisible() || x < viewport_.right-10 || x > viewport_.right ||
         y < viewport_.top || y > viewport_.bottom) return false;
     const float length = viewport_.bottom-viewport_.top;
     const float thumb = std::max(24.0f,length*length/scroll_.totalHeight());
@@ -441,4 +528,13 @@ std::size_t ChatView::layoutTextBytes() const {
     return bytes; // Explicit owned text/span estimate, NOT opaque DirectWrite allocation size.
 }
 std::wstring ChatView::fontName() const { return fontPairs[preset_].name; }
+void ChatView::applySettings(const UserSettings& settings) {
+    if(settingsActive_ && settings_==settings)return;
+    pendingAnchor_=captureReadingAnchor();settings_=settings;settingsActive_=true;
+    preset_=static_cast<unsigned>(settings.get(Setting::Font));fontSize_=settings.get(Setting::FontSize)*96/72;
+    rolePosition_=static_cast<unsigned>(settings.get(Setting::RolePosition));mentionBackground_=settings.enabled(Setting::MentionBackground);
+    if(!settings.enabled(Setting::Images) || !settings.enabled(Setting::Enlarge))enlargedId_.clear();
+    formats_.clear();loadingLayout_.Reset();enlargementLayout_.Reset();releaseTargetResources();width_=0;changed_=true;
+    if(snapshot_) {std::vector<ChatRow> rows;std::size_t i=0,n=0;yyjson_val* value=nullptr;yyjson_arr_foreach(field(snapshot_->root(),"chat"),i,n,value)rows.push_back(makeRow(value));rows_=std::move(rows);}
+}
 }

@@ -109,7 +109,7 @@ public sealed class DerivativeCache : IDisposable
         if (used + additional > _budget.Hard) throw new IOException("Cache is busy/full; quality is unchanged.");
     }
 
-    public async Task<string> GetOrCreateAsync(Stream source, MediaProfile profile, CancellationToken cancellationToken = default)
+    public async Task<string> GetOrCreateAsync(Stream source, MediaProfile profile, CancellationToken cancellationToken = default, Action<string,double>? timing = null)
     {
         profile.Validate();
         lock (_sync)
@@ -119,7 +119,8 @@ public sealed class DerivativeCache : IDisposable
         }
         // This gate also coalesces content-identical work. Callers independently
         // stream/hash new URLs, then the already committed derivative is reused.
-        try { await _serial.WaitAsync(cancellationToken); }
+        var timer=System.Diagnostics.Stopwatch.StartNew();
+        try { await _serial.WaitAsync(cancellationToken);timing?.Invoke("cacheQueue",timer.Elapsed.TotalMilliseconds);timer.Restart(); }
         catch { _slots.Release(); throw; }
         string? input = null, pending = null;
         try
@@ -139,6 +140,7 @@ public sealed class DerivativeCache : IDisposable
                     hash.AppendData(buffer, 0, read);
                 }
             }
+            timing?.Invoke("sourceRead",timer.Elapsed.TotalMilliseconds);timer.Restart();
             var key = profile.Key(Convert.ToHexString(hash.GetHashAndReset())); var target = Entry(key);
             if (File.Exists(target))
             {
@@ -156,6 +158,7 @@ public sealed class DerivativeCache : IDisposable
             {
                 MediaConverter.Convert(input, bounded, profile, cancellationToken); output.Flush(flushToDisk: true);
             }
+            timing?.Invoke("codec",timer.Elapsed.TotalMilliseconds);
             cancellationToken.ThrowIfCancellationRequested();
             File.Move(pending, target); pending = null; Conversions++; return key;
         }

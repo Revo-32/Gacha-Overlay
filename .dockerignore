@@ -12,6 +12,12 @@
 !src/LSOverlay.Protocol/**
 !src/LSOverlay.Backend/
 !src/LSOverlay.Backend/**
+!src/LSOverlay.RemoteClient/
+!src/LSOverlay.RemoteClient/**
+!src/GachaOverlay.Infrastructure/Sales/DefaultSalesProductCatalog.json
+!src/GachaOverlay.Infrastructure/Localization/Resources/Strings.ko.resx
+!src/LSOverlay.CoreMedia/
+!src/LSOverlay.CoreMedia/**
 !assets/branding/LS_Overlay_logo.png
 
 # Re-exclude generated output and any accidental runtime/secret files in source.

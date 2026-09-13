@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cwctype>
 #include <stdexcept>
+#include <charconv>
 
 namespace core {
 namespace {
@@ -136,6 +137,74 @@ HttpResponse HttpTransport::request(const wchar_t* method, const std::wstring& p
         response.body.append(buffer.data(),count); SecureZeroMemory(buffer.data(),buffer.size());
     }
     return response;
+}
+bool validMediaIdentity(std::string_view id,std::size_t length) {
+    return id.size()==length && std::all_of(id.begin(),id.end(),[](char c) { return (c>='0' && c<='9') || (c>='a' && c<='f'); });
+}
+void validateMediaProfile(unsigned width,unsigned height) {
+    if (!width || !height || width>8192 || height>8192 || static_cast<std::uint64_t>(width)*height>16777216)
+        throw std::runtime_error("Invalid physical media profile");
+}
+MediaResponse HttpTransport::downloadMedia(std::string_view id,unsigned width,unsigned height,
+    std::string_view authorization,const std::filesystem::path& destination,std::stop_token stop,const std::function<void(std::uint64_t)>& reserve) {
+    if (!validMediaIdentity(id) || stop.stop_requested()) throw std::runtime_error("Invalid media identity");
+    validateMediaProfile(width,height);
+    const auto path=L"/api/v1/core/media/"+widen(id)+L"/"+std::to_wstring(width)+L"/"+std::to_wstring(height);
+    InternetHandle request(WinHttpOpenRequest(connection_.get(),L"GET",path.c_str(),nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,endpoint_.secure ? WINHTTP_FLAG_SECURE : 0));
+    checked(request.get()!=nullptr); requestPolicy(request.get(),endpoint_.secure); authorize(request.get(),authorization);
+    // Conversion may take longer than small JSON requests. Absolute watchdog
+    // closes the request even if the peer drips bytes or a WinHTTP call blocks.
+    checked(WinHttpSetTimeouts(request.get(),5000,5000,5000,55000));
+    std::stop_callback cancel(stop,[&] { request.close(); });
+    std::mutex gate; std::condition_variable_any wake;
+    std::jthread watchdog([&](std::stop_token done) {
+        std::unique_lock lock(gate); wake.wait_for(lock,done,std::chrono::seconds(60),[] { return false; });
+        if (!done.stop_requested()) request.close();
+    });
+    const auto finish=[&] { watchdog.request_stop(); wake.notify_all(); if (watchdog.joinable()) watchdog.join(); };
+    HANDLE file=INVALID_HANDLE_VALUE;
+    try {
+        checked(WinHttpSendRequest(request.get(),L"Accept: application/vnd.lsoverlay.media-v1",static_cast<DWORD>(-1),nullptr,0,0,0));
+        checked(WinHttpReceiveResponse(request.get(),nullptr));
+        const auto status=responseStatus(request.get());
+        if (status!=200) throw TransportError("Media delivery denied",status);
+        const auto header=[&](const wchar_t* name) {
+            std::array<wchar_t,128> value{}; DWORD bytes=static_cast<DWORD>(sizeof(value)),index=0;
+            checked(WinHttpQueryHeaders(request.get(),WINHTTP_QUERY_CUSTOM,name,value.data(),&bytes,&index));
+            std::array<wchar_t,128> duplicate{}; DWORD extra=static_cast<DWORD>(sizeof(duplicate));
+            if (WinHttpQueryHeaders(request.get(),WINHTTP_QUERY_CUSTOM,name,duplicate.data(),&extra,&index) || GetLastError()!=ERROR_WINHTTP_HEADER_NOT_FOUND)
+                throw std::runtime_error("Duplicate media response header");
+            return narrow(value.data());
+        };
+        const auto integer=[&](const wchar_t* name) {
+            const auto value=header(name); std::uint64_t number=0;
+            const auto parsed=std::from_chars(value.data(),value.data()+value.size(),number);
+            if (parsed.ec!=std::errc{} || parsed.ptr!=value.data()+value.size()) throw std::runtime_error("Invalid media numeric header");
+            return number;
+        };
+        if (header(L"Content-Type")!="application/vnd.lsoverlay.media-v1") throw std::runtime_error("Invalid media response type");
+        MediaResponse response{}; response.key=header(L"X-Core-Media-Key"); response.bytes=integer(L"Content-Length");
+        const auto w=integer(L"X-Core-Media-Width"),h=integer(L"X-Core-Media-Height");
+        if (!validMediaIdentity(response.key,64) || response.bytes<24 || response.bytes>512ULL*1024*1024 || w>8192 || h>8192)
+            throw std::runtime_error("Media response bounds exceeded");
+        response.width=static_cast<unsigned>(w); response.height=static_cast<unsigned>(h); validateMediaProfile(response.width,response.height);
+        const auto hit=header(L"X-Core-Cache-Hit"); if (hit!="0" && hit!="1") throw std::runtime_error("Invalid media cache header"); response.cacheHit=hit=="1";
+        if (reserve) reserve(response.bytes); // Exact compressed bytes before any disk write.
+        file=CreateFileW(destination.c_str(),GENERIC_WRITE,0,nullptr,CREATE_NEW,FILE_ATTRIBUTE_TEMPORARY,nullptr);
+        if (file==INVALID_HANDLE_VALUE) throw std::runtime_error("Cannot create private media download");
+        std::array<unsigned char,65536> buffer{}; std::uint64_t total=0;
+        for (;;) {
+            DWORD read=0,written=0; checked(WinHttpReadData(request.get(),buffer.data(),static_cast<DWORD>(buffer.size()),&read));
+            if (!read) break;
+            total+=read; if (total>response.bytes) throw std::runtime_error("Media response length overflow");
+            checked(WriteFile(file,buffer.data(),read,&written,nullptr)); if (written!=read) throw std::runtime_error("Short media file write");
+        }
+        if (total!=response.bytes || stop.stop_requested()) throw std::runtime_error("Incomplete media response");
+        CloseHandle(file); file=INVALID_HANDLE_VALUE; finish(); return response;
+    } catch (...) {
+        if (file!=INVALID_HANDLE_VALUE) { CloseHandle(file); DeleteFileW(destination.c_str()); }
+        finish(); throw;
+    }
 }
 WebSocket::WebSocket(HttpTransport& http, std::string_view accessToken, std::stop_token stop) {
     if (!accessToken.starts_with("lso_") || !opaqueSecret(accessToken.substr(4))) throw std::runtime_error("Invalid Remote credential shape");

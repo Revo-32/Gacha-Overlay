@@ -4,11 +4,15 @@
 #include "chat_view.hpp"
 #include "sales_view.hpp"
 #include "dev_client.hpp"
+#include "settings_window.hpp"
+#include "sales_sound.hpp"
 #include <windowsx.h>
+#include <commctrl.h>
 #include <shellapi.h>
 #include <psapi.h>
 #include <tlhelp32.h>
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <memory>
@@ -20,11 +24,14 @@
 namespace {
 constexpr UINT drawMessage = WM_APP + 1, trayMessage = WM_APP + 2, connectionMessage = WM_APP + 3, mediaMessage = WM_APP + 4;
 constexpr int showHotkey = 1, lockHotkey = 2;
+constexpr int previousChannelHotkey=3,nextChannelHotkey=4;
 constexpr UINT menuShow = 100, menuLock = 101, menuOpacity = 102, menuExit = 103;
 constexpr UINT menuFont = 104, menuLarger = 105, menuSmaller = 106, menuMention = 107, menuLatest = 108;
 constexpr UINT menuOutline = 109;
 constexpr UINT menuRolePosition = 110;
 constexpr UINT menuHost = 111;
+constexpr UINT menuSettings=112,altMessage=WM_APP+5;
+constexpr UINT salesActionMessage=WM_APP+6;
 constexpr int minWidthDip = 360, minHeightDip = 480;
 using Clock = std::chrono::steady_clock;
 
@@ -102,6 +109,8 @@ struct Options {
     unsigned phaseSeconds = 15;
     bool noHotkeys = false;
     bool chatCaptureOnly = false;
+    bool salesActions = false;
+    std::filesystem::path settingsVerificationDirectory;
 };
 
 class Shell final {
@@ -119,7 +128,7 @@ public:
         klass.hIconSm = klass.hIcon;
         if (!RegisterClassExW(&klass)) throw std::runtime_error("RegisterClassEx failed");
         window_ = CreateWindowExW(WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
-            klass.lpszClassName, L"LS Overlay Core · 내부 개발 검증", WS_POPUP | WS_THICKFRAME,
+            klass.lpszClassName, L"LS Overlay Core", WS_POPUP | WS_THICKFRAME,
             80,80,640,520,nullptr,nullptr,instance,this);
         if (!window_) throw std::runtime_error("Native window creation failed");
         dpi_ = GetDpiForWindow(window_);
@@ -127,6 +136,7 @@ public:
         if (!options_.noHotkeys) {
             showRegistered_ = RegisterHotKey(window_,showHotkey,MOD_NOREPEAT,VK_F9) != FALSE;
             lockRegistered_ = RegisterHotKey(window_,lockHotkey,MOD_NOREPEAT,VK_F10) != FALSE;
+            if(!showRegistered_ || !lockRegistered_)MessageBoxW(window_,L"F9 또는 F10을 다른 앱이 사용 중입니다. Full 등 해당 앱을 종료한 뒤 Core를 다시 실행해 주세요. 트레이 메뉴의 숨기기·잠금은 계속 사용할 수 있습니다.",L"LS Overlay Core · 단축키 충돌",MB_OK|MB_ICONWARNING);
         }
         taskbarCreated_ = RegisterWindowMessageW(L"TaskbarCreated");
         if (!addTray()) throw std::runtime_error("Tray icon unavailable; refusing an unrecoverable hidden window");
@@ -136,7 +146,16 @@ public:
             media_ = std::make_shared<core::MediaStore>(options_.mediaFixture,[target] { (void)PostMessageW(target,mediaMessage,0,0); });
             renderer_.setMedia(media_);
         }
+        if (!options_.developmentEndpoint.empty()) {
+            const HWND target=window_;
+            media_=std::make_shared<core::MediaStore>([target] { (void)PostMessageW(target,mediaMessage,0,0); });
+            renderer_.setMedia(media_);
+        }
         if (!options_.chatFixture.empty()) loadChat(options_.chatFixture);
+        if(!options_.developmentEndpoint.empty() || !options_.settingsVerificationDirectory.empty()) {
+            if(options_.settingsVerificationDirectory.empty()) {try {preferences_.load(core::UserSettings::path());}catch(const std::exception&) {settingsLoadFailed_=true;}}
+            applyPreferences();
+        }
         renderNow();
         if (verifying()) {
             std::filesystem::create_directories(options_.verificationDirectory);
@@ -144,17 +163,20 @@ public:
         }
         if (!options_.fixtureEndpoint.empty() || !options_.developmentEndpoint.empty()) {
             const HWND target = window_;
-            renderer_.setConnectionStatus(options_.developmentEndpoint.empty() ? L"M2 합성 환경에 연결 중 · 실제 Discord 아님" : L"격리된 개발 연결 준비 · Full 설정은 변경하지 않습니다"); queueDraw();
+            renderer_.setConnectionStatus(options_.developmentEndpoint.empty() ? L"M2 합성 환경에 연결 중 · 실제 Discord 아님" : L"Core 연결 준비 중"); queueDraw();
             connectionWorker_ = std::jthread([this,target](std::stop_token stop) {
-                const auto run = options_.developmentEndpoint.empty() ? core::runFixtureClient : core::runDevelopmentClient;
-                run(options_.developmentEndpoint.empty() ? options_.fixtureEndpoint : options_.developmentEndpoint,stop,[this,target](std::wstring status,std::shared_ptr<const core::Json> snapshot) {
+                const auto publish=[this,target](std::wstring status,std::shared_ptr<const core::Json> snapshot) {
                     // One owned latest-value slot: no external message carries a raw pointer.
                     std::lock_guard lock(connectionMutex_);
                     latestConnectionStatus_ = std::move(status); if (snapshot) latestChatSnapshot_ = std::move(snapshot);
                     // Coalesce wakeups too, not just the payload. A temporarily busy
                     // UI must not accumulate one Win32 queue entry per server revision.
                     if (!connectionNotificationQueued_) connectionNotificationQueued_ = PostMessageW(target,connectionMessage,0,0) != FALSE;
-                });
+                };
+                if (options_.developmentEndpoint.empty()) core::runFixtureClient(options_.fixtureEndpoint,stop,publish);
+                else core::runDevelopmentClient(options_.developmentEndpoint,stop,publish,[this](std::string_view token) {
+                    media_->setFetcher(core::makeMediaFetcher(core::Endpoint(options_.developmentEndpoint),token));
+                },channelControl_,options_.salesActions?&salesActions_:nullptr,[target]{PostMessageW(target,salesActionMessage,0,0);});
             });
             if (!options_.fixtureVerificationDirectory.empty()) {
                 std::filesystem::create_directories(options_.fixtureVerificationDirectory);
@@ -177,15 +199,174 @@ public:
             std::filesystem::create_directories(options_.developmentObservation);
             if (!SetTimer(window_,6,5000,nullptr)) throw std::runtime_error("Development observation timer unavailable");
         }
+        if(!options_.settingsVerificationDirectory.empty()) {std::filesystem::create_directories(options_.settingsVerificationDirectory);SetTimer(window_,7,1000,nullptr);}
         MSG message{};
         int result = 0;
         while ((result = GetMessageW(&message,nullptr,0,0)) > 0) {
+            if(settingsWindow_ && settingsWindow_->dialog(message))continue;
             TranslateMessage(&message); DispatchMessageW(&message);
         }
         if (result < 0) throw std::runtime_error("GetMessage failed");
         return failure_ ? 1 : static_cast<int>(message.wParam);
     }
 private:
+    core::UserSettings preferences_;
+    std::unique_ptr<core::SettingsWindow> settingsWindow_;
+    core::SalesSound sound_;
+    core::SalesActions salesActions_;
+    void refreshSalesAction() {
+        if(options_.salesActions && renderer_.sales())renderer_.sales()->setAction(salesActions_.offered(),salesActions_.busy(),salesActions_.status());
+    }
+    bool dispatchSalesAction(float x,float y) {
+        if(!renderer_.sales())return false;
+        const auto action=renderer_.sales()->actionAt(x,y,!state_.locked);
+        if(!action)return false;
+        // Explicit click dispatches without a modal dialog. The controller still
+        // rejects stale targets and duplicate intents before any network write.
+        (void)salesActions_.submit(*action);
+        refreshSalesAction();queueDraw();return true;
+    }
+    bool settingsLoadFailed_=false,altDrag_=false;
+    core::ChannelControl channelControl_;int requestedChannel_=-1,channelKeyMode_=-1;
+    std::vector<unsigned> availableChannels_;
+    void channelStep(int direction) {
+        if(availableChannels_.empty())return;
+        auto current=static_cast<unsigned>(preferences_.get(core::Setting::Channel));auto it=std::find(availableChannels_.begin(),availableChannels_.end(),current);
+        const auto index=it==availableChannels_.end()?0:static_cast<int>(it-availableChannels_.begin());const auto count=static_cast<int>(availableChannels_.size());
+        preferences_.set(core::Setting::Channel,static_cast<float>(availableChannels_[static_cast<std::size_t>((index+direction+count)%count)]));applyPreferences();
+        preferences_.save(core::UserSettings::path());
+    }
+    HHOOK altHook_=nullptr;inline static Shell* altOwner_=nullptr;
+    std::string alertGeneration_,alertCurrent_,alertNext_;
+    bool alertEligible_=false;
+    static LRESULT CALLBACK altProc(int code,WPARAM w,LPARAM l) {
+        if(code>=0 && altOwner_) {const auto* key=reinterpret_cast<KBDLLHOOKSTRUCT*>(l);if(key->vkCode==VK_LMENU || key->vkCode==VK_RMENU || key->vkCode==VK_MENU)PostMessageW(altOwner_->window_,altMessage,w==WM_KEYDOWN || w==WM_SYSKEYDOWN,0);}
+        return CallNextHookEx(nullptr,code,w,l);
+    }
+    void applyPreferences() {
+        const int channel=static_cast<int>(preferences_.get(core::Setting::Channel));if(channel!=requestedChannel_){requestedChannel_=channel;channelControl_.select(static_cast<unsigned>(channel));}
+        const int keyMode=static_cast<int>(preferences_.get(core::Setting::ChannelKeys));
+        if(!options_.noHotkeys && keyMode!=channelKeyMode_) {
+            UnregisterHotKey(window_,previousChannelHotkey);UnregisterHotKey(window_,nextChannelHotkey);channelKeyMode_=keyMode;
+            if(keyMode) {const UINT mods=MOD_NOREPEAT|(keyMode==1?MOD_CONTROL|MOD_ALT:keyMode==2?MOD_ALT:0);const UINT previous=keyMode==3?VK_F7:VK_LEFT,next=keyMode==3?VK_F8:VK_RIGHT;
+                const bool first=RegisterHotKey(window_,previousChannelHotkey,mods,previous)!=FALSE,second=RegisterHotKey(window_,nextChannelHotkey,mods,next)!=FALSE;
+                if(!first || !second){UnregisterHotKey(window_,previousChannelHotkey);UnregisterHotKey(window_,nextChannelHotkey);channelKeyMode_=-1;throw std::runtime_error("Channel shortcut conflict");}
+            }
+        }
+        state_.backgroundOpacity=preferences_.get(core::Setting::HudOpacity)/100;renderer_.applySettings(preferences_);
+        if(media_)media_->setAnimated(preferences_.enabled(core::Setting::Animated));
+        if(preferences_.enabled(core::Setting::ModifierDrag) && !altHook_) {altOwner_=this;altHook_=SetWindowsHookExW(WH_KEYBOARD_LL,altProc,instance_,0);if(!altHook_){altOwner_=nullptr;preferences_.set(core::Setting::ModifierDrag,0);throw std::runtime_error("Alt drag hook unavailable");}}
+        if(!preferences_.enabled(core::Setting::ModifierDrag) && altHook_) {UnhookWindowsHookEx(altHook_);altHook_=nullptr;altOwner_=nullptr;PostMessageW(window_,altMessage,FALSE,0);}
+        queueDraw();
+    }
+    void openSettings() {
+        if(!settingsWindow_)settingsWindow_=std::make_unique<core::SettingsWindow>(preferences_,[this] {applyPreferences();},[this](unsigned action) {
+            if(action==512 && media_)media_->clearCache();
+            else if(action==513)sound_.play(preferences_.get(core::Setting::SalesVolume));
+            else if(action==511)SetWindowPos(window_,nullptr,0,0,core::toPixels(640,dpi_),core::toPixels(520,dpi_),SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE);
+            else if(action==510) {MONITORINFO info{sizeof(info)};GetMonitorInfoW(MonitorFromWindow(window_,MONITOR_DEFAULTTONEAREST),&info);RECT r{};GetWindowRect(window_,&r);SetWindowPos(window_,nullptr,info.rcWork.left+(info.rcWork.right-info.rcWork.left-r.right+r.left)/2,info.rcWork.top+(info.rcWork.bottom-info.rcWork.top-r.bottom+r.top)/2,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE);}
+            queueDraw();
+        },options_.settingsVerificationDirectory.empty()?std::filesystem::path{}:options_.settingsVerificationDirectory/L"settings.json");
+        settingsWindow_->status((settingsLoadFailed_?L"기존 Core 설정을 읽지 못해 기본값으로 표시합니다.\r\n":L"")+developmentStatus_);settingsWindow_->show(window_);
+    }
+    void salesAlert(const core::Json& snapshot) {
+        if(!renderer_.compact())return;auto* root=snapshot.root();auto* sales=core::field(root,"sales");if(!yyjson_is_obj(sales))return;
+        const auto text=[&](yyjson_val* value,const char* key) {auto* item=core::field(value,key);return yyjson_is_str(item)?std::string(core::stringValue(item)):std::string{};};
+        const auto generation=text(root,"generation"),current=text(sales,"currentMessageId"),next=text(sales,"nextMessageId");auto* presentation=core::field(sales,"presentation");
+        const bool eligible=yyjson_is_obj(presentation) && yyjson_is_true(core::field(presentation,"isTrustedForNewPersonalAlert"));
+        if(generation==alertGeneration_ && eligible && alertEligible_ && preferences_.enabled(core::Setting::SalesTracking) && preferences_.enabled(core::Setting::SalesSound) &&
+            ((current!=alertCurrent_ && yyjson_is_true(core::field(sales,"currentIsSelf")) && preferences_.enabled(core::Setting::NotifyCurrent)) ||
+             (next!=alertNext_ && yyjson_is_true(core::field(sales,"nextIsSelf")) && preferences_.enabled(core::Setting::NotifyNext))))sound_.play(preferences_.get(core::Setting::SalesVolume));
+        alertGeneration_=generation;alertCurrent_=current;alertNext_=next;alertEligible_=eligible;
+    }
+    unsigned settingsTicks_=0;
+    void settingsTick() {
+        ++settingsTicks_;
+        if(settingsTicks_==1) {
+            assertion(renderer_.compact(),"Compact shell is active without changing chat layout");
+            RECT bounds{};GetClientRect(window_,&bounds);const int x=static_cast<int>(bounds.right)-core::toPixels(27,dpi_),y=core::toPixels(25,dpi_);POINT p{x,y};ClientToScreen(window_,&p);
+            assertion(SendMessageW(window_,WM_NCHITTEST,0,MAKELPARAM(p.x,p.y))==HTCLIENT,"Settings gear is clickable, not a drag caption");
+            preferences_.set(core::Setting::HudOpacity,0);preferences_.set(core::Setting::ChatOpacity,0);applyPreferences();renderNow();
+            assertion(renderer_.alphaAt(x,y)>0 && renderer_.alphaAt(4,100)>0,"Zero opacity keeps settings and resize targets");
+            renderer_.savePng(options_.settingsVerificationDirectory/L"compact-zero-opacity.png");
+            assertion(renderer_.chat()->scrollbarVisible(),"Overflowing unlocked chat shows scrollbar");
+            SendMessageW(window_,WM_HOTKEY,lockHotkey,0);renderNow();
+            assertion(!renderer_.chat()->scrollbarVisible(),"Locked chat hides scrollbar");
+            unsigned railAlpha=0;const int railX=static_cast<int>(bounds.right)-core::toPixels(14,dpi_);
+            for(int sy=core::toPixels(50,dpi_);sy<bounds.bottom-core::toPixels(12,dpi_);++sy)railAlpha+=renderer_.alphaAt(railX,sy);
+            assertion(railAlpha==0,"Locked scrollbar pixels are transparent at zero HUD opacity");
+            renderer_.savePng(options_.settingsVerificationDirectory/L"locked-no-scrollbar.png");
+            SendMessageW(window_,WM_HOTKEY,lockHotkey,0);renderNow();
+            assertion(renderer_.chat()->scrollbarVisible(),"Unlock restores scrollbar without changing chat history");
+            preferences_.set(core::Setting::HudOpacity,62);preferences_.set(core::Setting::ChatOpacity,35);applyPreferences();renderNow();renderer_.savePng(options_.settingsVerificationDirectory/L"compact-overlay.png");openSettings();return;
+        }
+        if(settingsTicks_>=2 && settingsTicks_<=7) {
+            const unsigned page=settingsTicks_-2;settingsWindow_->selectPage(page);UpdateWindow(settingsWindow_->handle());
+            assertion(IsWindowVisible(settingsWindow_->handle())!=FALSE,"Settings page visible");
+            core::Renderer::saveWindowPng(settingsWindow_->handle(),options_.settingsVerificationDirectory/(L"settings-"+std::to_wstring(page)+L".png"));
+            return;
+        }
+        if(settingsTicks_==8) {
+            settingsWindow_->selectPage(1);
+            struct Find {int id;HWND found=nullptr;} search{100+static_cast<int>(core::Setting::FontSize)};
+            EnumChildWindows(settingsWindow_->handle(),[](HWND h,LPARAM p)->BOOL {auto& item=*reinterpret_cast<Find*>(p);if(GetDlgCtrlID(h)==item.id) {item.found=h;return FALSE;}return TRUE;},reinterpret_cast<LPARAM>(&search));
+            assertion(search.found!=nullptr,"Font size control exists");SendMessageW(search.found,TBM_SETPOS,TRUE,20);SendMessageW(GetParent(search.found),WM_HSCROLL,TB_THUMBPOSITION,reinterpret_cast<LPARAM>(search.found));
+            assertion(preferences_.get(core::Setting::FontSize)==18,"Slider updates live model");SendMessageW(settingsWindow_->handle(),WM_TIMER,1,0);
+            const auto beforeWheel=preferences_;const HWND scrollbar=GetDlgItem(settingsWindow_->handle(),11);
+            SendMessageW(search.found,WM_MOUSEWHEEL,MAKEWPARAM(0,static_cast<WORD>(-WHEEL_DELTA)),0);
+            assertion(preferences_==beforeWheel,"Wheel over slider never changes settings");
+            SCROLLINFO scrollInfo{sizeof(scrollInfo),SIF_POS};GetScrollInfo(scrollbar,SB_CTL,&scrollInfo);
+            assertion(scrollInfo.nPos>0,"Wheel over slider scrolls page");
+            RECT scrollBounds{};GetClientRect(scrollbar,&scrollBounds);
+            SendMessageW(scrollbar,WM_LBUTTONDOWN,MK_LBUTTON,MAKELPARAM(4,scrollBounds.bottom/2));
+            SendMessageW(scrollbar,WM_MOUSEMOVE,MK_LBUTTON,MAKELPARAM(4,scrollBounds.bottom-20));
+            SendMessageW(scrollbar,WM_LBUTTONUP,0,MAKELPARAM(4,scrollBounds.bottom-20));
+            RedrawWindow(scrollbar,nullptr,nullptr,RDW_INVALIDATE|RDW_UPDATENOW);
+            core::Renderer::saveWindowPng(settingsWindow_->handle(),options_.settingsVerificationDirectory/L"settings-scroll-drag.png");
+            assertion(preferences_==beforeWheel,"Scrollbar drag never changes settings");
+            core::UserSettings loaded;loaded.load(options_.settingsVerificationDirectory/L"settings.json");assertion(loaded==preferences_,"All settings persist and reload in isolated test directory");
+            search.id=100+static_cast<int>(core::Setting::NicknameOutline);search.found=nullptr;
+            EnumChildWindows(settingsWindow_->handle(),[](HWND h,LPARAM p)->BOOL {auto& item=*reinterpret_cast<Find*>(p);if(GetDlgCtrlID(h)==item.id){item.found=h;return FALSE;}return TRUE;},reinterpret_cast<LPARAM>(&search));
+            assertion(search.found!=nullptr,"Modern toggle retains native control semantics");const bool oldToggle=preferences_.enabled(core::Setting::NicknameOutline);SendMessageW(search.found,BM_CLICK,0,0);assertion(preferences_.enabled(core::Setting::NicknameOutline)!=oldToggle,"Rounded toggle changes live setting");
+            SetFocus(search.found);SendMessageW(search.found,WM_KEYDOWN,VK_SPACE,0);SendMessageW(search.found,WM_KEYUP,VK_SPACE,0);assertion(preferences_.enabled(core::Setting::NicknameOutline)==oldToggle,"Space key operates modern toggle");
+            search.id=100+static_cast<int>(core::Setting::Font);search.found=nullptr;
+            EnumChildWindows(settingsWindow_->handle(),[](HWND h,LPARAM p)->BOOL {auto& item=*reinterpret_cast<Find*>(p);if(GetDlgCtrlID(h)==item.id){item.found=h;return FALSE;}return TRUE;},reinterpret_cast<LPARAM>(&search));
+            assertion(search.found!=nullptr,"Modern dropdown exists");SetFocus(search.found);SendMessageW(search.found,WM_KEYDOWN,VK_HOME,0);assertion(preferences_.get(core::Setting::Font)==0,"Dropdown keyboard selection updates model");
+            SendMessageW(search.found,CB_SHOWDROPDOWN,TRUE,0);COMBOBOXINFO combo{sizeof(combo)};GetComboBoxInfo(search.found,&combo);assertion(IsWindowVisible(combo.hwndList)!=FALSE,"Native accessible dropdown popup opens");
+            core::Renderer::saveWindowPng(combo.hwndList,options_.settingsVerificationDirectory/L"settings-dropdown.png");SendMessageW(search.found,CB_SHOWDROPDOWN,FALSE,0);
+            settingsWindow_.reset();preferences_.set(core::Setting::FontSize,12);applyPreferences();return;
+        }
+        if(settingsTicks_==9) {
+            const auto fontBeforeEmoji=preferences_.get(core::Setting::FontSize);
+            auto emojiFixture=std::make_shared<core::Json>(R"({"protocolVersion":1,"generation":"emoji-size-test","selfUserId":"test","chat":[{"id":"emoji","presentationHash":"0000000000000000000000000000000000000000000000000000000000000002","attention":"Normal","showAuthorHeader":true,"author":{"id":"test","displayName":"이모지 크기 독립 설정","color":16777215},"createdAt":"2026-09-14T01:00:00Z","runs":[{"kind":"Text","text":"한글 Agjpqy "},{"kind":"CustomEmoji","text":"검증","mediaId":"fixture-emoji"},{"kind":"Text","text":" 다음 글자\n다음 줄이 겹치지 않습니다."}],"media":[],"reactions":[],"forwarded":[],"details":[],"reply":null}],"sales":null,"session":[]})");
+            renderer_.setChatSnapshot(emojiFixture);
+            preferences_.set(core::Setting::EmojiSize,64);preferences_.set(core::Setting::LineHeight,0);applyPreferences();renderNow();
+            assertion(preferences_.get(core::Setting::FontSize)==fontBeforeEmoji,"Emoji size does not alter font size");
+            renderer_.savePng(options_.settingsVerificationDirectory/L"emoji-size-64.png");
+            preferences_.set(core::Setting::Images,0);preferences_.set(core::Setting::Emoji,0);preferences_.set(core::Setting::Stickers,0);
+            auto textFixture=std::make_shared<core::Json>(R"({"protocolVersion":1,"generation":"text-ink-test","selfUserId":"test","chat":[{"id":"ink","presentationHash":"0000000000000000000000000000000000000000000000000000000000000001","attention":"Normal","showAuthorHeader":true,"author":{"id":"test","displayName":"DE-SSANTA · 한글 Agjpqy","color":16777215,"iconUnicode":"★"},"createdAt":"2026-09-14T01:00:00Z","runs":[{"kind":"Text","text":"가나다라마바사 아자차카타파하\nAgjpqy 0123456789\n줄 간격을 줄여도 글자가 온전히 보입니다."}],"media":[],"reactions":[],"forwarded":[],"details":[],"reply":null}],"sales":null,"session":[]})");
+            renderer_.setChatSnapshot(textFixture);preferences_.set(core::Setting::LineHeight,0);preferences_.set(core::Setting::Spacing,-2);preferences_.set(core::Setting::FontSize,16);preferences_.set(core::Setting::MaxLines,3);
+            assertion(preferences_.get(core::Setting::LineHeight)==0,"Zero line spacing accepted without collapsing glyphs");
+            for(unsigned font=0;font<5;++font){preferences_.set(core::Setting::Font,static_cast<float>(font));applyPreferences();renderNow();renderer_.savePng(options_.settingsVerificationDirectory/(L"tight-text-"+std::to_wstring(font)+L".png"));}
+            SendMessageW(window_,WM_HOTKEY,lockHotkey,0);assertion(state_.locked,"F10 handler locks");SendMessageW(window_,WM_HOTKEY,lockHotkey,0);assertion(!state_.locked,"F10 handler unlocks");
+            SendMessageW(window_,WM_HOTKEY,showHotkey,0);assertion(!state_.visible,"F9 handler hides");SendMessageW(window_,WM_HOTKEY,showHotkey,0);assertion(state_.visible,"F9 handler shows");
+            applyPreferences();renderNow();return;
+        }
+        if(settingsTicks_==10) {
+            auto sessionFixture=std::make_shared<core::Json>(R"({"protocolVersion":1,"generation":"session-outline-test","selfUserId":"test","chat":[],"sales":null,"session":[{"hostSlot":1,"state":"gtaOnline","currentPlayers":12,"maximumPlayers":32}]})");
+            renderer_.setChatSnapshot(sessionFixture);
+            preferences_.set(core::Setting::HudOpacity,0);preferences_.set(core::Setting::ChromeOpacity,0);preferences_.set(core::Setting::ChatOpacity,0);
+            preferences_.set(core::Setting::NicknameOutline,0);preferences_.set(core::Setting::MessageOutline,0);preferences_.set(core::Setting::SessionOutline,0);preferences_.set(core::Setting::Host,1);preferences_.set(core::Setting::Font,2);applyPreferences();renderNow();
+            auto headerInk=[&](){unsigned ink=0;for(int y=core::toPixels(10,dpi_);y<core::toPixels(44,dpi_);++y)for(int x=core::toPixels(12,dpi_);x<core::toPixels(95,dpi_);++x)ink+=renderer_.alphaAt(x,y);return ink;};
+            const auto withoutOutline=headerInk();renderer_.savePng(options_.settingsVerificationDirectory/L"session-outline-off.png");
+            preferences_.set(core::Setting::SessionOutline,1);applyPreferences();renderNow();
+            assertion(renderer_.sales()->sessionLabel()==L"12 / 32","Session outline preserves player counts");
+            assertion(headerInk()>withoutOutline,"Session outline renders independently of disabled chat outlines at zero opacity");
+            renderer_.savePng(options_.settingsVerificationDirectory/L"session-outline-on.png");
+            if(media_)assertion(media_->statistics().visible==0,"Disabled media stops visible decoding");
+            std::ofstream output(options_.settingsVerificationDirectory/L"settings-checks.json");output<<"{\"status\":\"PASS\",\"synthetic\":true,\"assertions\":"<<assertions_<<"}";output.close();DestroyWindow(window_);
+        }
+    }
     unsigned developmentSamples_ = 0;
     unsigned developmentSnapshots_ = 0;
     std::string developmentState_ = "pending";
@@ -193,6 +374,8 @@ private:
     void developmentSample() {
         if (++developmentSamples_ > 2160) { KillTimer(window_,6); return; }
         const auto metrics=measure();
+        const auto media=media_ ? media_->statistics() : core::MediaStatistics{};
+        const auto actions=salesActions_.metrics();
         std::ofstream output(options_.developmentObservation/"native-observation.jsonl",std::ios::app);
         output << "{\"sample\":" << developmentSamples_ << ",\"unixSeconds\":" << std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count()
             << ",\"phase\":\"" << developmentState_ << "\",\"snapshots\":" << developmentSnapshots_
@@ -200,8 +383,15 @@ private:
             << ",\"salesCount\":" << (renderer_.sales() ? renderer_.sales()->count() : 0)
             << ",\"session\":" << core::jsonQuote(renderer_.sales() ? core::narrow(renderer_.sales()->sessionLabel()) : "pending")
             << ",\"status\":" << core::jsonQuote(core::narrow(developmentStatus_))
+            << ",\"salesActionsEnabled\":" << (options_.salesActions?"true":"false")
+            << ",\"salesActionPending\":" << (salesActions_.busy()?"true":"false")
+            << ",\"salesActionSubmitted\":" << actions.submitted << ",\"salesActionCompleted\":" << actions.completed << ",\"salesActionUndone\":" << actions.undone
+            << ",\"salesActionRejected\":" << actions.rejected << ",\"salesActionUncertain\":" << actions.uncertain
             << ",\"privateBytes\":" << metrics.privateBytes << ",\"workingSet\":" << metrics.workingSet << ",\"cpu100ns\":" << metrics.cpu100ns
-            << ",\"handles\":" << metrics.handles << "}\n";
+            << ",\"handles\":" << metrics.handles << ",\"mediaVisible\":" << media.visible << ",\"mediaDecoded\":" << media.decoded
+            << ",\"mediaFailures\":" << media.failures << ",\"mediaLateFrames\":" << media.lateFrames << ",\"mediaPixelBytes\":" << media.ownedPixelBytes
+            << ",\"mediaDownloads\":"<<media.downloads<<",\"mediaDownloadMs\":"<<media.downloadMs<<",\"mediaMaxDownloadMs\":"<<media.maxDownloadMs
+            << ",\"mediaFirstFrames\":"<<media.firstFrames<<",\"mediaFirstFrameMs\":"<<media.firstFrameMs<<",\"mediaMaxFirstFrameMs\":"<<media.maxFirstFrameMs<<"}\n";
         if (!output) throw std::runtime_error("Development observation write failed");
     }
     void loadChat(const std::filesystem::path& path) {
@@ -244,6 +434,7 @@ private:
         if (renderer_.chat()) renderer_.chat()->endScrollbar();
         if (GetCapture() == window_) ReleaseCapture();
         state_.toggleVisible();
+        SendMessageW(window_,altMessage,FALSE,0);
         ShowWindow(window_,state_.visible ? SW_SHOWNOACTIVATE : SW_HIDE);
         if (!state_.visible && renderer_.chat()) renderer_.chat()->pauseMedia();
         if (state_.visible) queueDraw();
@@ -252,6 +443,7 @@ private:
         if (renderer_.chat()) renderer_.chat()->endScrollbar();
         if (GetCapture() == window_) ReleaseCapture();
         state_.toggleLocked();
+        altDrag_=false;
         auto style = GetWindowLongPtrW(window_,GWL_EXSTYLE);
         if (state_.locked) style |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
         else style &= ~(static_cast<LONG_PTR>(WS_EX_TRANSPARENT) | WS_EX_NOACTIVATE);
@@ -267,9 +459,11 @@ private:
         if (!popup) return;
         AppendMenuW(popup,MF_STRING,menuShow,state_.visible ? L"숨기기 (F9)" : L"표시 (F9)");
         AppendMenuW(popup,MF_STRING,menuLock,state_.locked ? L"잠금 해제 (F10)" : L"잠금 (F10)");
-        AppendMenuW(popup,MF_STRING,menuOpacity,state_.backgroundOpacity == 0 ? L"배경 불투명도 85%" : L"배경 불투명도 0% 검증");
+        AppendMenuW(popup,MF_STRING,menuSettings,L"설정…");
+        if(!renderer_.compact())AppendMenuW(popup,MF_STRING,menuOpacity,state_.backgroundOpacity == 0 ? L"배경 불투명도 85%" : L"배경 불투명도 0% 검증");
         AppendMenuW(popup,MF_SEPARATOR,0,nullptr);
-        if (renderer_.chat()) {
+        if(renderer_.chat() && renderer_.compact())AppendMenuW(popup,MF_STRING,menuLatest,L"최신 메시지로 이동");
+        if (renderer_.chat() && !renderer_.compact()) {
             AppendMenuW(popup,MF_STRING,menuHost,L"세션 호스트 변경");
             AppendMenuW(popup,MF_STRING,menuFont,(L"글꼴 변경 · "+renderer_.chat()->fontName()).c_str());
             AppendMenuW(popup,MF_STRING,menuLarger,L"채팅 글자 크게");
@@ -550,6 +744,9 @@ private:
         assertion(stats.failures == 0,"Native media decode has no failures");
         if (mediaTicks_ == 1) {
             assertion(stats.published > 0 && stats.visible == 3,"Visible GIF, static image and inline emoji start automatically");
+            core::Json links(R"([{"kind":"Text","text":"앞 "},{"kind":"MediaSource","text":"https://fixture.test/visible.gif","mediaId":"fixture-animation"},{"kind":"Text","text":" 뒤 https://example.test/keep"},{"kind":"MediaSource","text":" https://fixture.test/missing.gif","mediaId":"unavailable"}])");
+            const auto filtered=chat->externalRuns(links.root(),16).text;
+            assertion(filtered==L"앞  뒤 https://example.test/keep https://fixture.test/missing.gif","Only successfully loaded media's source link disappears; unrelated and unavailable links survive");
             mediaBefore_ = measure(); mediaStarted_ = Clock::now(); mediaVisibleBefore_ = stats; mediaLayoutBefore_ = chat->layoutBuilds();
             renderer_.savePng(options_.mediaVerificationDirectory/"media-visible.png");
         } else if (mediaTicks_ == 4) {
@@ -596,6 +793,36 @@ private:
         ++salesTicks_; auto* sales = renderer_.sales(); assertion(sales != nullptr,"Native canonical Sales view exists");
         const auto load = [&](const wchar_t* name) { loadChat(options_.chatFixture.parent_path()/name); renderNow(); };
         const auto captureSales = [&](const wchar_t* name) { renderer_.savePng(options_.salesVerificationDirectory/name); };
+        const auto centeredAction = [&] {
+            const auto button=sales->actionBounds(),text=sales->actionTextBounds();
+            assertion(text.right>text.left && text.bottom>text.top &&
+                std::abs((button.left+button.right)-(text.left+text.right))<0.05f &&
+                std::abs((button.top+button.bottom)-(text.top+text.bottom))<0.05f,
+                "Sales button text is centered horizontally and vertically");
+            assertion(text.left>=button.left && text.right<=button.right && text.top>=button.top && text.bottom<=button.bottom,
+                "Centered Sales label fits inside button");
+        };
+        const auto centeredHeadline = [&] {
+            const auto header=sales->headerBounds(),label=sales->headlineTextBounds();
+            assertion(std::abs((header.top+header.bottom)-(label.top+label.bottom))<0.05f,
+                "Sales headline is vertically centered using measured text height");
+            assertion(std::abs(label.left-(header.left+14))<0.05f,
+                "Sales headline keeps its original left inset");
+        };
+        const auto lockedControls = [&](const wchar_t* captureName) {
+            const auto before=sales->actionBounds();const auto count=sales->count();const auto headline=sales->headline();
+            const auto submissions=salesActions_.metrics().submitted;
+            state_.locked=true;renderNow();centeredHeadline();
+            const auto hidden=sales->actionBounds(),hiddenText=sales->actionTextBounds();
+            assertion(hidden.right==hidden.left && hiddenText.right==hiddenText.left,
+                "Locked Sales action draws neither button nor text");
+            assertion(!sales->actionAt((before.left+before.right)/2,(before.top+before.bottom)/2,true),
+                "Hidden Sales control cannot expose a stale hit target");
+            assertion(sales->count()==count && sales->headline()==headline && salesActions_.metrics().submitted==submissions,
+                "Lock preserves canonical Sales state and never dispatches an action");
+            captureSales(captureName);
+            state_.locked=false;renderNow();centeredAction();centeredHeadline();
+        };
         if (salesTicks_ == 1) {
             assertion(sales->visible() && sales->count() == 3,"Canonical queue and next turn displayed");
             assertion(sales->sessionLabel() == L"12 / 30","Session player count from server");
@@ -608,7 +835,26 @@ private:
         } else if (salesTicks_ == 2) {
             assertion(sales->headline().find(L"판매할 차례") != std::wstring::npos,"Own current turn uses canonical headline");
             assertion(sales->headline().find(L"벙커") == std::wstring::npos,"Headline does not repeat product details");
-            captureSales(L"sales-current.png"); load(L"recovering.json");
+            captureSales(L"sales-current.png");
+            renderer_.applySettings(preferences_);renderNow();
+            core::SalesCommand command{"123","synthetic",{},false};sales->setAction(command,false,L"");renderNow();
+            centeredAction();
+            centeredHeadline();lockedControls(L"sales-current-locked.png");captureSales(L"sales-current-unlocked.png");
+            const auto actionHeader=sales->headerBounds();const auto ax=actionHeader.right-80,ay=(actionHeader.top+actionHeader.bottom)/2;
+            assertion(!sales->actionAt(ax,ay,false),"Locked Sales action is not interactive");
+            assertion(sales->actionAt(ax,ay,true)==command,"Unlocked complete button targets the server supplied message");captureSales(L"sales-action-complete.png");
+            // Exercise the actual click dispatch, not just button hit-testing.
+            // No network worker exists in this fixture: Discord writes stay zero.
+            salesActions_.observe(core::Json(R"({"sales":{"currentMessageId":"123","actions":{"generation":"synthetic","targets":[{"messageId":"123","canComplete":true,"canUndo":false,"botCompleted":false}]}}})"));
+            state_.locked=false;
+            assertion(dispatchSalesAction(ax,ay) && salesActions_.busy(),"One click queues Sales action without a confirmation dialog");
+            (void)dispatchSalesAction(ax,ay);
+            assertion(salesActions_.metrics().submitted==1,"Repeated click dispatch cannot enqueue a duplicate write");
+            const auto originalCount=sales->count();sales->setAction({},true,L"서버 판매 상태 확인 중");renderNow();
+            centeredAction();
+            lockedControls(L"sales-pending-locked.png");
+            assertion(!sales->actionAt(ax,ay,true) && sales->count()==originalCount,"Pending blocks double clicks and preserves authoritative queue");captureSales(L"sales-action-pending.png");
+            sales->setAction({},false,L"");load(L"recovering.json");
         } else if (salesTicks_ == 3) {
             assertion(sales->count() == 3 && sales->headline().find(L"판매할 차례") != std::wstring::npos,"Recovery retains Full current alert state");
             assertion(sales->sessionLabel() == L"세션 정보 확인 중","Unknown session is not fabricated zero players");
@@ -620,6 +866,16 @@ private:
         } else if (salesTicks_ == 5) {
             assertion(!sales->visible() && sales->count() == 0,"Canonical empty live queue hides panel");
             captureSales(L"sales-empty.png");
+            sales->setAction(core::SalesCommand{"123","synthetic",{},true},false,L"판매 완료 확인됨");renderNow();
+            centeredAction();
+            lockedControls(L"sales-undo-locked.png");
+            assertion(sales->visible() && sales->count()==0,"Own completed item can be undone even when active queue is empty");
+            const auto undoHeader=sales->headerBounds();auto undo=sales->actionAt(undoHeader.right-80,(undoHeader.top+undoHeader.bottom)/2,true);
+            assertion(undo && undo->undo,"Empty queue exposes the server supplied undo target");captureSales(L"sales-action-undo-empty.png");
+            SetWindowPos(window_,nullptr,0,0,core::toPixels(360,dpi_),core::toPixels(640,dpi_),SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE);renderNow();captureSales(L"sales-action-narrow.png");
+            centeredAction();
+            centeredHeadline();
+            sales->setAction({},false,L"");renderNow();assertion(!sales->visible(),"No synthetic action remains after revocation");
             std::ofstream output(options_.salesVerificationDirectory/"native-sales-checks.json");
             output << "{\"status\":\"PASS\",\"synthetic\":true,\"discordWrites\":0,\"assertions\":" << assertions_ << "}";
             output.flush(); if (!output) throw std::runtime_error("Sales verification write failed");
@@ -628,8 +884,8 @@ private:
     }
     void fail(const char* reason) noexcept {
         failure_ = true;
-        if (verifying() || !options_.fixtureVerificationDirectory.empty() || !options_.chatVerificationDirectory.empty() || !options_.mediaVerificationDirectory.empty() || !options_.salesVerificationDirectory.empty()) {
-            const auto& directory = verifying() ? options_.verificationDirectory : !options_.fixtureVerificationDirectory.empty() ? options_.fixtureVerificationDirectory : !options_.chatVerificationDirectory.empty() ? options_.chatVerificationDirectory : !options_.mediaVerificationDirectory.empty() ? options_.mediaVerificationDirectory : options_.salesVerificationDirectory;
+        if (verifying() || !options_.fixtureVerificationDirectory.empty() || !options_.chatVerificationDirectory.empty() || !options_.mediaVerificationDirectory.empty() || !options_.salesVerificationDirectory.empty() || !options_.settingsVerificationDirectory.empty()) {
+            const auto& directory = !options_.settingsVerificationDirectory.empty()?options_.settingsVerificationDirectory:verifying() ? options_.verificationDirectory : !options_.fixtureVerificationDirectory.empty() ? options_.fixtureVerificationDirectory : !options_.chatVerificationDirectory.empty() ? options_.chatVerificationDirectory : !options_.mediaVerificationDirectory.empty() ? options_.mediaVerificationDirectory : options_.salesVerificationDirectory;
             try { std::ofstream(directory / "native-shell-error.txt") << reason; } catch (...) {}
         } else {
             MessageBoxA(window_,reason,"LS Overlay Core - native shell error",MB_OK | MB_ICONERROR);
@@ -653,7 +909,16 @@ private:
         if (taskbarCreated_ != 0 && message == taskbarCreated_) { if (!addTray()) throw std::runtime_error("Tray recreation failed"); return 0; }
         switch (message) {
         case WM_NCCALCSIZE: return 0;
-        case WM_NCHITTEST: return hit(lparam);
+        case WM_NCHITTEST: {
+            POINT p{GET_X_LPARAM(lparam),GET_Y_LPARAM(lparam)};ScreenToClient(window_,&p);
+            if(!state_.locked && renderer_.settingsHit(core::toDip(p.x,dpi_),core::toDip(p.y,dpi_)))return HTCLIENT;
+            if(altDrag_ && state_.locked)return HTCAPTION;return hit(lparam);
+        }
+        case altMessage: {
+            altDrag_=wparam && state_.visible && state_.locked && preferences_.enabled(core::Setting::ModifierDrag);
+            auto style=GetWindowLongPtrW(window_,GWL_EXSTYLE);if(state_.locked && !altDrag_)style|=WS_EX_TRANSPARENT;else style&=~static_cast<LONG_PTR>(WS_EX_TRANSPARENT);
+            SetWindowLongPtrW(window_,GWL_EXSTYLE,style);return 0;
+        }
         case WM_ERASEBKGND: return 1;
         case WM_PAINT: {
             PAINTSTRUCT paint{}; BeginPaint(window,&paint); EndPaint(window,&paint); queueDraw(); return 0;
@@ -667,7 +932,7 @@ private:
             return TRUE;
         case WM_GETMINMAXINFO: {
             auto* limits = reinterpret_cast<MINMAXINFO*>(lparam);
-            limits->ptMinTrackSize = {core::toPixels(minWidthDip,dpi_),core::toPixels(minHeightDip,dpi_)};
+            limits->ptMinTrackSize = {core::toPixels(minWidthDip,dpi_),core::toPixels(renderer_.compact()?240.0f:static_cast<float>(minHeightDip),dpi_)};
             return 0;
         }
         case WM_DPICHANGED: {
@@ -681,24 +946,43 @@ private:
             drawQueued_ = false; renderNow(mediaOnly); return 0;
         }
         case connectionMessage: {
+            refreshSalesAction();
             std::wstring status;
             std::shared_ptr<const core::Json> snapshot;
             { std::lock_guard lock(connectionMutex_); connectionNotificationQueued_ = false; status = latestConnectionStatus_; snapshot = std::move(latestChatSnapshot_); }
             fixtureReady_ = status.find(L"M2 합성 연결 정상") == 0;
             developmentStatus_ = status;
+            if(settingsWindow_)settingsWindow_->status(status);
             developmentState_ = status.find(L"브라우저")!=std::wstring::npos ? "approval-pending" :
-                status.find(L"개발 실시간 채팅") == 0 ? "chat-live" : status.find(L"재연결")!=std::wstring::npos ? "reconnecting" : "not-live";
+                (status.find(L"개발 실시간 채팅") == 0 || status.find(L"실시간 채팅") == 0) ? "chat-live" : status.find(L"재연결")!=std::wstring::npos ? "reconnecting" : "not-live";
             if (snapshot) {
+                auto* selection=core::field(snapshot->root(),"chatSelection");availableChannels_.clear();auto* slots=yyjson_is_obj(selection)?core::field(selection,"availableSlots"):nullptr;
+                if(yyjson_is_arr(slots) && yyjson_arr_size(slots)<=8){std::size_t i=0,n=0;yyjson_val* slot=nullptr;yyjson_arr_foreach(slots,i,n,slot)if(yyjson_is_uint(slot) && yyjson_get_uint(slot)<8)availableChannels_.push_back(static_cast<unsigned>(yyjson_get_uint(slot)));}
+                salesAlert(*snapshot);
                 ++developmentSnapshots_;
+                if (media_ && !options_.developmentEndpoint.empty()) {
+                    std::set<std::string> references;
+                    const auto visit=[&](auto&& self,yyjson_val* value,unsigned depth)->void {
+                        if (depth>32) throw std::runtime_error("Media reference nesting limit");
+                        if (yyjson_is_str(value)) {const std::string id(core::stringValue(value));if (core::validMediaIdentity(id)) references.insert(id);}
+                        else if (yyjson_is_arr(value)) {std::size_t i=0,n=0;yyjson_val* item=nullptr;yyjson_arr_foreach(value,i,n,item) self(self,item,depth+1);}
+                        else if (yyjson_is_obj(value)) {std::size_t i=0,n=0;yyjson_val* key=nullptr;yyjson_val* item=nullptr;yyjson_obj_foreach(value,i,n,key,item) self(self,item,depth+1);}
+                    };
+                    visit(visit,snapshot->root(),0);media_->retain(references);
+                }
                 auto* chat = core::field(snapshot->root(),"chat");
                 // M2-only fixtures remain usable as a connection shell.
                 if (!options_.developmentEndpoint.empty() || renderer_.chat() || (yyjson_arr_size(chat) && yyjson_is_str(core::field(yyjson_arr_get(chat,0),"presentationHash")))) renderer_.setChatSnapshot(std::move(snapshot));
             }
-            renderer_.setConnectionStatus(std::move(status)); queueDraw(); return 0;
+            refreshSalesAction();renderer_.setConnectionStatus(std::move(status)); queueDraw(); return 0;
         }
+        case salesActionMessage:
+            refreshSalesAction();queueDraw();return 0;
         case WM_HOTKEY:
             if (wparam == showHotkey) toggleVisible();
             else if (wparam == lockHotkey) toggleLocked();
+            else if(wparam==previousChannelHotkey)channelStep(-1);
+            else if(wparam==nextChannelHotkey)channelStep(1);
             return 0;
         case WM_MOUSEWHEEL: {
             POINT pointer{GET_X_LPARAM(lparam),GET_Y_LPARAM(lparam)}; ScreenToClient(window_,&pointer);
@@ -708,6 +992,9 @@ private:
             return 0;
         }
         case WM_LBUTTONDOWN:
+            if(!state_.locked && renderer_.settingsHit(core::toDip(GET_X_LPARAM(lparam),dpi_),core::toDip(GET_Y_LPARAM(lparam),dpi_))) {openSettings();return 0;}
+            if(!state_.locked && renderer_.chat() && renderer_.chat()->clickMedia(core::toDip(GET_X_LPARAM(lparam),dpi_),core::toDip(GET_Y_LPARAM(lparam),dpi_))) {queueDraw();return 0;}
+            if(options_.salesActions && dispatchSalesAction(core::toDip(GET_X_LPARAM(lparam),dpi_),core::toDip(GET_Y_LPARAM(lparam),dpi_)))return 0;
             if (renderer_.sales() && renderer_.sales()->click(static_cast<float>(GET_X_LPARAM(lparam))*96/dpi_,static_cast<float>(GET_Y_LPARAM(lparam))*96/dpi_,!state_.locked)) { queueDraw(); return 0; }
             if (renderer_.chat() && !state_.locked && renderer_.chat()->pressScrollbar(
                 static_cast<float>(GET_X_LPARAM(lparam))*96/dpi_,static_cast<float>(GET_Y_LPARAM(lparam))*96/dpi_)) {
@@ -726,7 +1013,7 @@ private:
             if (renderer_.chat() && !state_.locked) {
                 if (renderer_.chat()->draggingScrollbar()) { renderer_.chat()->endScrollbar(); ReleaseCapture(); return 0; }
                 RECT bounds{}; GetClientRect(window,&bounds);
-                if (GET_Y_LPARAM(lparam) > bounds.bottom-core::toPixels(60,dpi_)) { renderer_.chat()->followLatest(); queueDraw(); }
+                if (!renderer_.compact() && GET_Y_LPARAM(lparam) > bounds.bottom-core::toPixels(60,dpi_)) { renderer_.chat()->followLatest(); queueDraw(); }
             }
             return 0;
         case WM_KEYDOWN:
@@ -750,6 +1037,7 @@ private:
             return 0;
         case WM_COMMAND:
             switch (LOWORD(wparam)) {
+            case menuSettings:openSettings();break;
             case menuShow: toggleVisible(); break;
             case menuLock: toggleLocked(); break;
             case menuOpacity: state_.backgroundOpacity = state_.backgroundOpacity == 0 ? 0.85f : 0; queueDraw(); break;
@@ -771,6 +1059,7 @@ private:
             queueDraw(!reflow); return 0;
         }
         case WM_TIMER:
+            if(wparam==7 && !options_.settingsVerificationDirectory.empty()) {settingsTick();return 0;}
             if (!options_.developmentObservation.empty() && wparam == 6) { developmentSample(); return 0; }
             if (verifying() && wparam == 1) tick();
             else if (!options_.fixtureVerificationDirectory.empty() && wparam == 2) fixtureTick();
@@ -780,17 +1069,20 @@ private:
             return 0;
         case WM_CLOSE: DestroyWindow(window); return 0;
         case WM_DESTROY: {
+            KillTimer(window,7);
+            settingsWindow_.reset();if(altHook_) {UnhookWindowsHookEx(altHook_);altHook_=nullptr;altOwner_=nullptr;}
             KillTimer(window,1);
             KillTimer(window,2);
             KillTimer(window,3);
             KillTimer(window,4);
             KillTimer(window,5);
-            if (renderer_.chat()) renderer_.chat()->setMedia(nullptr);
-            media_.reset();
             connectionWorker_.request_stop();
             if (connectionWorker_.joinable()) connectionWorker_.join();
+            if (renderer_.chat()) renderer_.chat()->setMedia(nullptr);
+            media_.reset();
             if (showRegistered_) UnregisterHotKey(window,showHotkey);
             if (lockRegistered_) UnregisterHotKey(window,lockHotkey);
+            UnregisterHotKey(window,previousChannelHotkey);UnregisterHotKey(window,nextChannelHotkey);
             NOTIFYICONDATAW icon{}; icon.cbSize = sizeof(icon); icon.hWnd = window; icon.uID = 1;
             Shell_NotifyIconW(NIM_DELETE,&icon);
             PostQuitMessage(failure_ ? 1 : 0); return 0;
@@ -845,11 +1137,14 @@ Options parseOptions() {
     if (!argv) throw std::runtime_error("CommandLineToArgv failed");
     struct Cleanup { LPWSTR* value; ~Cleanup() { LocalFree(value); } } cleanup{argv};
     Options options;
+    // A public build is usable by double-clicking; dev/fixture modes remain explicit.
+    if(count==1){options.developmentEndpoint=L"https://overlay.revo32.cloud";options.salesActions=true;}
     for (int i = 1; i < count; ++i) {
         const std::wstring arg = argv[i];
         if (arg == L"--verify" && i + 1 < count) options.verificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--fixture-endpoint" && i + 1 < count) options.fixtureEndpoint = argv[++i];
         else if (arg == L"--core-dev-endpoint" && i + 1 < count) options.developmentEndpoint = argv[++i];
+        else if (arg == L"--sales-actions") options.salesActions = true;
         else if (arg == L"--core-dev-observe" && i + 1 < count) options.developmentObservation = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--fixture-verify" && i + 1 < count) options.fixtureVerificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--chat-fixture" && i + 1 < count) options.chatFixture = std::filesystem::absolute(argv[++i]);
@@ -858,6 +1153,7 @@ Options parseOptions() {
         else if (arg == L"--media-fixture" && i + 1 < count) options.mediaFixture = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--media-verify" && i + 1 < count) options.mediaVerificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--sales-verify" && i + 1 < count) options.salesVerificationDirectory = std::filesystem::absolute(argv[++i]);
+        else if (arg == L"--settings-verify" && i+1<count) options.settingsVerificationDirectory=std::filesystem::absolute(argv[++i]);
         else if (arg == L"--phase-seconds" && i + 1 < count) {
             std::size_t used = 0;
             const std::wstring value = argv[++i];
@@ -875,11 +1171,13 @@ Options parseOptions() {
     if (!options.developmentEndpoint.empty() && (!options.fixtureEndpoint.empty() || !options.chatFixture.empty() || !options.verificationDirectory.empty() || !options.mediaFixture.empty()))
         throw std::runtime_error("Real read-only development connection is separate from synthetic fixtures");
     if (!options.developmentObservation.empty() && options.developmentEndpoint.empty()) throw std::runtime_error("Development observations require the explicit bridge");
+    if(options.salesActions && options.developmentEndpoint.empty())throw std::runtime_error("Sales writes require an explicit authenticated development connection");
     if (!options.chatFixture.empty() && (!options.fixtureEndpoint.empty() || !options.verificationDirectory.empty())) throw std::runtime_error("Chat fixture mode is separate from network/shell verification");
     if (!options.chatVerificationDirectory.empty() && options.chatFixture.empty()) throw std::runtime_error("Chat verification requires a local semantic snapshot");
     if (!options.mediaFixture.empty() && (options.chatFixture.empty() || !options.chatVerificationDirectory.empty())) throw std::runtime_error("Media fixture requires a separate local chat snapshot mode");
     if (!options.mediaVerificationDirectory.empty() && options.mediaFixture.empty()) throw std::runtime_error("Media verification requires explicit media fixture");
     if (!options.salesVerificationDirectory.empty() && (options.chatFixture.empty() || !options.chatVerificationDirectory.empty() || !options.mediaVerificationDirectory.empty())) throw std::runtime_error("Sales verification requires separate local canonical fixtures");
+    if(!options.settingsVerificationDirectory.empty() && (options.chatFixture.empty() || !options.developmentEndpoint.empty() || !options.mediaVerificationDirectory.empty() || !options.salesVerificationDirectory.empty() || !options.chatVerificationDirectory.empty()))throw std::runtime_error("Settings verification requires isolated synthetic fixture");
     return options;
 }
 }
@@ -895,6 +1193,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         if (!options.chatVerificationDirectory.empty()) std::filesystem::create_directories(options.chatVerificationDirectory);
         if (!options.mediaVerificationDirectory.empty()) std::filesystem::create_directories(options.mediaVerificationDirectory);
         if (!options.salesVerificationDirectory.empty()) std::filesystem::create_directories(options.salesVerificationDirectory);
+        if (!options.settingsVerificationDirectory.empty()) std::filesystem::create_directories(options.settingsVerificationDirectory);
         Shell shell(options); result = shell.run(instance);
     } catch (const std::exception& error) {
         if (!options.verificationDirectory.empty()) {
@@ -903,6 +1202,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
             try { std::ofstream(options.mediaVerificationDirectory / "native-shell-error.txt") << error.what(); } catch (...) {}
         } else if (!options.salesVerificationDirectory.empty()) {
             try { std::ofstream(options.salesVerificationDirectory / "native-shell-error.txt") << error.what(); } catch (...) {}
+        } else if(!options.settingsVerificationDirectory.empty()) {
+            std::ofstream(options.settingsVerificationDirectory/"native-shell-error.txt")<<error.what();
         } else MessageBoxA(nullptr,error.what(),"LS Overlay Core - startup error",MB_OK | MB_ICONERROR);
     }
     CoUninitialize();

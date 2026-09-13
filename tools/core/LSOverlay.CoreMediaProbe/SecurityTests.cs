@@ -14,6 +14,10 @@ internal static class SecurityTests
             "https://cdn.discordapp.com/attachments/1/2/a%252fb.png", "https://cdn.discordapp.com/attachments/1/2/a%0ab.png" })
             await reject(() => { MediaSourcePolicy.Validate(value); return Task.CompletedTask; }, "untrusted URL rejected");
         check(MediaSourcePolicy.Validate("https://cdn.discordapp.com/attachments/1/2/%ED%95%9C%EA%B8%80.png?ex=1&is=2&hm=test").Scheme == "https", "signed Korean attachment path accepted");
+        foreach(var value in new[]{"https://static.klipy.com/ii/abc/de/f.gif","https://static1.klipy.com/ii/abc/a.webp","https://static2.klipy.com/ii/abc/a.gif","https://media1.giphy.com/media/cZ7rmKfFYOvYI/200.gif","https://media.tenor.com/abc/def.gif","https://images-ext-1.discordapp.net/external/abc/https/static.klipy.com/ii/a.gif"})
+            check(MediaSourcePolicy.Validate(value).AbsoluteUri==value,"known provider image URL preserved");
+        foreach(var value in new[]{"https://klipy.com/gifs/a","https://api.klipy.com/v2/search","https://static.klipy.com.evil.test/a.gif","https://evil.klipy.com/a.gif","https://media1.giphy.com/media/a/200.mp4","https://media1.giphy.com/a.gif#x","https://images-ext-1.discordapp.net/external/a/https/127.0.0.1/a.gif","https://static.klipy.com/a%2fb.gif"})
+            await reject(()=>{MediaSourcePolicy.Validate(value);return Task.CompletedTask;},"provider boundary rejected");
         foreach (var ip in new[] { "127.0.0.1", "10.0.0.1", "169.254.169.254", "172.16.1.1", "192.168.0.10", "0.0.0.0", "100.64.1.1", "224.0.0.1", "255.255.255.255", "192.0.2.1", "198.18.0.1", "203.0.113.1", "::1", "::", "fc00::1", "fe80::1", "ff02::1", "2001:db8::1", "2002:7f00:1::", "::ffff:127.0.0.1" })
             check(!MediaSourcePolicy.IsPublic(IPAddress.Parse(ip)), "non-public/transition IP rejected");
         check(MediaSourcePolicy.IsPublic(IPAddress.Parse("1.1.1.1")) && MediaSourcePolicy.IsPublic(IPAddress.Parse("2606:4700::1111")), "global IPv4 and IPv6 accepted");

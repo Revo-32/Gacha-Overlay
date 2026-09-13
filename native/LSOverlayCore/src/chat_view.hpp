@@ -3,6 +3,7 @@
 #include "json.hpp"
 #include "text_outline.hpp"
 #include "media_store.hpp"
+#include "user_settings.hpp"
 #include <d2d1_1.h>
 #include <dwrite_3.h>
 #include <wrl/client.h>
@@ -18,12 +19,14 @@ struct ChatBlock {
     std::vector<ChatSpan> spans;
     std::vector<ChatInline> images;
     std::string mediaId;
+    unsigned sourceWidth=0,sourceHeight=0;
     Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
     std::vector<GlyphOutline> outline;
-    float y = 0, height = 0, size = 16;
+    float y = 0, height = 0, size = 16, imageWidth=0, inkPadding=0;
     std::uint32_t color = 0xf0f6fc;
     bool author = false, body = false;
     bool outlineBuilt = false;
+    float outlineOverride = -1; // Negative inherits chat rules; zero explicitly disables.
 };
 struct ChatRow {
     std::string id, fingerprint, attention;
@@ -39,9 +42,12 @@ struct ChatRow {
 class ChatView final {
 public:
     explicit ChatView(IDWriteFactory* factory);
+    void applySettings(const UserSettings& settings);
+    bool clickMedia(float x,float y);
     void setSnapshot(std::shared_ptr<const Json> snapshot);
     void setMedia(std::shared_ptr<MediaStore> media) { media_ = std::move(media); }
     bool mediaUpdated();
+    std::uint64_t mediaLayoutRevision() const {return media_ ? media_->layoutRevision() : 0;}
     bool hasMedia() const { return media_ != nullptr; }
     bool failedMedia(const ChatBlock& block) const {
         if (!media_) return false;
@@ -50,11 +56,11 @@ public:
     }
     void drawMedia(ID2D1RenderTarget* target);
     void commitMediaVisibility() { if (media_) media_->setVisible(visibleMedia_); }
-    ChatBlock externalRuns(yyjson_val* values, float size) const { return runs(values,size); }
+    ChatBlock externalRuns(yyjson_val* values, float size) const { return runs(values,size,{},false); }
     void layoutExternal(ChatBlock& block, float width) { layout(block,width); }
     void drawExternal(ID2D1RenderTarget* target, ChatBlock& block, float x, float y, D2D1_RECT_F clip);
     void pauseMedia();
-    void draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport);
+    void draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport, bool showScrollbar = true);
     void scroll(float delta) { scroll_.scroll(delta); }
     void followLatest() { scroll_.followLatest(); }
     void cycleFont();
@@ -66,6 +72,7 @@ public:
     void dragScrollbar(float y);
     void endScrollbar() { draggingScrollbar_ = false; }
     bool draggingScrollbar() const { return draggingScrollbar_; }
+    bool scrollbarVisible() const { return scrollbarVisible_ && scroll_.maximum()>0; }
     void releaseTargetResources() noexcept;
     bool active() const { return snapshot_ != nullptr; }
     std::size_t messageCount() const { return rows_.size(); }
@@ -75,11 +82,12 @@ public:
     std::size_t layoutTextBytes() const;
     std::wstring fontName() const;
 private:
+    bool scrollbarVisible_=true;
     struct TextAnchor { std::string id, fingerprint; std::size_t block; UINT32 position; float lineOffset; };
     std::optional<TextAnchor> captureReadingAnchor() const;
     void arrange(float width, float height);
     ChatRow makeRow(yyjson_val* value) const;
-    ChatBlock runs(yyjson_val* values, float size, std::wstring prefix = {}) const;
+    ChatBlock runs(yyjson_val* values, float size, std::wstring prefix = {}, bool chatEmoji = true) const;
     ChatBlock mediaBlock(yyjson_val* asset, bool forwarded) const;
     void layout(ChatBlock& block, float width);
     void paintBlock(ID2D1RenderTarget* target, ChatBlock& block, float x, float y);
@@ -89,9 +97,12 @@ private:
     Microsoft::WRL::ComPtr<IDWriteFontCollection> fonts_;
     Microsoft::WRL::ComPtr<ID2D1StrokeStyle> outlineStroke_;
     std::unordered_map<std::uint64_t,Microsoft::WRL::ComPtr<IDWriteTextFormat>> formats_;
+    Microsoft::WRL::ComPtr<IDWriteTextLayout> loadingLayout_;
+    Microsoft::WRL::ComPtr<IDWriteTextLayout> enlargementLayout_;
     std::unordered_map<std::uint32_t,Microsoft::WRL::ComPtr<ID2D1SolidColorBrush>> brushes_;
     std::shared_ptr<const Json> snapshot_;
     std::shared_ptr<MediaStore> media_;
+    std::uint64_t mediaRevision_=0;
     struct MediaBitmap { std::size_t index; Microsoft::WRL::ComPtr<ID2D1Bitmap> bitmap; };
     std::unordered_map<std::string,MediaBitmap> mediaBitmaps_;
     std::set<std::string> visibleMedia_;
@@ -107,6 +118,8 @@ private:
     unsigned preset_ = 0, rolePosition_ = 0;
     bool changed_ = false, newGeneration_ = true, mentionBackground_ = true;
     bool outlineEnabled_ = true, draggingScrollbar_ = false;
+    UserSettings settings_;bool settingsActive_=false;
+    std::string enlargedId_;
     float scrollbarGrab_ = 0;
     D2D1_RECT_F viewport_{};
     std::uint64_t layoutBuilds_ = 0;

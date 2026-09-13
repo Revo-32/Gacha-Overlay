@@ -1,4 +1,5 @@
 #include "media_package.hpp"
+#include "media_layout.hpp"
 #include <iostream>
 #include <functional>
 #include <stdexcept>
@@ -7,6 +8,16 @@ void check(bool value, const char* name) { if (!value) throw std::runtime_error(
 void reject(const std::function<void()>& action) { try { action(); } catch (const std::exception&) { return; } throw std::runtime_error("Invalid timeline accepted"); }
 int wmain(int count, wchar_t** args) {
     try {
+        const auto square=core::chatMediaBox(580,100,100);
+        check(square.width==270 && square.height==270,"small GIF uses large logical preview, independent of source pixels/DPI");
+        const auto wide=core::chatMediaBox(580,800,400);
+        check(wide.width==360 && wide.height==180,"wide image aspect preserved");
+        const auto narrow=core::chatMediaBox(200,800,400);
+        check(narrow.width==200 && narrow.height==100,"narrow viewport bounds");
+        const auto emoji=core::fitMedia(16,16,32,16);
+        check(emoji.width==16 && emoji.height==8,"wide sales emoji is not squeezed into square");
+        const auto tall=core::fitMedia(16,16,8,32);
+        check(tall.width==4 && tall.height==16,"tall emoji is not stretched");
         core::MediaTimeline timeline({70,130,90,110,50},0);
         check(timeline.duration() == 450,"exact duration");
         check(timeline.at(0).index == 0 && timeline.at(69).index == 0 && timeline.at(70).index == 1,"exact frame boundary");

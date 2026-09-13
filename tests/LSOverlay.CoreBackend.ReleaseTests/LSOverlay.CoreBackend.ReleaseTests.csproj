@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>GachaOverlay.Tests</AssemblyName>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" PrivateAssets="all" />
+    <ProjectReference Include="../../src/LSOverlay.Backend/LSOverlay.Backend.csproj" />
+    <Using Include="Xunit" />
+    <Compile Include="../GachaOverlay.Tests/Backend/M93KestrelChatIntegrationTests.cs" Link="M93KestrelChatIntegrationTests.cs" />
+    <Compile Include="../GachaOverlay.Tests/Backend/IndependentSession211IntegrationTests.cs" Link="IndependentSession211IntegrationTests.cs" />
+    <Compile Include="../GachaOverlay.Tests/Backend/CoreProductionIntegrationTests.cs" Link="CoreProductionIntegrationTests.cs" />
+    <Compile Include="../GachaOverlay.Tests/Backend/CoreProductionMediaTests.cs" Link="CoreProductionMediaTests.cs" />
+  </ItemGroup>
+</Project>

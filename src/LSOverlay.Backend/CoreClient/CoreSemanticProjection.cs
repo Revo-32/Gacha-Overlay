@@ -4,6 +4,7 @@ using GachaOverlay.Core.Sales;
 using LSOverlay.Protocol;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace LSOverlay.Backend.CoreClient;
 
@@ -13,9 +14,13 @@ public interface ICoreMediaReferences
 {
     string RegisterCanonical(string messageId, string kind, string identity, string? assetUrl);
 }
+public interface ICoreAnimatedMediaReferences : ICoreMediaReferences
+{
+    string RegisterEmoji(string messageId,string identity,bool animated);
+}
 
 /// <summary>Backend projection of existing domain semantics, never a second Sales parser.</summary>
-public sealed class CoreSemanticProjection(ICoreMediaReferences media)
+public sealed partial class CoreSemanticProjection(ICoreMediaReferences media)
 {
     public CoreSnapshot Capture(string generation, long revision, string authenticatedUserId,
         IReadOnlyList<NormalizedDiscordMessage> messages, SalesQueueSnapshot sales,
@@ -57,12 +62,12 @@ public sealed class CoreSemanticProjection(ICoreMediaReferences media)
             Run(message.MessageId, new ChatToken(string.IsNullOrEmpty(reaction.Emoji.EmojiId) ? ChatTokenKind.Text : ChatTokenKind.CustomEmoji, reaction.Emoji.Name,
                 reaction.Emoji.EmojiId, false, reaction.Emoji.Animated), viewer), reaction.Count)).ToArray();
         return new CoreRenderMessage(message.MessageId, author, message.CreatedAt, header,
-            Runs(message.MessageId, message.Tokens, viewer), message.HasSelfMention,
+            Runs(message.MessageId, message.Tokens, viewer, message.Media.FirstOrDefault()), message.HasSelfMention,
             Media(message.MessageId, message.Media, message.Stickers), reactions,
             reply is null ? null : new CoreReply(reply.MessageId, reply.ResolvedAuthorName,
                 reply.ResolvedContent is null ? "unavailable" : "resolved",
                 Runs(message.MessageId, ChatPresentationSynchronizer.TokenizeDiscordMarkup(reply.ResolvedContent ?? "", viewer), viewer)),
-            message.ForwardedMessages.Select(forward => new CoreForward(Runs(message.MessageId, forward.Tokens, viewer),
+            message.ForwardedMessages.Select(forward => new CoreForward(Runs(message.MessageId, forward.Tokens, viewer, forward.Media.FirstOrDefault()),
                 Media(message.MessageId, forward.Media, forward.Stickers))).ToArray(),
             message.Attention.ToString(), message.FallbackKind.ToString(), Details: Details(message));
     }
@@ -108,18 +113,43 @@ public sealed class CoreSemanticProjection(ICoreMediaReferences media)
     private IReadOnlyList<CoreRun> Runs(string messageId, IReadOnlyList<ChatToken> tokens, string viewer) =>
         tokens.Select(token => Run(messageId, token, viewer)).ToArray();
 
+    private IReadOnlyList<CoreRun> Runs(string messageId, IReadOnlyList<ChatToken> tokens, string viewer, ChatMediaCandidate? primary)
+    {
+        if (primary is null) return Runs(messageId,tokens,viewer);
+        var result=new List<CoreRun>();
+        foreach (var token in tokens) {
+            if (token.Kind!=ChatTokenKind.Text) {result.Add(Run(messageId,token,viewer));continue;}
+            var offset=0;
+            foreach (Match match in SourceTokenPattern().Matches(token.Text)) {
+                // Reuse Full's exact-source relationship/punctuation policy;
+                // never suppress another link or an additional hidden preview.
+                var remaining=ChatMediaSourcePolicy.SuppressExactSourceToken(match.Value,primary,true,true);
+                if (remaining==match.Value) continue;
+                var length=match.Length-remaining.Length;
+                if (match.Index>offset) result.Add(new CoreRun("Text",token.Text[offset..match.Index]));
+                result.Add(new CoreRun("MediaSource",match.Value[..length],MediaId:media.RegisterCanonical(messageId,"attachment",primary.Url,primary.Url)));
+                offset=match.Index+length;
+            }
+            if (offset<token.Text.Length) result.Add(new CoreRun("Text",token.Text[offset..]));
+        }
+        return result;
+    }
+    [GeneratedRegex("https://\\S+",RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex SourceTokenPattern();
+
     private CoreRun Run(string messageId, ChatToken token, string viewer) => new(
         token.Kind.ToString(), token.Text, token.Identity,
         token.Kind == ChatTokenKind.Mention && token.Identity == viewer,
         token.IsAnimatedEmoji, token.Kind == ChatTokenKind.CustomEmoji && !string.IsNullOrEmpty(token.Identity)
-            ? media.RegisterCanonical(messageId, "emoji", token.Identity, null) : null);
+            ? media is ICoreAnimatedMediaReferences animated ? animated.RegisterEmoji(messageId,token.Identity,token.IsAnimatedEmoji)
+                : media.RegisterCanonical(messageId, "emoji", token.Identity, null) : null);
 
-    private IReadOnlyList<CoreMedia> Media(string messageId, IReadOnlyList<ChatMediaCandidate> candidates,
+    private IReadOnlyList<LSOverlay.Protocol.CoreMedia> Media(string messageId, IReadOnlyList<ChatMediaCandidate> candidates,
         IReadOnlyList<ChatStickerPresentation> stickers) =>
-        candidates.Select(candidate => new CoreMedia(
+        candidates.Select(candidate => new LSOverlay.Protocol.CoreMedia(
             media.RegisterCanonical(messageId, "attachment", candidate.Url, candidate.Url), "attachment", candidate.DisplayName,
             candidate.Width, candidate.Height, candidate.ContentType == "image/gif"))
-        .Concat(stickers.Select(sticker => new CoreMedia(
+        .Concat(stickers.Select(sticker => new LSOverlay.Protocol.CoreMedia(
             media.RegisterCanonical(messageId, "sticker", sticker.StickerId, sticker.AssetUrl), "sticker", sticker.Name,
             null, null, sticker.FormatType is 2 or 3 or 4))).ToArray();
 }

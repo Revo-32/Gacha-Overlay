@@ -1,5 +1,6 @@
 #pragma once
 #include "shell_state.hpp"
+#include "user_settings.hpp"
 #include <windows.h>
 #include <d2d1.h>
 #include <dwrite.h>
@@ -26,10 +27,14 @@ public:
     Renderer& operator=(const Renderer&) = delete;
     void draw(HWND window, int width, int height, unsigned dpi, const ShellState& state, bool hotkeysAvailable, bool mediaOnly = false);
     void savePng(const std::filesystem::path& path) const;
+    static void saveWindowPng(HWND window,const std::filesystem::path& path);
     void discardSurface() noexcept;
     void setConnectionStatus(std::wstring status);
     void setChatSnapshot(std::shared_ptr<const Json> snapshot);
     void setMedia(std::shared_ptr<MediaStore> media);
+    void applySettings(const UserSettings& settings);
+    bool settingsHit(float x,float y) const {return compact_ && x>=toDip(width_,dpi_)-44 && x<=toDip(width_,dpi_)-10 && y>=9 && y<=41;}
+    bool compact() const {return compact_;}
     ChatView* chat() { return chat_.get(); }
     SalesView* sales() { return sales_.get(); }
     [[nodiscard]] unsigned alphaAt(int x, int y) const;
@@ -59,6 +64,8 @@ private:
     std::unique_ptr<ChatView> chat_;
     std::unique_ptr<SalesView> sales_;
     std::wstring chatFooter_;
+    std::wstring channelName_;Microsoft::WRL::ComPtr<IDWriteTextLayout> channelLayout_;
+    UserSettings settings_;bool compact_=false;
     std::uint64_t renderCount_ = 0, layoutBuildCount_ = 0;
 };
 }

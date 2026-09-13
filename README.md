@@ -1,6 +1,30 @@
-# LS Overlay
+# LS Overlay Core
 
 ![LS Overlay](assets/branding/LS_Overlay_logo.png)
+
+**LS Overlay Core 1.0.0**은 Discord 채팅·미디어, 판매 대기열 및 완료/취소, 세션 인원에 집중한 Windows x64 네이티브 HUD입니다. 앞으로의 지원 대상은 **Core**이며, 기존 LS Overlay 기본판(Full)은 지원을 종료합니다.
+
+## 다운로드 및 시작
+
+[Core 1.0.0 릴리즈](https://github.com/Revo-32/Gacha-Overlay/releases/tag/core-v1.0.0)에서 **LS-Overlay-Core-1.0.0-win-x64.zip**을 받아 모두 압축 해제한 뒤 **LSOverlayCore.exe**를 실행하세요. `fonts` 폴더도 함께 유지해야 합니다. 별도 .NET·VC 런타임·Discord 데스크톱 앱·SSH·PowerShell 실행은 필요하지 않습니다.
+
+처음에는 브라우저에서 Discord 로그인을 승인합니다. 기존 기본판의 설정·로그인을 자동으로 가져오거나 삭제하지 않으며, 기존 Core 개발판의 유효한 로그인은 재사용합니다. F9/F10 충돌을 피하려면 기본판을 먼저 종료하세요.
+
+- **F9**: 표시/숨김 · **F10**: 잠금/해제 · **Ctrl+Alt+←/→**: 채팅방 이동
+- 우상단 톱니바퀴에서 채팅·판매·세션·미디어·HUD·단축키 설정
+- 채팅방은 메인, 1~6호실, 잡떡 중 본인에게 권한이 있는 채널만 제공
+- 판매 완료/완료 취소는 본인 글에서만 제공하며 **확인창 없이 클릭 즉시 실제 상태를 변경**합니다. 잠금 중에는 버튼을 숨깁니다.
+
+GTA 컴패니언·사업장 관리자·AI 번역·알림센터 등 기본판의 모든 부가 기능을 이식한 제품은 아닙니다. Core의 범위는 채팅·판매·세션입니다. 게임 메모리 읽기나 주입은 사용하지 않습니다.
+
+[사용 안내](native/LSOverlayCore/RELEASE-README.ko.txt) · [구현/검증 기록](native/LSOverlayCore/RELEASE-1.0.0.ko.md) · [네이티브 개발 문서](native/LSOverlayCore/README.md)
+
+실행 파일은 코드 서명되지 않았습니다. 공식 출처와 SHA-256을 확인하고 Windows 보안 기능을 끄지 마세요. 소스는 [MIT](LICENSE), yyjson과 글꼴의 라이선스는 배포물에 포함됩니다.
+
+<details>
+<summary>지원 종료된 기본판 2.4.2 기록</summary>
+
+아래는 기본판의 기존 안내를 보존한 기록이며 Core 기능 설명이 아닙니다.
 
 **LS Overlay 2.4.2**는 GTA Online을 플레이하면서 Discord 채팅과 판매 순서, 일일·주간 정보, 주요 사업장 타이머를 함께 확인할 수 있는 Windows HUD 도구입니다.
 
@@ -105,3 +129,5 @@ dotnet test GachaOverlay.sln
 ## 라이선스
 
 프로젝트 소스는 [MIT](LICENSE) 라이선스입니다. 포함된 .NET 런타임, 글꼴, 색상 테마, SkiaSharp의 고지는 배포 ZIP의 `Licenses` 폴더에 함께 제공됩니다.
+
+</details>

@@ -15,11 +15,13 @@ internal static class ReadOnlyPolicy
     public static bool IsToken(string? value) => value is { Length: 47 } && value.StartsWith("lso_",StringComparison.Ordinal) &&
         value.AsSpan(4).IndexOfAnyExcept("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".AsSpan()) < 0;
 }
-internal sealed class ReadOnlyHandler(HttpMessageHandler inner) : DelegatingHandler(inner)
+internal sealed class ReadOnlyHandler(HttpMessageHandler inner,BridgeTelemetry? telemetry=null) : DelegatingHandler(inner)
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken cancellationToken)
     {
         if (!ReadOnlyPolicy.Allows(request.Method,request.RequestUri)) throw new InvalidOperationException("Read-only upstream path rejected.");
+        telemetry?.Count(request.RequestUri!.AbsolutePath switch {"/api/v1/bootstrap"=>BridgeSignal.HttpIdentity,"/api/v1/chat/channels"=>BridgeSignal.HttpCatalog,
+            "/api/v1/chat/bootstrap"=>BridgeSignal.HttpChat,_=>BridgeSignal.HttpSales});
         return base.SendAsync(request,cancellationToken);
     }
 }

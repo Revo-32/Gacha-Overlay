@@ -936,10 +936,10 @@ public sealed partial class LSOverlayRemoteClient : ILSOverlayRemoteClient, ILSO
                 _staged.Clear();
             }
 
-            _owner.ChatChannelReady?.Invoke(bootstrap with
-            {
-                LatestSequence = latestSequence,
-            });
+            // Like SalesReady, this is the HTTP snapshot BEFORE staged replay.
+            // Advertising the ready watermark here makes pending mutations look
+            // stale to cursor-aware Core consumers and can trigger reconnects.
+            _owner.ChatChannelReady?.Invoke(bootstrap);
             foreach (var envelope in staged.OrderBy(item => item.Sequence))
             {
                 Deliver(envelope);

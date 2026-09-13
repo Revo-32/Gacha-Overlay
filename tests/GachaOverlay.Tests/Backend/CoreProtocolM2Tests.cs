@@ -10,6 +10,26 @@ namespace GachaOverlay.Tests.Backend;
 
 public sealed class CoreProtocolM2Tests
 {
+    [Theory]
+    [InlineData("https://cdn.discordapp.com/attachments/1/2/icon.gif", 1)]
+    [InlineData("앞 https://cdn.discordapp.com/attachments/1/2/icon.gif, 뒤 https://example.com/guide", 1)]
+    [InlineData("https://cdn.discordapp.com/attachments/1/2/icon.gif https://cdn.discordapp.com/attachments/1/2/icon.gif", 2)]
+    [InlineData("https://cdn.discordapp.com/attachments/1/2/second.png", 0)]
+    [InlineData("https://example.com/guide", 0)]
+    public void OnlyExactPrimaryPreviewSourceIsAssociatedAndOriginalTextRemainsLossless(string text,int associated)
+    {
+        var message=Message("1","22",text) with {
+            Attachments=new[] {
+                new DiscordAttachmentMetadata("a","icon.gif","https://cdn.discordapp.com/attachments/1/2/icon.gif",null,2000,100,100,"image/gif"),
+                new DiscordAttachmentMetadata("b","second.png","https://cdn.discordapp.com/attachments/1/2/second.png",null,2000,100,100,"image/png")
+            }
+        };
+        var result=new CoreSemanticProjection(new OpaqueMedia()).Capture("g",1,"77",new[] {message},SalesQueueSnapshot.Empty,Array.Empty<HostPresenceSnapshot>()).Chat.Single();
+        Assert.Equal(text,string.Concat(result.Runs.Select(run=>run.Text)));
+        Assert.Equal(associated,result.Runs.Count(run=>run.Kind=="MediaSource"));
+        Assert.All(result.Runs.Where(run=>run.Kind=="MediaSource"),run=>Assert.Equal(result.Media[0].Id,run.MediaId));
+    }
+
     [Fact]
     public void PresentationIdentityTracksViewerAndRichMetadataWithoutCrossViewerReuse()
     {

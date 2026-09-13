@@ -13,13 +13,15 @@
 
 ## 상태와 검증
 
-합성 집중 검사 39 assertions PASS (외부 호출/Discord 쓰기 0). Windows와 M8 Linux에서 동일 검사 통과. native Release/CTest 5/5 PASS. 실제 승인 이후 bootstrap/stream/reconnect는 별도 확인해야 한다.
+합성 집중 검사 60 assertions PASS (외부 호출/Discord 쓰기 0), M8 Linux network-none 검사 통과. native Release/CTest 5/5 PASS. 실제 사용자 승인 이후 Chat/Sales/Session bootstrap/stream과 개발 bridge 재연결을 확인했다. 상세 범위는 `native/LSOverlayCore/M6.md`를 참조한다.
 
-현재는 **인증된 Chat/Sales/Session 실시간 텍스트 검증용**이다. 실제 미디어 전송/확대, 전체 설정·상호작용 동등성, 실제 대형 GIF Full/Core 비교, M6 workload matrix는 아직 완료가 아니다. 미디어 ID는 metadata만 전달하며 native는 이름 fallback을 표시한다. 이것을 M4 품질/성능 통과나 M7 RC로 해석하지 않는다.
+현재는 **인증된 Chat/Sales/Session 읽기 전용 + 네이티브 미디어 검증용**이다. opaque reference를 현재 사용자/메시지 권한으로 확인한 뒤 별도의 private media worker에서 변환·전송한다. native client는 원본 URL을 fetch하지 않는다. 미디어 worker는 공개 포트/운영 데이터 없이 개발 전용 키와 폐기 가능한 별도 캐시만 사용한다. 실제 미디어 전송과 재생은 확인했지만, 확대 UX, 전체 설정·상호작용 동등성, 실제 대형 GIF Full/Core 비교, M6 workload matrix는 아직 완료가 아니다. 이것을 M4 품질/성능 최종 통과나 M7 RC로 해석하지 않는다.
 
 `--core-dev-observe`는 명시적 개발 계측 모드다. 5초마다 count/메모리/누적 CPU/연결 상태만 ignored artifact에 최대 2160줄 기록한다. 메시지 내용·사용자 ID·미디어 URL·token은 기록하지 않는다. 계측 오버헤드가 있는 수치임을 구분한다.
 
 ## 실행
+
+2026-09-14 조작 검증: `launch-sales-core.ps1`은 `m7-sales-ux` 네이티브 실행본의 본인 판매 완료·완료 취소 UI를 활성화한다. 사용자 요청에 따라 클릭 즉시 기존 issuer의 `/api/v1/sales/status`로 직접 전송되며 별도 확인창 없이 실제 Discord 상태를 변경한다. Bridge는 조작 가능한 본인 글의 의미 힌트만 제공하고 여전히 쓰기 HTTP 경로를 거부한다. 옵션 없는 기존 읽기 전용 launcher는 계속 읽기 전용이다. 실사용 조작 검증 전에는 정식 배포 완료로 간주하지 않는다.
 
 `tools/core/dev/launch-readonly-core.ps1`은 SSH tunnel과 자체 native client만 실행한다. 초기 1회 브라우저 승인 필요. 종료할 때 직접 만든 SSH child만 닫고 기존 tunnel/Full 앱은 보존한다. 다른 창의 F9/F10을 빼앗지 않도록 `--no-hotkeys`를 사용한다. Core 트레이에서 잠금/표시/종료할 수 있다.
 

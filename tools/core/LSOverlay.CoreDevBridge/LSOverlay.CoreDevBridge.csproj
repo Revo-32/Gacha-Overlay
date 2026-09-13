@@ -6,6 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../src/LSOverlay.CoreMedia/LSOverlay.CoreMedia.csproj" />
     <ProjectReference Include="../../../src/LSOverlay.Backend/LSOverlay.Backend.csproj" />
     <ProjectReference Include="../../../src/LSOverlay.RemoteClient/LSOverlay.RemoteClient.csproj" />
     <ProjectReference Include="../../../src/GachaOverlay.Infrastructure/GachaOverlay.Infrastructure.csproj" />

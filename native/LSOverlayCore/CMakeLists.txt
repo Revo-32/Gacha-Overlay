@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(LSOverlayNativeCore LANGUAGES C CXX RC)
+project(LSOverlayNativeCore VERSION 1.0.0 LANGUAGES C CXX RC)
 
 if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "LS Overlay Core requires Windows x64 and MSVC.")
@@ -27,11 +27,11 @@ FetchContent_MakeAvailable(yyjson)
 # Upstream C warnings are managed upstream; our native C++ stays /W4 /WX.
 target_compile_options(yyjson PRIVATE /W3 /WX-)
 
-add_library(LSOverlayCoreTransport STATIC src/core_wire.cpp src/transport.cpp src/auth.cpp src/core_connection.cpp src/fixture_client.cpp src/dev_client.cpp)
+add_library(LSOverlayCoreTransport STATIC src/core_wire.cpp src/transport.cpp src/auth.cpp src/core_connection.cpp src/fixture_client.cpp src/dev_client.cpp src/sales_actions.cpp)
 target_include_directories(LSOverlayCoreTransport PUBLIC src)
 target_link_libraries(LSOverlayCoreTransport PUBLIC yyjson PRIVATE bcrypt crypt32 winhttp shell32 ole32)
 
-add_library(LSOverlayCoreMedia STATIC src/media_package.cpp src/media_store.cpp)
+add_library(LSOverlayCoreMedia STATIC src/media_package.cpp src/media_store.cpp src/media_download.cpp)
 target_include_directories(LSOverlayCoreMedia PUBLIC src)
 target_link_libraries(LSOverlayCoreMedia PUBLIC windowscodecs ole32 bcrypt LSOverlayCoreTransport)
 
@@ -39,15 +39,20 @@ get_filename_component(CORE_ICON "../../src/GachaOverlay.App/Assets/Branding/LSO
 set(CORE_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest")
 configure_file(resources/app.rc.in "${CMAKE_CURRENT_BINARY_DIR}/app.rc" @ONLY)
 
-add_executable(LSOverlayCore WIN32 src/main.cpp src/renderer.cpp src/chat_view.cpp src/text_outline.cpp src/sales_view.cpp "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
+add_executable(LSOverlayCore WIN32 src/main.cpp src/renderer.cpp src/chat_view.cpp src/text_outline.cpp src/sales_view.cpp src/user_settings.cpp src/settings_window.cpp "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
 target_include_directories(LSOverlayCore PRIVATE src)
-target_link_libraries(LSOverlayCore PRIVATE d2d1 dwrite windowscodecs ole32 user32 gdi32 shell32 psapi LSOverlayCoreTransport LSOverlayCoreMedia)
+target_link_libraries(LSOverlayCore PRIVATE d2d1 dwrite windowscodecs ole32 user32 gdi32 gdiplus dwmapi shell32 psapi comctl32 uxtheme winmm LSOverlayCoreTransport LSOverlayCoreMedia)
 target_link_options(LSOverlayCore PRIVATE /MANIFEST:NO /DYNAMICBASE /NXCOMPAT)
 add_custom_command(TARGET LSOverlayCore POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/../../src/GachaOverlay.App/Assets/Fonts" "$<TARGET_FILE_DIR:LSOverlayCore>/fonts")
 
 enable_testing()
+add_executable(LSOverlayCoreProductionProbe tests/production_probe.cpp)
+target_link_libraries(LSOverlayCoreProductionProbe PRIVATE LSOverlayCoreTransport)
+add_executable(LSOverlayCoreSalesActionTests tests/sales_action_tests.cpp)
+target_link_libraries(LSOverlayCoreSalesActionTests PRIVATE LSOverlayCoreTransport)
+add_test(NAME native_sales_actions COMMAND LSOverlayCoreSalesActionTests)
 add_executable(LSOverlayCoreStateTests tests/shell_state_tests.cpp)
 target_include_directories(LSOverlayCoreStateTests PRIVATE src)
 add_test(NAME native_shell_state COMMAND LSOverlayCoreStateTests)
@@ -63,6 +68,11 @@ add_test(NAME native_chat_scroll COMMAND LSOverlayCoreChatScrollTests)
 add_executable(LSOverlayCoreMediaTests tests/media_tests.cpp)
 target_link_libraries(LSOverlayCoreMediaTests PRIVATE LSOverlayCoreMedia)
 add_test(NAME native_media_timeline COMMAND LSOverlayCoreMediaTests)
+add_executable(LSOverlayCoreSettingsTests tests/settings_tests.cpp src/user_settings.cpp)
+target_link_libraries(LSOverlayCoreSettingsTests PRIVATE LSOverlayCoreMedia shell32)
+add_test(NAME native_user_settings COMMAND LSOverlayCoreSettingsTests "${CMAKE_CURRENT_BINARY_DIR}/settings-tests/settings.json")
 add_executable(LSOverlayCoreTransportProbe tests/transport_probe.cpp)
 target_link_libraries(LSOverlayCoreTransportProbe PRIVATE LSOverlayCoreTransport)
+add_executable(LSOverlayCoreMediaDeliveryProbe tests/media_delivery_probe.cpp)
+target_link_libraries(LSOverlayCoreMediaDeliveryProbe PRIVATE LSOverlayCoreMedia)
 # UI smoke/measurement is explicit: do not open windows during ordinary ctest.

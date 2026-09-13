@@ -42,13 +42,19 @@ public sealed record CoreSaleProduct(string Id, string Name, string EmojiId, str
 public sealed record CoreSalesState(long Revision, string ObservationStatus, bool IsTrackingEnabled,
     IReadOnlyList<CoreSale> Queue, string? CurrentMessageId, string? NextMessageId,
     int WaitingCount, bool CurrentIsSelf, bool NextIsSelf, bool ContainsUnverifiedItems,
-    CoreSalesPresentation? Presentation = null);
+    CoreSalesPresentation? Presentation = null, CoreSalesActions? Actions = null);
+// Display hints, not authorization. The status endpoint rechecks the current
+// identity, owner, channel permission and upstream generation on every command.
+public sealed record CoreSalesActions(string Generation, long Sequence, IReadOnlyList<CoreSalesActionTarget> Targets);
+public sealed record CoreSalesActionTarget(string MessageId, bool CanComplete, bool CanUndo, bool BotCompleted);
 public sealed record CoreSalesPresentation(string ContentMode, string HealthMode, string AccentKind,
     string IconKind, string PrimaryText, string SecondaryText, string StatusText, bool IsVisible,
     bool IsTrustedForNewPersonalAlert, IReadOnlyList<string> CompletionEnabledMessageIds);
 public sealed record CoreSnapshot(int ProtocolVersion, string Generation, long Revision,
     string SelfUserId, IReadOnlyList<CoreRenderMessage> Chat, CoreSalesState Sales,
-    IReadOnlyList<HostPresenceSnapshot> Session, string? ChatConnectionState = null);
+    IReadOnlyList<HostPresenceSnapshot> Session, string? ChatConnectionState = null,
+    CoreChatSelection? ChatSelection = null);
+public sealed record CoreChatSelection(int Slot, string Name, IReadOnlyList<int> AvailableSlots);
 
 // Base64 chunking preserves exact UTF-8, including a single large message. The
 // receiver validates sequence/hash and publishes only the complete immutable doc.

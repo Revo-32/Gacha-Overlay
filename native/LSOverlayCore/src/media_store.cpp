@@ -32,7 +32,50 @@ MediaStore::MediaStore(const std::filesystem::path& manifest, std::function<void
     }
     worker_ = std::jthread([this](std::stop_token stop) { run(stop); });
 }
-MediaStore::~MediaStore() { worker_.request_stop(); wake_.notify_all(); if (worker_.joinable()) worker_.join(); }
+MediaStore::MediaStore(std::function<void()> invalidate) : invalidate_(std::move(invalidate)),remote_(true) {
+    worker_=std::jthread([this](std::stop_token stop) { run(stop); });
+    for (auto& downloader : downloaders_) downloader=std::jthread([this](std::stop_token stop) { download(stop); });
+}
+MediaStore::~MediaStore() {
+    for (auto& downloader : downloaders_) downloader.request_stop();
+    worker_.request_stop(); wake_.notify_all();
+    for (auto& downloader : downloaders_) if (downloader.joinable()) downloader.join();
+    if (worker_.joinable()) worker_.join();
+    // Destroy open package readers before their disposable files and directory.
+    sources_.clear(); entries_.clear(); fetcher_={};
+}
+void MediaStore::setFetcher(MediaFetcher fetcher) { std::lock_guard lock(mutex_);fetcher_=std::move(fetcher);++revision_;wake_.notify_all(); }
+void MediaStore::setAnimated(bool enabled) {std::lock_guard lock(mutex_);animated_=enabled;if(!enabled)for(auto& entry:sources_)entry->next.reset();++revision_;wake_.notify_all();}
+void MediaStore::clearCache() {
+    MediaFetcher fetch;
+    {std::lock_guard lock(mutex_);if(!remote_)return;fetch=fetcher_;entries_.clear();for(auto& entry:sources_) {entry->visible=false;entry->current.reset();entry->next.reset();}++layoutRevision_;++revision_;wake_.notify_all();}
+    if(fetch.clear)fetch.clear();notify();
+}
+bool MediaStore::prepare(const std::string& id,unsigned width,unsigned height) {
+    if (!remote_) return dimensions(id).has_value();
+    if (!validMediaIdentity(id)) return false;
+    validateMediaProfile(width,height);
+    std::lock_guard lock(mutex_);
+    auto found=entries_.find(id);
+    if (found!=entries_.end()) {
+        if (found->second->requested.width>=width && found->second->requested.height>=height) return !found->second->failed;
+        found->second->visible=false; // new physical profile, same logical source
+    } else if (entries_.size()>=512) return false;
+    auto entry=std::make_shared<Entry>();entry->remote=true;entry->id=id;entry->requested=entry->size={width,height};
+    if (found!=entries_.end()) {entry->started=found->second->started;entry->origin=found->second->origin;entry->ready=found->second->ready;}
+    entries_[id]=entry;sources_.push_back(entry);++revision_;wake_.notify_all();return true;
+}
+void MediaStore::retain(const std::set<std::string>& ids) {
+    if (!remote_) return;
+    std::lock_guard lock(mutex_);
+    std::erase_if(entries_,[&](const auto& pair) {return !ids.contains(pair.first);});
+    for (const auto& entry : sources_) {
+        const bool retained=std::any_of(entries_.begin(),entries_.end(),[&](const auto& pair) {return pair.second==entry;});
+        if (!retained) {entry->visible=false;entry->current.reset();entry->next.reset();}
+    }
+    ++revision_;wake_.notify_all();
+}
+std::uint64_t MediaStore::layoutRevision() const {std::lock_guard lock(mutex_);return layoutRevision_;}
 std::optional<MediaDimensions> MediaStore::dimensions(const std::string& id) const {
     std::lock_guard lock(mutex_); const auto found = entries_.find(id);
     return found == entries_.end() || found->second->failed ? std::nullopt : std::optional(found->second->size);
@@ -40,7 +83,12 @@ std::optional<MediaDimensions> MediaStore::dimensions(const std::string& id) con
 bool MediaStore::failed(const std::string& id) const {
     std::lock_guard lock(mutex_); const auto found = entries_.find(id); return found != entries_.end() && found->second->failed;
 }
+bool MediaStore::ready(const std::string& id) const {
+    std::lock_guard lock(mutex_); const auto found=entries_.find(id);
+    return found!=entries_.end() && found->second->ready && !found->second->failed;
+}
 std::string MediaStore::sourceKey(const std::string& id) const {
+    std::lock_guard lock(mutex_);
     const auto found = entries_.find(id); return found == entries_.end() ? std::string{} : narrow(found->second->path.filename().wstring());
 }
 std::shared_ptr<const MediaPixels> MediaStore::frame(const std::string& id) const {
@@ -55,12 +103,13 @@ void MediaStore::setVisible(const std::set<std::string>& ids) {
         const bool visible = wanted.contains(entry.get());
         if (entry->visible == visible) continue;
         changed = true; entry->visible = visible;
+        if(visible && !entry->firstVisible)entry->firstVisible=Clock::now();
         if (!visible) { entry->current.reset(); entry->next.reset(); }
     }
     if (changed) { ++revision_; wake_.notify_all(); }
 }
 MediaStatistics MediaStore::statistics() const {
-    std::lock_guard lock(mutex_); MediaStatistics result{decoded_,published_,failures_,lateFrames_,0,0};
+    std::lock_guard lock(mutex_); MediaStatistics result{decoded_,published_,failures_,lateFrames_,0,0,downloads_,firstFrames_,downloadMs_,maxDownloadMs_,firstFrameMs_,maxFirstFrameMs_};
     for (const auto& entry : sources_) {
         if (entry->visible) ++result.visible;
         if (entry->current) result.ownedPixelBytes += entry->current->bgra.size();
@@ -83,9 +132,16 @@ void MediaStore::run(std::stop_token stop) {
         {
             std::lock_guard lock(mutex_); revision = revision_;
             for (auto& entry : sources_) {
-                if (entry->visible && !entry->failed) active.push_back(entry);
-                else { entry->package.reset(); entry->timeline.reset(); }
+                if (entry->visible && !entry->failed && (!entry->remote || entry->file)) active.push_back(entry);
+                else {
+                    entry->package.reset(); entry->timeline.reset();
+                    // Offscreen entries keep only identity/timing. The compressed
+                    // LRU owns warm files and can evict them under byte pressure.
+                    if (entry->remote && !entry->visible) {entry->file.reset();entry->path.clear();}
+                }
             }
+            std::set<Entry*> retained;for (const auto& pair : entries_) retained.insert(pair.second.get());
+            std::erase_if(sources_,[&](const auto& entry) {return entry->remote && !retained.contains(entry.get());});
         }
         auto deadline = Clock::time_point::max();
         for (const auto& entry : active) {
@@ -96,9 +152,9 @@ void MediaStore::run(std::stop_token stop) {
                     if (entry->package->width() != entry->size.width || entry->package->height() != entry->size.height) throw std::runtime_error("Media profile mismatch");
                     entry->timeline = entry->package->timeline();
                 }
-                if (!entry->started) { entry->started = true; entry->origin = Clock::now(); }
+                { std::lock_guard lock(mutex_); if (!entry->started) { entry->started = true; entry->origin = Clock::now(); } }
                 const auto elapsed = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-entry->origin).count());
-                const auto position = entry->timeline->at(elapsed);
+                const bool animate=animated_.load();const auto position = entry->timeline->at(animate?elapsed:0);
                 std::shared_ptr<const MediaPixels> pixels;
                 bool needed = false;
                 {
@@ -114,10 +170,11 @@ void MediaStore::run(std::stop_token stop) {
                         if (!entry->visible) continue;
                         if (entry->current && entry->timeline->next(entry->current->index) != position.index) ++lateFrames_;
                         entry->current = std::move(pixels); ++published_;
+                        if (!entry->ready) {entry->ready=true;++layoutRevision_;if(entry->firstVisible){const double elapsedMs=std::chrono::duration<double,std::milli>(Clock::now()-*entry->firstVisible).count();++firstFrames_;firstFrameMs_+=elapsedMs;maxFirstFrameMs_=std::max(maxFirstFrameMs_,elapsedMs);}}
                     }
                     notify();
                 }
-                if (!position.finished) {
+                if (animate && !position.finished) {
                     deadline = std::min(deadline,entry->origin+std::chrono::milliseconds(position.nextMs));
                     const auto next = entry->timeline->next(position.index);
                     bool prepare = false;
@@ -128,7 +185,7 @@ void MediaStore::run(std::stop_token stop) {
                     }
                 }
             } catch (const std::exception&) {
-                { std::lock_guard lock(mutex_); entry->failed = true; entry->current.reset(); entry->next.reset(); ++failures_; }
+                { std::lock_guard lock(mutex_); entry->failed = true; entry->current.reset(); entry->next.reset(); ++failures_; ++layoutRevision_; }
                 notify();
             }
         }
@@ -138,5 +195,55 @@ void MediaStore::run(std::stop_token stop) {
         else wake_.wait_until(lock,stop,deadline,[&] { return revision_ != revision; });
     }
     factory.Reset(); CoUninitialize();
+}
+void MediaStore::download(std::stop_token stop) {
+    while (!stop.stop_requested()) {
+        std::shared_ptr<Entry> entry; MediaFetcher fetch;std::string requestId;
+        {
+            std::unique_lock lock(mutex_);
+            auto next=Clock::time_point::max();
+            if (fetcher_) for (const auto& candidate : sources_) {
+                if (!candidate->remote || !candidate->visible || candidate->file || candidate->failed || candidate->downloading) continue;
+                if (candidate->retry>Clock::now()) {next=std::min(next,candidate->retry);continue;}
+                const auto alias=std::find_if(entries_.begin(),entries_.end(),[&](const auto& pair) {return pair.second==candidate;});
+                if (alias==entries_.end()) continue;
+                entry=candidate;requestId=alias->first;entry->downloading=true;++entry->attempts;fetch=fetcher_;break;
+            }
+            if (!entry) {
+                const auto revision=revision_;
+                if (next==Clock::time_point::max()) wake_.wait(lock,stop,[&] {return revision_!=revision;});
+                else wake_.wait_until(lock,stop,next,[&] {return revision_!=revision;});
+                continue;
+            }
+        }
+        try {
+            const auto fetchStarted=Clock::now();
+            auto result=fetch(requestId,entry->requested.width,entry->requested.height,stop);
+            std::lock_guard lock(mutex_);
+            const double elapsedMs=std::chrono::duration<double,std::milli>(Clock::now()-fetchStarted).count();++downloads_;downloadMs_+=elapsedMs;maxDownloadMs_=std::max(maxDownloadMs_,elapsedMs);
+            const auto current=entries_.find(requestId);
+            if (current==entries_.end() || current->second!=entry || stop.stop_requested()) {entry->downloading=false;continue;}
+            auto shared=std::find_if(sources_.begin(),sources_.end(),[&](const auto& other) {
+                return other!=entry && !other->failed && other->file==result.file && other->requested.width==entry->requested.width && other->requested.height==entry->requested.height;
+            });
+            if (shared!=sources_.end()) {
+                (*shared)->visible=(*shared)->visible || entry->visible;entry->visible=false;entry->current.reset();entry->next.reset();entries_[requestId]=*shared;
+                ++layoutRevision_;++revision_;wake_.notify_all();
+                // All aliases share one decoder/timeline/current-next working set.
+            } else {
+            entry->path=result.file->path;entry->file=std::move(result.file);entry->size={result.response.width,result.response.height};entry->downloading=false;entry->attempts=0;
+            ++layoutRevision_;++revision_;wake_.notify_all();
+            }
+        } catch (const std::exception& error) {
+            if (stop.stop_requested()) return;
+            const auto* transport=dynamic_cast<const TransportError*>(&error);
+            std::lock_guard lock(mutex_);entry->downloading=false;
+            const auto current=entries_.find(requestId);
+            if (current==entries_.end() || current->second!=entry) continue; // Superseded request is not a visible failure.
+            if (entry->attempts<3 && transport && (transport->httpStatus==0 || transport->httpStatus==429 || transport->httpStatus>=500)) entry->retry=Clock::now()+std::chrono::seconds(2*entry->attempts);
+            else {entry->failed=true;++failures_;++layoutRevision_;}
+        }
+        notify();
+    }
 }
 }

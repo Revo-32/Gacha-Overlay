@@ -5,6 +5,8 @@ COPY global.json Directory.Build.props ./
 COPY src/GachaOverlay.Core/GachaOverlay.Core.csproj src/GachaOverlay.Core/
 COPY src/LSOverlay.Protocol/LSOverlay.Protocol.csproj src/LSOverlay.Protocol/
 COPY src/LSOverlay.Backend/LSOverlay.Backend.csproj src/LSOverlay.Backend/
+COPY src/LSOverlay.RemoteClient/LSOverlay.RemoteClient.csproj src/LSOverlay.RemoteClient/
+COPY src/LSOverlay.CoreMedia/LSOverlay.CoreMedia.csproj src/LSOverlay.CoreMedia/
 RUN dotnet restore src/LSOverlay.Backend/LSOverlay.Backend.csproj
 # Keep complete project trees. Before committing, run the isolated Git/context
 # verifier in tools/dev/verify-backend-docker-context.ps1; local ignored files
@@ -12,6 +14,10 @@ RUN dotnet restore src/LSOverlay.Backend/LSOverlay.Backend.csproj
 COPY src/GachaOverlay.Core/ src/GachaOverlay.Core/
 COPY src/LSOverlay.Protocol/ src/LSOverlay.Protocol/
 COPY src/LSOverlay.Backend/ src/LSOverlay.Backend/
+COPY src/LSOverlay.RemoteClient/ src/LSOverlay.RemoteClient/
+COPY src/GachaOverlay.Infrastructure/Sales/DefaultSalesProductCatalog.json src/GachaOverlay.Infrastructure/Sales/
+COPY src/GachaOverlay.Infrastructure/Localization/Resources/Strings.ko.resx src/GachaOverlay.Infrastructure/Localization/Resources/
+COPY src/LSOverlay.CoreMedia/ src/LSOverlay.CoreMedia/
 COPY assets/branding/LS_Overlay_logo.png assets/branding/
 RUN dotnet publish src/LSOverlay.Backend/LSOverlay.Backend.csproj \
     -c Release --no-restore --self-contained false -p:UseAppHost=false -o /app/publish

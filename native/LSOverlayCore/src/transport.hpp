@@ -12,6 +12,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <functional>
 
 namespace core {
 class TransportError : public std::runtime_error {
@@ -72,11 +73,19 @@ struct HttpResponse {
     HttpResponse& operator=(HttpResponse&&) = delete;
 };
 
+struct MediaResponse { std::string key; unsigned width, height; std::uint64_t bytes; bool cacheHit; };
+bool validMediaIdentity(std::string_view id, std::size_t length = 48);
+void validateMediaProfile(unsigned width,unsigned height);
+
 class HttpTransport final {
 public:
     explicit HttpTransport(Endpoint endpoint);
     HttpResponse request(const wchar_t* method, const std::wstring& path, std::string_view body = {},
         std::string_view authorization = {}, std::stop_token stop = {});
+    // Only opaque, authenticated derivative paths. No URL or redirect seam.
+    MediaResponse downloadMedia(std::string_view id,unsigned width,unsigned height,
+        std::string_view authorization,const std::filesystem::path& destination,std::stop_token stop = {},
+        const std::function<void(std::uint64_t)>& reserve = {});
     const Endpoint& endpoint() const noexcept { return endpoint_; }
     HINTERNET connection() const noexcept { return connection_.get(); }
 private:
