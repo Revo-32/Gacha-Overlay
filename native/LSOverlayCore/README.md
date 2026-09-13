@@ -1,6 +1,6 @@
 # LS Overlay Core — M1 네이티브 검증 창
 
-후속 구현: [M2 인증·통신 프로토타입](M2.md), [M3 네이티브 채팅 텍스트 프로토타입](M3.md). 아래 설명은 M1 shell 범위입니다. 현재 소스는 `build-native.ps1 -Stage m3`로 빌드해 보존된 M1/M2 기준 실행 파일을 덮어쓰지 않습니다. `-Stage`는 출력 경로를 선택하며 과거 소스 버전으로 전환하지 않습니다. 실제 Discord/Chat/미디어 parity 완료를 의미하지 않습니다.
+후속 구현: [M2 인증·통신 프로토타입](M2.md), [M3 네이티브 채팅 텍스트 프로토타입](M3.md), [M4 서버 보조 미디어 경로](M4.md). 아래 설명은 M1 shell 범위입니다. 현재 소스는 `build-native.ps1 -Stage m4`로 빌드해 보존된 M1/M2/M3 기준 실행 파일을 덮어쓰지 않습니다. `-Stage`는 출력 경로를 선택하며 과거 소스 버전으로 전환하지 않습니다. 실제 Discord/Chat/미디어 parity 완료를 의미하지 않습니다.
 
 이 경로는 기존 C# `GachaOverlay.Core`와 별개인 C++20 클라이언트입니다. 제품명은 **LS Overlay Core**, 실행 파일은 **LSOverlayCore.exe**입니다.
 

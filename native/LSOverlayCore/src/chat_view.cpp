@@ -28,6 +28,29 @@ constexpr FontPair fontPairs[] = {
     {L"Cafe24 PRO Slim Max",L"Cafe24 PRO Slim Fit",L"GTA 레거시",DWRITE_FONT_WEIGHT_NORMAL},
     {L"조선굴림체",L"조선굴림체",L"조선굴림",DWRITE_FONT_WEIGHT_NORMAL,DWRITE_FONT_WEIGHT_NORMAL}
 };
+// DirectWrite reserves the real emoji cell in wrapping/hit testing. Its pixels
+// are painted separately through the shared visible-media renderer.
+class InlineMedia final : public IDWriteInlineObject {
+public:
+    explicit InlineMedia(float size) : size_(size) {}
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** result) override {
+        if (!result) return E_POINTER; *result = nullptr;
+        if (iid != __uuidof(IUnknown) && iid != __uuidof(IDWriteInlineObject)) return E_NOINTERFACE;
+        *result = static_cast<IDWriteInlineObject*>(this); AddRef(); return S_OK;
+    }
+    ULONG STDMETHODCALLTYPE AddRef() override { return ++refs_; }
+    ULONG STDMETHODCALLTYPE Release() override { const auto refs = --refs_; if (!refs) delete this; return refs; }
+    HRESULT STDMETHODCALLTYPE Draw(void*,IDWriteTextRenderer*,FLOAT,FLOAT,BOOL,BOOL,IUnknown*) override { return S_OK; }
+    HRESULT STDMETHODCALLTYPE GetMetrics(DWRITE_INLINE_OBJECT_METRICS* result) override {
+        if (!result) return E_POINTER; *result = {size_,size_,size_*0.82f,FALSE}; return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE GetOverhangMetrics(DWRITE_OVERHANG_METRICS* result) override { if (!result) return E_POINTER; *result = {}; return S_OK; }
+    HRESULT STDMETHODCALLTYPE GetBreakConditions(DWRITE_BREAK_CONDITION* before,DWRITE_BREAK_CONDITION* after) override {
+        if (!before || !after) return E_POINTER; *before = *after = DWRITE_BREAK_CONDITION_NEUTRAL; return S_OK;
+    }
+private:
+    std::atomic<ULONG> refs_{1}; float size_;
+};
 }
 ChatView::ChatView(IDWriteFactory* factory) : factory_(factory) {
     ComPtr<IDWriteFactory5> modern; require(factory_.As(&modern),"DirectWrite private fonts support");
@@ -52,12 +75,25 @@ ChatBlock ChatView::runs(yyjson_val* values, float size, std::wstring prefix) co
     std::size_t index = 0,count = 0; yyjson_val* run = nullptr;
     yyjson_arr_foreach(values,index,count,run) {
         const auto kind = textField(run,"kind"); auto text = widen(textField(run,"text"));
-        // Explicit fallback until M4 assets: preserve the emoji identity/name.
+        const auto mediaId = field(run,"mediaId");
+        if (kind == "CustomEmoji" && media_ && yyjson_is_str(mediaId) && media_->dimensions(std::string(stringValue(mediaId)))) {
+            block.images.push_back({static_cast<UINT32>(block.text.size()),std::string(stringValue(mediaId)),size});
+            block.text += L'\xfffc'; continue;
+        }
+        // Preserve the name on cache miss, unsupported asset or failed decode.
         if (kind == "CustomEmoji" && !text.empty() && text.front() != L':') text = L":"+text+L":";
         const auto start = static_cast<UINT32>(block.text.size()); block.text += text;
         if (kind == "Mention") block.spans.push_back({{start,static_cast<UINT32>(text.size())},
             yyjson_is_true(field(run,"isSelf")) ? 0x3fb950U : 0xc9d1d9U,yyjson_is_true(field(run,"isSelf"))});
     }
+    return block;
+}
+ChatBlock ChatView::mediaBlock(yyjson_val* asset, bool forwarded) const {
+    ChatBlock block; block.size = fontSize_*0.85f; block.color = 0x8b949e;
+    const std::string id(textField(asset,"id"));
+    if (media_ && media_->dimensions(id)) block.mediaId = id;
+    block.text = (forwarded ? L"[전달된 미디어: " : L"[미디어: ")+optionalText(asset,"name")+L" · "+
+        (media_ && media_->failed(id) ? L"불러올 수 없음]" : L"미리보기 없음]");
     return block;
 }
 ChatRow ChatView::makeRow(yyjson_val* value) const {
@@ -67,11 +103,18 @@ ChatRow ChatView::makeRow(yyjson_val* value) const {
     auto* author = field(value,"author");
     if (row.header) {
         ChatBlock header; header.size = fontSize_; header.author = true;
-        const auto icon = optionalText(author,"iconUnicode");
+        auto icon = optionalText(author,"iconUnicode");
+        const auto image = optionalText(author,"iconMediaId");
+        const bool imageReady = media_ && !image.empty() && media_->dimensions(narrow(image)).has_value();
+        if (imageReady) icon = L"\xfffc";
         const auto name = widen(textField(author,"displayName"));
         header.text = rolePosition_ == 0 ? (icon.empty() ? L"" : icon+L" ")+name :
             rolePosition_ == 1 ? name+(icon.empty() ? L"" : L" "+icon) : name;
         if (rolePosition_ == 2) row.icon = icon;
+        if (imageReady) {
+            if (rolePosition_ == 2) { row.icon.clear(); row.iconMediaId = narrow(image); }
+            else header.images.push_back({rolePosition_ == 0 ? 0U : static_cast<UINT32>(name.size()+1),narrow(image),fontSize_});
+        }
         auto* color = field(author,"color"); if (yyjson_is_uint(color) && yyjson_get_uint(color) <= 0xffffff) header.color = static_cast<std::uint32_t>(yyjson_get_uint(color));
         row.blocks.push_back(std::move(header)); row.time = localTime(value);
     }
@@ -93,17 +136,16 @@ ChatRow ChatView::makeRow(yyjson_val* value) const {
         if (!yyjson_is_arr(assets)) throw std::runtime_error("Invalid forwarded media metadata");
         std::size_t assetIndex = 0,assetCount = 0; yyjson_val* asset = nullptr;
         yyjson_arr_foreach(assets,assetIndex,assetCount,asset) {
-            ChatBlock block; block.size = fontSize_*0.85f; block.color = 0x8b949e;
-            block.text = L"[전달된 미디어: "+optionalText(asset,"name")+L" · M4 재생 구현 대기]";
-            row.blocks.push_back(std::move(block));
+            if (assetIndex == 0) row.blocks.push_back(mediaBlock(asset,true));
+            else if (assetIndex == 1) { ChatBlock extra; extra.size = fontSize_*0.85f; extra.text = L"+"+std::to_wstring(assetCount-1)+L"개 미디어"; row.blocks.push_back(std::move(extra)); }
         }
     }
     auto* media = field(value,"media");
     if (!yyjson_is_arr(media)) throw std::runtime_error("Invalid Core media metadata");
     yyjson_val* item = nullptr;
     yyjson_arr_foreach(media,index,count,item) {
-        ChatBlock block; block.size = fontSize_*0.85f; block.color = 0x8b949e;
-        block.text = L"[미디어: "+optionalText(item,"name")+L" · M4 재생 구현 대기]"; row.blocks.push_back(std::move(block));
+        if (index == 0) row.blocks.push_back(mediaBlock(item,false));
+        else if (index == 1) { ChatBlock extra; extra.size = fontSize_*0.85f; extra.text = L"+"+std::to_wstring(count-1)+L"개 미디어"; row.blocks.push_back(std::move(extra)); }
     }
     auto* reactions = field(value,"reactions");
     if (!yyjson_is_arr(reactions)) throw std::runtime_error("Invalid Core reactions");
@@ -111,7 +153,12 @@ ChatRow ChatView::makeRow(yyjson_val* value) const {
     yyjson_arr_foreach(reactions,index,count,item) {
         auto* emoji = field(item,"emoji");
         const auto text = widen(textField(emoji,"text"));
-        reactionBlock.text += (textField(emoji,"kind") == "CustomEmoji" ? L":"+text+L":" : text) + L" "+std::to_wstring(numberField(item,"count"))+L"   ";
+        auto* mediaId = field(emoji,"mediaId");
+        if (media_ && yyjson_is_str(mediaId) && media_->dimensions(std::string(stringValue(mediaId)))) {
+            reactionBlock.images.push_back({static_cast<UINT32>(reactionBlock.text.size()),std::string(stringValue(mediaId)),reactionBlock.size});
+            reactionBlock.text += L'\xfffc';
+        } else reactionBlock.text += textField(emoji,"kind") == "CustomEmoji" ? L":"+text+L":" : text;
+        reactionBlock.text += L" "+std::to_wstring(numberField(item,"count"))+L"   ";
     }
     if (!reactionBlock.text.empty()) row.blocks.push_back(std::move(reactionBlock));
     auto* details = field(value,"details");
@@ -159,6 +206,13 @@ std::optional<ChatView::TextAnchor> ChatView::captureReadingAnchor() const {
 }
 void ChatView::layout(ChatBlock& block, float width) {
     block.outline.clear(); block.outlineBuilt = false;
+    if (!block.mediaId.empty() && media_) {
+        if (const auto size = media_->dimensions(block.mediaId)) {
+            const auto drawWidth = std::min(width,static_cast<float>(size->width)*96/mediaDpi_);
+            block.height = drawWidth*static_cast<float>(size->height)/static_cast<float>(size->width); return;
+        }
+        block.mediaId.clear();
+    }
     const auto key = static_cast<std::uint64_t>(std::bit_cast<std::uint32_t>(block.size)) | (static_cast<std::uint64_t>(block.author)<<32);
     auto& format = formats_[key];
     if (!format) {
@@ -177,6 +231,10 @@ void ChatView::layout(ChatBlock& block, float width) {
     }
     require(factory_->CreateTextLayout(block.text.c_str(),static_cast<UINT32>(block.text.size()),format.Get(),std::max(width,1.0f),1e7f,&block.layout),"Chat layout");
     for (const auto& span : block.spans) if (span.bold) require(block.layout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD,span.range),"Mention weight");
+    for (const auto& image : block.images) {
+        ComPtr<IDWriteInlineObject> object; object.Attach(new InlineMedia(image.size));
+        require(block.layout->SetInlineObject(object.Get(),{image.position,1}),"Inline media layout");
+    }
     DWRITE_TEXT_METRICS metrics{}; require(block.layout->GetMetrics(&metrics),"Chat layout measurement"); block.height = metrics.height;
     ++layoutBuilds_;
 }
@@ -188,7 +246,7 @@ void ChatView::arrange(float width, float height) {
     for (auto& row : rows_) {
         float y = row.header ? 18.0f : 2.0f;
         for (auto& block : row.blocks) {
-            if (reflow || !block.layout) layout(block,width-(block.author ? (row.time.empty() ? 0 : 58)+(row.icon.empty() ? 0 : 24) : 0));
+            if (reflow || !block.layout) layout(block,width-(block.author ? (row.time.empty() ? 0 : 58)+(row.icon.empty() && row.iconMediaId.empty() ? 0 : 24) : 0));
             block.y = y; y += block.height+2;
         }
         if (row.header && (reflow || !row.timeLayout)) {
@@ -205,7 +263,7 @@ void ChatView::arrange(float width, float height) {
         if (row != rows_.end() && row->fingerprint == anchor->fingerprint && anchor->block < row->blocks.size()) {
             const auto& block = row->blocks[anchor->block];
             FLOAT x = 0,y = 0; DWRITE_HIT_TEST_METRICS hit{};
-            if (SUCCEEDED(block.layout->HitTestTextPosition(std::min(anchor->position,static_cast<UINT32>(block.text.size())),FALSE,&x,&y,&hit)))
+            if (block.layout && SUCCEEDED(block.layout->HitTestTextPosition(std::min(anchor->position,static_cast<UINT32>(block.text.size())),FALSE,&x,&y,&hit)))
                 scroll_.restore({row->id,block.y+y+anchor->lineOffset});
         }
     }
@@ -216,6 +274,11 @@ ID2D1SolidColorBrush* ChatView::brush(ID2D1RenderTarget* target, std::uint32_t c
     auto& result = brushes_[color]; if (!result) require(target->CreateSolidColorBrush(D2D1::ColorF(color),&result),"Chat brush"); return result.Get();
 }
 void ChatView::paintBlock(ID2D1RenderTarget* target, ChatBlock& block, float x, float y) {
+    if (!block.mediaId.empty() && media_) {
+        const auto size = media_->dimensions(block.mediaId);
+        if (size) paintMedia(target,block.mediaId,D2D1::RectF(x,y,x+block.height*static_cast<float>(size->width)/static_cast<float>(size->height),y+block.height));
+        return;
+    }
     if (outlineEnabled_ && (block.author || block.body)) {
         if (!block.outlineBuilt) {
             ComPtr<ID2D1Factory> geometryFactory; target->GetFactory(&geometryFactory);
@@ -236,9 +299,63 @@ void ChatView::paintBlock(ID2D1RenderTarget* target, ChatBlock& block, float x, 
     }
     for (const auto& span : block.spans) require(block.layout->SetDrawingEffect(brush(target,span.color),span.range),"Chat semantic color");
     target->DrawTextLayout(D2D1::Point2F(x,y),block.layout.Get(),brush(target,block.color),D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+    for (const auto& image : block.images) {
+        FLOAT left = 0,top = 0; DWRITE_HIT_TEST_METRICS hit{};
+        if (SUCCEEDED(block.layout->HitTestTextPosition(image.position,FALSE,&left,&top,&hit)))
+            paintMedia(target,image.id,D2D1::RectF(x+left,y+top,x+left+image.size,y+top+image.size));
+    }
+}
+void ChatView::paintMedia(ID2D1RenderTarget* target, const std::string& id, D2D1_RECT_F bounds) {
+    if (!media_ || bounds.bottom <= viewport_.top || bounds.top >= viewport_.bottom || bounds.right <= viewport_.left || bounds.left >= viewport_.right) return;
+    visibleMedia_.insert(id);
+    if (recordingMedia_) { mediaPlacements_.push_back({id,bounds}); return; }
+    const auto pixels = media_->frame(id);
+    if (!pixels) { target->DrawRectangle(bounds,brush(target,0x57606a)); return; }
+    const auto key = media_->sourceKey(id); visibleBitmaps_.insert(key);
+    auto& cached = mediaBitmaps_[key];
+    if (!cached.bitmap || cached.index != pixels->index) {
+        const auto properties = D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED),96,96);
+        if (!cached.bitmap) require(target->CreateBitmap(D2D1::SizeU(pixels->width,pixels->height),pixels->bgra.data(),pixels->width*4,properties,&cached.bitmap),"Native media bitmap");
+        else require(cached.bitmap->CopyFromMemory(nullptr,pixels->bgra.data(),pixels->width*4),"Next native media frame");
+        cached.index = pixels->index;
+    }
+    target->DrawBitmap(cached.bitmap.Get(),bounds,1,D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+}
+bool ChatView::mediaUpdated() {
+    if (!media_) return false;
+    media_->acknowledge();
+    // Failed assets revert to their original readable names, including inline
+    // emoji. Rebuild only once per failure change; ordinary frames keep layouts.
+    bool rebuild = false;
+    for (const auto& row : rows_) {
+        if (!row.iconMediaId.empty() && media_->failed(row.iconMediaId)) rebuild = true;
+        for (const auto& block : row.blocks) {
+            if (!block.mediaId.empty() && media_->failed(block.mediaId)) rebuild = true;
+            for (const auto& image : block.images) if (media_->failed(image.id)) rebuild = true;
+        }
+    }
+    if (rebuild && snapshot_) {
+        pendingAnchor_ = captureReadingAnchor(); std::vector<ChatRow> next;
+        std::size_t index = 0,count = 0; yyjson_val* value = nullptr;
+        yyjson_arr_foreach(field(snapshot_->root(),"chat"),index,count,value) next.push_back(makeRow(value));
+        releaseTargetResources(); rows_ = std::move(next); changed_ = true;
+    }
+    return rebuild;
+}
+void ChatView::pauseMedia() { if (media_) media_->setVisible({}); mediaBitmaps_.clear(); }
+void ChatView::drawMedia(ID2D1RenderTarget* target) {
+    visibleBitmaps_.clear(); target->PushAxisAlignedClip(viewport_,D2D1_ANTIALIAS_MODE_ALIASED);
+    for (const auto& placement : mediaPlacements_) paintMedia(target,placement.id,placement.bounds);
+    target->PopAxisAlignedClip();
+    std::erase_if(mediaBitmaps_,[&](const auto& pair) { return !visibleBitmaps_.contains(pair.first); });
 }
 void ChatView::draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport) {
     viewport_ = viewport;
+    float dpiX = 0,dpiY = 0; target->GetDpi(&dpiX,&dpiY);
+    if (mediaDpi_ != dpiX) { mediaDpi_ = dpiX; width_ = 0; }
+    visibleMedia_.clear();
+    visibleBitmaps_.clear();
+    mediaPlacements_.clear(); recordingMedia_ = true;
     arrange(viewport.right-viewport.left-18,viewport.bottom-viewport.top);
     target->PushAxisAlignedClip(viewport,D2D1_ANTIALIAS_MODE_ALIASED);
     float top = viewport.top-scroll_.offset();
@@ -252,6 +369,7 @@ void ChatView::draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport) {
             }
             if (row.timeLayout) target->DrawTextLayout(D2D1::Point2F(viewport.right-68,top+18),row.timeLayout.Get(),brush(target,0x8b949e),D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
             if (row.iconLayout) target->DrawTextLayout(D2D1::Point2F(viewport.right-94,top+18),row.iconLayout.Get(),brush(target,row.blocks.front().color),D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+            if (!row.iconMediaId.empty()) paintMedia(target,row.iconMediaId,D2D1::RectF(viewport.right-94,top+18,viewport.right-94+fontSize_,top+18+fontSize_));
         }
         top += row.height;
     }
@@ -264,6 +382,8 @@ void ChatView::draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport) {
         target->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(viewport.right-5,y,viewport.right,y+thumb),2.5f,2.5f),brush(target,0x57606a));
     }
     target->PopAxisAlignedClip();
+    recordingMedia_ = false;
+    if (media_) media_->setVisible(visibleMedia_);
 }
 bool ChatView::pressScrollbar(float x, float y) {
     if (scroll_.maximum() <= 0 || x < viewport_.right-10 || x > viewport_.right ||
@@ -286,6 +406,7 @@ void ChatView::releaseTargetResources() noexcept {
     for (auto& row : rows_) for (auto& block : row.blocks) if (block.layout)
         (void)block.layout->SetDrawingEffect(nullptr,{0,static_cast<UINT32>(block.text.size())});
     brushes_.clear();
+    mediaBitmaps_.clear();
 }
 void ChatView::cycleFont() {
     pendingAnchor_ = captureReadingAnchor();
@@ -305,7 +426,7 @@ void ChatView::changeSize(float delta) {
     pendingAnchor_ = captureReadingAnchor();
     const float next = std::clamp(fontSize_+delta,8.0f*96/72,32.0f*96/72);
     const float ratio = next/fontSize_; fontSize_ = next;
-    for (auto& row : rows_) { for (auto& block : row.blocks) { block.size *= ratio; block.layout.Reset(); } row.timeLayout.Reset(); row.iconLayout.Reset(); }
+    for (auto& row : rows_) { for (auto& block : row.blocks) { block.size *= ratio; for (auto& image : block.images) image.size *= ratio; block.layout.Reset(); } row.timeLayout.Reset(); row.iconLayout.Reset(); }
     formats_.clear(); changed_ = true;
 }
 std::size_t ChatView::layoutTextBytes() const {

@@ -34,7 +34,7 @@ void Renderer::setChatSnapshot(std::shared_ptr<const Json> snapshot) {
 
 void Renderer::discardSurface() noexcept {
     if (chat_) chat_->releaseTargetResources();
-    brush_.Reset(); target_.Reset();
+    staticLayer_.Reset(); brush_.Reset(); target_.Reset();
     if (dc_ && original_ && original_ != HGDI_ERROR) SelectObject(dc_, original_);
     if (bitmap_) DeleteObject(bitmap_);
     if (dc_) DeleteDC(dc_);
@@ -104,13 +104,20 @@ void Renderer::text(IDWriteTextLayout* layout, float x, float y, D2D1_COLOR_F co
     target_->DrawTextLayout(D2D1::Point2F(x, y), layout, brush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
 }
 
-void Renderer::draw(HWND window, int width, int height, unsigned dpi, const ShellState& state, bool hotkeysAvailable) {
-    drawOnce(window,width,height,dpi,state,hotkeysAvailable,true);
+void Renderer::draw(HWND window, int width, int height, unsigned dpi, const ShellState& state, bool hotkeysAvailable, bool mediaOnly) {
+    drawOnce(window,width,height,dpi,state,hotkeysAvailable,true,mediaOnly);
+}
+void Renderer::setMedia(std::shared_ptr<MediaStore> media) {
+    if (!chat_) chat_ = std::make_unique<ChatView>(write_.Get());
+    chat_->setMedia(std::move(media));
+    staticLayer_.Reset();
 }
 
-void Renderer::drawOnce(HWND window, int width, int height, unsigned dpi, const ShellState& state, bool hotkeysAvailable, bool retryAllowed) {
+void Renderer::drawOnce(HWND window, int width, int height, unsigned dpi, const ShellState& state, bool hotkeysAvailable, bool retryAllowed, bool mediaOnly) {
     ensureSurface(width, height, dpi);
     const float w = toDip(width, dpi), h = toDip(height, dpi);
+    HRESULT result = S_OK;
+    if (!mediaOnly || !staticLayer_) {
     if (chat_) {
         const auto footer = chat_->scrolling().following() ? L"최신 메시지 · "+chat_->fontName()+L" · 우클릭: 글꼴/크기/멘션 배경" :
             L"새 메시지 "+std::to_wstring(chat_->scrolling().unread())+L"개 · 여기를 클릭하거나 End: 최신으로";
@@ -148,10 +155,24 @@ void Renderer::drawOnce(HWND window, int width, int height, unsigned dpi, const 
     text(layouts_[5].Get(), 24, h-73, D2D1::ColorF(0xc9d1d9));
     text(layouts_[6].Get(), 24, h-35, D2D1::ColorF(0x8b949e));
     }
-    const auto result = target_->EndDraw();
+    result = target_->EndDraw();
+    if (SUCCEEDED(result) && chat_ && chat_->hasMedia()) {
+        // Preserve the exact physical-resolution text/background result. Future
+        // animation frames need one bitmap blit, not repeated glyph geometry.
+        const auto properties = D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED),static_cast<float>(dpi),static_cast<float>(dpi));
+        if (!staticLayer_) require(target_->CreateBitmap(D2D1::SizeU(static_cast<UINT32>(width),static_cast<UINT32>(height)),pixels_,static_cast<UINT32>(width)*4,properties,&staticLayer_),"Static native media layer");
+        else require(staticLayer_->CopyFromMemory(nullptr,pixels_,static_cast<UINT32>(width)*4),"Refresh static native layer");
+    }
+    }
+    if (SUCCEEDED(result) && chat_ && chat_->hasMedia()) {
+        target_->BeginDraw(); target_->SetTransform(D2D1::Matrix3x2F::Identity());
+        target_->Clear(D2D1::ColorF(0,0.0f));
+        target_->DrawBitmap(staticLayer_.Get(),D2D1::RectF(0,0,w,h),1,D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
+        chat_->drawMedia(target_.Get()); result = target_->EndDraw();
+    }
     if (result == D2DERR_RECREATE_TARGET && retryAllowed) {
         discardSurface();
-        drawOnce(window,width,height,dpi,state,hotkeysAvailable,false);
+        drawOnce(window,width,height,dpi,state,hotkeysAvailable,false,false);
         return;
     }
     require(result, "D2D EndDraw");

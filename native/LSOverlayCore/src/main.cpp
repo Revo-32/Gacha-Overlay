@@ -16,7 +16,7 @@
 #include <thread>
 
 namespace {
-constexpr UINT drawMessage = WM_APP + 1, trayMessage = WM_APP + 2, connectionMessage = WM_APP + 3;
+constexpr UINT drawMessage = WM_APP + 1, trayMessage = WM_APP + 2, connectionMessage = WM_APP + 3, mediaMessage = WM_APP + 4;
 constexpr int showHotkey = 1, lockHotkey = 2;
 constexpr UINT menuShow = 100, menuLock = 101, menuOpacity = 102, menuExit = 103;
 constexpr UINT menuFont = 104, menuLarger = 105, menuSmaller = 106, menuMention = 107, menuLatest = 108;
@@ -92,6 +92,7 @@ struct Options {
     std::filesystem::path fixtureVerificationDirectory;
     std::wstring fixtureEndpoint;
     std::filesystem::path chatFixture, chatVerificationDirectory;
+    std::filesystem::path mediaFixture, mediaVerificationDirectory;
     unsigned phaseSeconds = 15;
     bool noHotkeys = false;
     bool chatCaptureOnly = false;
@@ -116,7 +117,7 @@ public:
             80,80,640,520,nullptr,nullptr,instance,this);
         if (!window_) throw std::runtime_error("Native window creation failed");
         dpi_ = GetDpiForWindow(window_);
-        SetWindowPos(window_, nullptr,0,0,core::toPixels(640,dpi_),core::toPixels(520,dpi_),SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+        SetWindowPos(window_, nullptr,0,0,core::toPixels(640,dpi_),core::toPixels(options_.mediaVerificationDirectory.empty() ? 520.0f : 880.0f,dpi_),SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
         if (!options_.noHotkeys) {
             showRegistered_ = RegisterHotKey(window_,showHotkey,MOD_NOREPEAT,VK_F9) != FALSE;
             lockRegistered_ = RegisterHotKey(window_,lockHotkey,MOD_NOREPEAT,VK_F10) != FALSE;
@@ -124,6 +125,11 @@ public:
         taskbarCreated_ = RegisterWindowMessageW(L"TaskbarCreated");
         if (!addTray()) throw std::runtime_error("Tray icon unavailable; refusing an unrecoverable hidden window");
         ShowWindow(window_, SW_SHOWNOACTIVATE);
+        if (!options_.mediaFixture.empty()) {
+            const HWND target = window_;
+            media_ = std::make_shared<core::MediaStore>(options_.mediaFixture,[target] { (void)PostMessageW(target,mediaMessage,0,0); });
+            renderer_.setMedia(media_);
+        }
         if (!options_.chatFixture.empty()) loadChat(options_.chatFixture);
         renderNow();
         if (verifying()) {
@@ -151,6 +157,10 @@ public:
         if (!options_.chatVerificationDirectory.empty()) {
             std::filesystem::create_directories(options_.chatVerificationDirectory);
             if (!SetTimer(window_,3,1000,nullptr)) throw std::runtime_error("Chat verification timer unavailable");
+        }
+        if (!options_.mediaVerificationDirectory.empty()) {
+            std::filesystem::create_directories(options_.mediaVerificationDirectory);
+            if (!SetTimer(window_,4,1000,nullptr)) throw std::runtime_error("Media verification timer unavailable");
         }
         MSG message{};
         int result = 0;
@@ -184,23 +194,25 @@ private:
         wcscpy_s(icon.szTip, L"LS Overlay Core · 내부 개발 검증");
         return Shell_NotifyIconW(NIM_ADD,&icon) != FALSE;
     }
-    void queueDraw() {
+    void queueDraw(bool mediaOnly = false) {
+        fullDrawRequired_ |= !mediaOnly;
         if (state_.visible && !drawQueued_ && window_) {
             drawQueued_ = PostMessageW(window_,drawMessage,0,0) != FALSE;
         }
     }
-    void renderNow() {
+    void renderNow(bool mediaOnly = false) {
         if (!state_.visible || !window_) return;
         RECT bounds{};
         if (!GetClientRect(window_,&bounds)) throw std::runtime_error("GetClientRect failed");
         if (bounds.right <= 0 || bounds.bottom <= 0) return;
-        renderer_.draw(window_,bounds.right,bounds.bottom,dpi_,state_,showRegistered_ && lockRegistered_);
+        renderer_.draw(window_,bounds.right,bounds.bottom,dpi_,state_,showRegistered_ && lockRegistered_,mediaOnly);
     }
     void toggleVisible() {
         if (renderer_.chat()) renderer_.chat()->endScrollbar();
         if (GetCapture() == window_) ReleaseCapture();
         state_.toggleVisible();
         ShowWindow(window_,state_.visible ? SW_SHOWNOACTIVATE : SW_HIDE);
+        if (!state_.visible && renderer_.chat()) renderer_.chat()->pauseMedia();
         if (state_.visible) queueDraw();
     }
     void toggleLocked() {
@@ -497,10 +509,59 @@ private:
         output << "]}"; output.flush(); if (!output) throw std::runtime_error("Chat measurement write failed");
         DestroyWindow(window_);
     }
+    void mediaTick() {
+        ++mediaTicks_; auto* chat = renderer_.chat();
+        assertion(chat && media_,"Media fixture configured");
+        const auto stats = media_->statistics();
+        assertion(stats.failures == 0,"Native media decode has no failures");
+        if (mediaTicks_ == 1) {
+            assertion(stats.published > 0 && stats.visible == 3,"Visible GIF, static image and inline emoji start automatically");
+            mediaBefore_ = measure(); mediaStarted_ = Clock::now(); mediaVisibleBefore_ = stats; mediaLayoutBefore_ = chat->layoutBuilds();
+            renderer_.savePng(options_.mediaVerificationDirectory/"media-visible.png");
+        } else if (mediaTicks_ == 4) {
+            mediaVisibleAfter_ = stats;
+            assertion(stats.published > mediaVisibleBefore_.published+5,"Animation advances on native renderer");
+            assertion(chat->layoutBuilds() == mediaLayoutBefore_,"Animation does not rebuild text layout");
+            const auto after = measure(); const auto seconds = std::chrono::duration<double>(Clock::now()-mediaStarted_).count();
+            std::ofstream output(options_.mediaVerificationDirectory/"native-media-visible-metrics.json");
+            output << "{\"scope\":\"M4 synthetic native media; NOT Full A/B or real GIF validation\",\"seconds\":" << seconds
+                << ",\"privateBytes\":" << after.privateBytes << ",\"workingSet\":" << after.workingSet
+                << ",\"cpuOneCorePercent\":" << static_cast<double>(after.cpu100ns-mediaBefore_.cpu100ns)/100000.0/seconds
+                << ",\"decoded\":" << stats.decoded << ",\"published\":" << stats.published << ",\"nonconsecutiveFrames\":" << stats.lateFrames
+                << ",\"ownedPixelBytes\":" << stats.ownedPixelBytes << "}";
+            output.flush(); if (!output) throw std::runtime_error("Media metrics write failed");
+            toggleVisible();
+        } else if (mediaTicks_ == 5 || mediaTicks_ == 10) {
+            assertion(stats.visible == 0 && stats.ownedPixelBytes == 0,"Hidden/offscreen media releases current and next buffers");
+            mediaIdleDecoded_ = stats.decoded; mediaIdleRenders_ = renderer_.renderCount();
+        } else if (mediaTicks_ == 7 || mediaTicks_ == 12) {
+            assertion(stats.decoded == mediaIdleDecoded_,"Hidden/offscreen media does not decode");
+            assertion(renderer_.renderCount() == mediaIdleRenders_,"Hidden/offscreen media does not repaint");
+            if (mediaTicks_ == 7) toggleVisible();
+            else { chat->followLatest(); renderNow(); }
+        } else if (mediaTicks_ == 8) {
+            assertion(stats.published > mediaVisibleAfter_.published,"Animation resumes after hide/show");
+            state_.backgroundOpacity = 0; renderNow();
+            assertion(renderer_.alphaAt(4,100) > 0,"Zero opacity preserves resize border");
+            renderer_.savePng(options_.mediaVerificationDirectory/"media-zero-opacity.png");
+        } else if (mediaTicks_ == 9) { chat->scroll(-100000); renderNow(); }
+        else if (mediaTicks_ == 13) {
+            assertion(stats.visible > 0 && stats.decoded > mediaIdleDecoded_,"Offscreen media resumes correctly");
+            renderer_.discardSurface(); renderNow();
+            renderer_.savePng(options_.mediaVerificationDirectory/"media-device-recreated.png");
+            chat->cycleFont(); chat->changeSize(2); renderNow();
+        } else if (mediaTicks_ == 14) {
+            renderer_.savePng(options_.mediaVerificationDirectory/"media-inline-font-change.png");
+            std::ofstream output(options_.mediaVerificationDirectory/"native-media-checks.json");
+            output << "{\"status\":\"PASS\",\"synthetic\":true,\"assertions\":" << assertions_ << ",\"failures\":" << stats.failures << "}";
+            output.flush(); if (!output) throw std::runtime_error("Media assertions write failed");
+            DestroyWindow(window_);
+        }
+    }
     void fail(const char* reason) noexcept {
         failure_ = true;
-        if (verifying() || !options_.fixtureVerificationDirectory.empty() || !options_.chatVerificationDirectory.empty()) {
-            const auto& directory = verifying() ? options_.verificationDirectory : !options_.fixtureVerificationDirectory.empty() ? options_.fixtureVerificationDirectory : options_.chatVerificationDirectory;
+        if (verifying() || !options_.fixtureVerificationDirectory.empty() || !options_.chatVerificationDirectory.empty() || !options_.mediaVerificationDirectory.empty()) {
+            const auto& directory = verifying() ? options_.verificationDirectory : !options_.fixtureVerificationDirectory.empty() ? options_.fixtureVerificationDirectory : !options_.chatVerificationDirectory.empty() ? options_.chatVerificationDirectory : options_.mediaVerificationDirectory;
             try { std::ofstream(directory / "native-shell-error.txt") << reason; } catch (...) {}
         } else {
             MessageBoxA(window_,reason,"LS Overlay Core - native shell error",MB_OK | MB_ICONERROR);
@@ -547,7 +608,10 @@ private:
             SetWindowPos(window,nullptr,suggested->left,suggested->top,suggested->right-suggested->left,suggested->bottom-suggested->top,SWP_NOZORDER | SWP_NOACTIVATE);
             queueDraw(); return 0;
         }
-        case drawMessage: drawQueued_ = false; renderNow(); return 0;
+        case drawMessage: {
+            const bool mediaOnly = !fullDrawRequired_; fullDrawRequired_ = false;
+            drawQueued_ = false; renderNow(mediaOnly); return 0;
+        }
         case connectionMessage: {
             std::wstring status;
             std::shared_ptr<const core::Json> snapshot;
@@ -623,16 +687,24 @@ private:
             default: break;
             }
             return 0;
+        case mediaMessage: {
+            const bool reflow = renderer_.chat() && renderer_.chat()->mediaUpdated();
+            queueDraw(!reflow); return 0;
+        }
         case WM_TIMER:
             if (verifying() && wparam == 1) tick();
             else if (!options_.fixtureVerificationDirectory.empty() && wparam == 2) fixtureTick();
             else if (!options_.chatVerificationDirectory.empty() && wparam == 3) chatTick();
+            else if (!options_.mediaVerificationDirectory.empty() && wparam == 4) mediaTick();
             return 0;
         case WM_CLOSE: DestroyWindow(window); return 0;
         case WM_DESTROY: {
             KillTimer(window,1);
             KillTimer(window,2);
             KillTimer(window,3);
+            KillTimer(window,4);
+            if (renderer_.chat()) renderer_.chat()->setMedia(nullptr);
+            media_.reset();
             connectionWorker_.request_stop();
             if (connectionWorker_.joinable()) connectionWorker_.join();
             if (showRegistered_) UnregisterHotKey(window,showHotkey);
@@ -652,9 +724,11 @@ private:
     HWND window_ = nullptr;
     core::ShellState state_;
     core::Renderer renderer_;
+    std::shared_ptr<core::MediaStore> media_;
     unsigned dpi_ = 96, assertions_ = 0, settleTicks_ = 0;
     UINT taskbarCreated_ = 0;
     bool drawQueued_ = false, showRegistered_ = false, lockRegistered_ = false;
+    bool fullDrawRequired_ = true;
     bool failure_ = false, smokeDone_ = false;
     double resizeMs_ = 0;
     DWORD resizeGdiBefore_ = 0, resizeGdiAfter_ = 0;
@@ -675,6 +749,11 @@ private:
     Clock::time_point chatStarted_;
     std::uint64_t chatIdleRenders_ = 0;
     std::vector<double> chatResizeMs_;
+    unsigned mediaTicks_ = 0;
+    Metrics mediaBefore_{};
+    core::MediaStatistics mediaVisibleBefore_{}, mediaVisibleAfter_{};
+    std::uint64_t mediaIdleDecoded_ = 0, mediaIdleRenders_ = 0, mediaLayoutBefore_ = 0;
+    Clock::time_point mediaStarted_;
 };
 
 Options parseOptions() {
@@ -691,6 +770,8 @@ Options parseOptions() {
         else if (arg == L"--chat-fixture" && i + 1 < count) options.chatFixture = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--chat-verify" && i + 1 < count) options.chatVerificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--chat-capture" && i + 1 < count) { options.chatCaptureOnly = true; options.chatVerificationDirectory = std::filesystem::absolute(argv[++i]); }
+        else if (arg == L"--media-fixture" && i + 1 < count) options.mediaFixture = std::filesystem::absolute(argv[++i]);
+        else if (arg == L"--media-verify" && i + 1 < count) options.mediaVerificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--phase-seconds" && i + 1 < count) {
             std::size_t used = 0;
             const std::wstring value = argv[++i];
@@ -707,6 +788,8 @@ Options parseOptions() {
     } else if (!options.fixtureVerificationDirectory.empty()) throw std::runtime_error("Fixture verification requires an explicit fixture endpoint");
     if (!options.chatFixture.empty() && (!options.fixtureEndpoint.empty() || !options.verificationDirectory.empty())) throw std::runtime_error("Chat fixture mode is separate from network/shell verification");
     if (!options.chatVerificationDirectory.empty() && options.chatFixture.empty()) throw std::runtime_error("Chat verification requires a local semantic snapshot");
+    if (!options.mediaFixture.empty() && (options.chatFixture.empty() || !options.chatVerificationDirectory.empty())) throw std::runtime_error("Media fixture requires a separate local chat snapshot mode");
+    if (!options.mediaVerificationDirectory.empty() && options.mediaFixture.empty()) throw std::runtime_error("Media verification requires explicit media fixture");
     return options;
 }
 }
@@ -720,10 +803,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         options = parseOptions();
         if (!options.verificationDirectory.empty()) std::filesystem::create_directories(options.verificationDirectory);
         if (!options.chatVerificationDirectory.empty()) std::filesystem::create_directories(options.chatVerificationDirectory);
+        if (!options.mediaVerificationDirectory.empty()) std::filesystem::create_directories(options.mediaVerificationDirectory);
         Shell shell(options); result = shell.run(instance);
     } catch (const std::exception& error) {
         if (!options.verificationDirectory.empty()) {
             try { std::ofstream(options.verificationDirectory / "native-shell-error.txt") << error.what(); } catch (...) {}
+        } else if (!options.mediaVerificationDirectory.empty()) {
+            try { std::ofstream(options.mediaVerificationDirectory / "native-shell-error.txt") << error.what(); } catch (...) {}
         } else MessageBoxA(nullptr,error.what(),"LS Overlay Core - startup error",MB_OK | MB_ICONERROR);
     }
     CoUninitialize();

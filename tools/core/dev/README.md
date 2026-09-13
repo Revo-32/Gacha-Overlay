@@ -28,3 +28,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "E:\CODEX\Worktrees\Gach
 ```
 
 배포 전 Compose project가 `lsoverlay-core-dev`, 서비스가 `fixture` 하나뿐인지 확인한다. 운영 compose를 대상으로 사용하지 않는다. Docker image/runtime 재사용은 운영 환경 변수나 볼륨의 복사를 뜻하지 않는다.
+# M4 media 검증 추가
+
+`run-media-probe-m8.py`는 `/srv/apps/lsoverlay-core-dev/m4/probe`에 별도로 올린 Linux publish만 실행한다. network `none`인 일회성 컨테이너이며 bot/OAuth/운영 환경 변수를 읽지 않는다. 캐시/합성 파일은 `/srv/cache/lsoverlay-core-dev/media-validation/<run>`에 남기며 `/srv/data`나 운영 backup 대상에 넣지 않는다. 부모 45초 deadline, non-root, read-only root, 512 MiB/0.5 CPU 제한을 적용하고 자체 컨테이너만 정리한다. 실행 전후 운영 ID/image/start/health가 같은지 확인한다. 실제 CDN 다운로드나 사용자용 media service 배포를 대신하지 않는다.

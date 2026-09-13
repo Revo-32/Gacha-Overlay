@@ -31,13 +31,17 @@ add_library(LSOverlayCoreTransport STATIC src/core_wire.cpp src/transport.cpp sr
 target_include_directories(LSOverlayCoreTransport PUBLIC src)
 target_link_libraries(LSOverlayCoreTransport PUBLIC yyjson PRIVATE bcrypt crypt32 winhttp shell32 ole32)
 
+add_library(LSOverlayCoreMedia STATIC src/media_package.cpp src/media_store.cpp)
+target_include_directories(LSOverlayCoreMedia PUBLIC src)
+target_link_libraries(LSOverlayCoreMedia PUBLIC windowscodecs ole32 bcrypt LSOverlayCoreTransport)
+
 get_filename_component(CORE_ICON "../../src/GachaOverlay.App/Assets/Branding/LSOverlay-AppIcon.ico" ABSOLUTE)
 set(CORE_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest")
 configure_file(resources/app.rc.in "${CMAKE_CURRENT_BINARY_DIR}/app.rc" @ONLY)
 
 add_executable(LSOverlayCore WIN32 src/main.cpp src/renderer.cpp src/chat_view.cpp src/text_outline.cpp "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
 target_include_directories(LSOverlayCore PRIVATE src)
-target_link_libraries(LSOverlayCore PRIVATE d2d1 dwrite windowscodecs ole32 user32 gdi32 shell32 psapi LSOverlayCoreTransport)
+target_link_libraries(LSOverlayCore PRIVATE d2d1 dwrite windowscodecs ole32 user32 gdi32 shell32 psapi LSOverlayCoreTransport LSOverlayCoreMedia)
 target_link_options(LSOverlayCore PRIVATE /MANIFEST:NO /DYNAMICBASE /NXCOMPAT)
 add_custom_command(TARGET LSOverlayCore POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -56,6 +60,9 @@ add_test(NAME native_core_auth COMMAND LSOverlayCoreAuthTests "${CMAKE_CURRENT_B
 add_executable(LSOverlayCoreChatScrollTests tests/chat_scroll_tests.cpp)
 target_include_directories(LSOverlayCoreChatScrollTests PRIVATE src)
 add_test(NAME native_chat_scroll COMMAND LSOverlayCoreChatScrollTests)
+add_executable(LSOverlayCoreMediaTests tests/media_tests.cpp)
+target_link_libraries(LSOverlayCoreMediaTests PRIVATE LSOverlayCoreMedia)
+add_test(NAME native_media_timeline COMMAND LSOverlayCoreMediaTests)
 add_executable(LSOverlayCoreTransportProbe tests/transport_probe.cpp)
 target_link_libraries(LSOverlayCoreTransportProbe PRIVATE LSOverlayCoreTransport)
 # UI smoke/measurement is explicit: do not open windows during ordinary ctest.

@@ -2,6 +2,7 @@
 #include "chat_scroll.hpp"
 #include "json.hpp"
 #include "text_outline.hpp"
+#include "media_store.hpp"
 #include <d2d1_1.h>
 #include <dwrite_3.h>
 #include <wrl/client.h>
@@ -11,9 +12,12 @@
 
 namespace core {
 struct ChatSpan { DWRITE_TEXT_RANGE range; std::uint32_t color; bool bold = false; };
+struct ChatInline { UINT32 position; std::string id; float size; };
 struct ChatBlock {
     std::wstring text;
     std::vector<ChatSpan> spans;
+    std::vector<ChatInline> images;
+    std::string mediaId;
     Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
     std::vector<GlyphOutline> outline;
     float y = 0, height = 0, size = 16;
@@ -26,6 +30,7 @@ struct ChatRow {
     std::vector<ChatBlock> blocks;
     std::wstring time;
     std::wstring icon;
+    std::string iconMediaId;
     Microsoft::WRL::ComPtr<IDWriteTextLayout> timeLayout;
     Microsoft::WRL::ComPtr<IDWriteTextLayout> iconLayout;
     float height = 0;
@@ -35,6 +40,11 @@ class ChatView final {
 public:
     explicit ChatView(IDWriteFactory* factory);
     void setSnapshot(std::shared_ptr<const Json> snapshot);
+    void setMedia(std::shared_ptr<MediaStore> media) { media_ = std::move(media); }
+    bool mediaUpdated();
+    bool hasMedia() const { return media_ != nullptr; }
+    void drawMedia(ID2D1RenderTarget* target);
+    void pauseMedia();
     void draw(ID2D1RenderTarget* target, D2D1_RECT_F viewport);
     void scroll(float delta) { scroll_.scroll(delta); }
     void followLatest() { scroll_.followLatest(); }
@@ -61,8 +71,10 @@ private:
     void arrange(float width, float height);
     ChatRow makeRow(yyjson_val* value) const;
     ChatBlock runs(yyjson_val* values, float size, std::wstring prefix = {}) const;
+    ChatBlock mediaBlock(yyjson_val* asset, bool forwarded) const;
     void layout(ChatBlock& block, float width);
     void paintBlock(ID2D1RenderTarget* target, ChatBlock& block, float x, float y);
+    void paintMedia(ID2D1RenderTarget* target, const std::string& id, D2D1_RECT_F bounds);
     ID2D1SolidColorBrush* brush(ID2D1RenderTarget* target, std::uint32_t color);
     Microsoft::WRL::ComPtr<IDWriteFactory> factory_;
     Microsoft::WRL::ComPtr<IDWriteFontCollection> fonts_;
@@ -70,6 +82,15 @@ private:
     std::unordered_map<std::uint64_t,Microsoft::WRL::ComPtr<IDWriteTextFormat>> formats_;
     std::unordered_map<std::uint32_t,Microsoft::WRL::ComPtr<ID2D1SolidColorBrush>> brushes_;
     std::shared_ptr<const Json> snapshot_;
+    std::shared_ptr<MediaStore> media_;
+    struct MediaBitmap { std::size_t index; Microsoft::WRL::ComPtr<ID2D1Bitmap> bitmap; };
+    std::unordered_map<std::string,MediaBitmap> mediaBitmaps_;
+    std::set<std::string> visibleMedia_;
+    std::set<std::string> visibleBitmaps_;
+    struct MediaPlacement { std::string id; D2D1_RECT_F bounds; };
+    std::vector<MediaPlacement> mediaPlacements_;
+    bool recordingMedia_ = false;
+    float mediaDpi_ = 96;
     std::vector<ChatRow> rows_;
     ChatScroll scroll_;
     std::string generation_;

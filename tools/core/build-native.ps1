@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Debug','Release')][string]$Configuration = 'Release',
-    [ValidateSet('m1','m2','m3')][string]$Stage = 'm3'
+    [ValidateSet('m1','m2','m3','m4')][string]$Stage = 'm4'
 )
 $ErrorActionPreference = 'Stop'
 $repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
