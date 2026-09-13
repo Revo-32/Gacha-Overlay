@@ -1,5 +1,8 @@
 [CmdletBinding()]
-param([ValidateSet('Debug','Release')][string]$Configuration = 'Release')
+param(
+    [ValidateSet('Debug','Release')][string]$Configuration = 'Release',
+    [ValidateSet('m1','m2')][string]$Stage = 'm2'
+)
 $ErrorActionPreference = 'Stop'
 $repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
@@ -9,7 +12,7 @@ if (!$installation) { throw 'MSVC C++ workload was not found.' }
 $cmake = Join-Path $installation 'Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe'
 $ctest = Join-Path (Split-Path $cmake) 'ctest.exe'
 if (!(Test-Path -LiteralPath $cmake)) { throw 'Visual Studio CMake component was not found.' }
-$buildDirectory = Join-Path $repository 'artifacts/core/m1/native'
+$buildDirectory = Join-Path $repository "artifacts/core/$Stage/native"
 & $cmake -S (Join-Path $repository 'native/LSOverlayCore') -B $buildDirectory -G 'Visual Studio 17 2022' -A x64 "-DCMAKE_GENERATOR_INSTANCE=$installation"
 if ($LASTEXITCODE -ne 0) { throw 'Native CMake configuration failed.' }
 & $cmake --build $buildDirectory --config $Configuration --parallel 2

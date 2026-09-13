@@ -1,13 +1,14 @@
 [CmdletBinding()]
 param(
     [ValidateRange(2,300)][int]$PhaseSeconds = 15,
-    [switch]$NoHotkeys
+    [switch]$NoHotkeys,
+    [ValidateSet('m1','m2')][string]$Stage = 'm2'
 )
 $ErrorActionPreference = 'Stop'
 $repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-$executable = Join-Path $repository 'artifacts/core/m1/native/Release/LSOverlayCore.exe'
+$executable = Join-Path $repository "artifacts/core/$Stage/native/Release/LSOverlayCore.exe"
 if (!(Test-Path -LiteralPath $executable)) { throw 'Run tools/core/build-native.ps1 first.' }
-$outputDirectory = Join-Path $repository ('artifacts/core/m1/runs/' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
+$outputDirectory = Join-Path $repository ("artifacts/core/$Stage/runs/" + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 New-Item -ItemType Directory -Path $outputDirectory -ErrorAction Stop | Out-Null
 $arguments = @('--verify', ('"' + $outputDirectory + '"'), '--phase-seconds', $PhaseSeconds)
 if ($NoHotkeys) { $arguments += '--no-hotkeys' }

@@ -300,6 +300,16 @@ public sealed partial class ChatPresentationSynchronizer
             new Dictionary<string, DiscordCustomEmoji>(StringComparer.Ordinal),
             null);
 
+    // Core reply/detail projection may know the authenticated identity without a
+    // resolved mention catalog. Preserve other unresolved mentions as text.
+    public static IReadOnlyList<ChatToken> TokenizeDiscordMarkup(string content, string authenticatedUserId) =>
+        Tokenize(content,
+            new Dictionary<string, DiscordMention>(StringComparer.Ordinal)
+            {
+                [authenticatedUserId] = new(authenticatedUserId, authenticatedUserId),
+            },
+            new Dictionary<string, DiscordCustomEmoji>(StringComparer.Ordinal), authenticatedUserId);
+
     private static IReadOnlyList<ChatToken> Tokenize(
         string content,
         IReadOnlyDictionary<string, DiscordMention> mentions,

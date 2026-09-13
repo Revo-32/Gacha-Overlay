@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(LSOverlayNativeCore LANGUAGES CXX RC)
+project(LSOverlayNativeCore LANGUAGES C CXX RC)
 
 if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "LS Overlay Core requires Windows x64 and MSVC.")
@@ -12,17 +12,44 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 add_compile_options(/W4 /WX /utf-8 /permissive- /EHsc)
 add_compile_definitions(UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
 
+# Pinned, MIT-licensed C JSON codec; source remains in ignored build dependencies.
+# No browser/managed runtime or client-side Discord parser is introduced.
+include(FetchContent)
+set(YYJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(YYJSON_BUILD_MISC OFF CACHE BOOL "" FORCE)
+set(YYJSON_BUILD_DOC OFF CACHE BOOL "" FORCE)
+set(YYJSON_INSTALL OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(yyjson
+    URL https://github.com/ibireme/yyjson/archive/refs/tags/0.12.0.tar.gz
+    URL_HASH SHA256=b16246f617b2a136c78d73e5e2647c6f1de1313e46678062985bdcf1f40bb75d
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(yyjson)
+# Upstream C warnings are managed upstream; our native C++ stays /W4 /WX.
+target_compile_options(yyjson PRIVATE /W3 /WX-)
+
+add_library(LSOverlayCoreTransport STATIC src/core_wire.cpp src/transport.cpp src/auth.cpp src/core_connection.cpp src/fixture_client.cpp)
+target_include_directories(LSOverlayCoreTransport PUBLIC src)
+target_link_libraries(LSOverlayCoreTransport PUBLIC yyjson PRIVATE bcrypt crypt32 winhttp shell32 ole32)
+
 get_filename_component(CORE_ICON "../../src/GachaOverlay.App/Assets/Branding/LSOverlay-AppIcon.ico" ABSOLUTE)
 set(CORE_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest")
 configure_file(resources/app.rc.in "${CMAKE_CURRENT_BINARY_DIR}/app.rc" @ONLY)
 
 add_executable(LSOverlayCore WIN32 src/main.cpp src/renderer.cpp "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
 target_include_directories(LSOverlayCore PRIVATE src)
-target_link_libraries(LSOverlayCore PRIVATE d2d1 dwrite windowscodecs ole32 user32 gdi32 shell32 psapi)
+target_link_libraries(LSOverlayCore PRIVATE d2d1 dwrite windowscodecs ole32 user32 gdi32 shell32 psapi LSOverlayCoreTransport)
 target_link_options(LSOverlayCore PRIVATE /MANIFEST:NO /DYNAMICBASE /NXCOMPAT)
 
 enable_testing()
 add_executable(LSOverlayCoreStateTests tests/shell_state_tests.cpp)
 target_include_directories(LSOverlayCoreStateTests PRIVATE src)
 add_test(NAME native_shell_state COMMAND LSOverlayCoreStateTests)
+add_executable(LSOverlayCoreWireTests tests/core_wire_tests.cpp)
+target_link_libraries(LSOverlayCoreWireTests PRIVATE LSOverlayCoreTransport)
+add_test(NAME native_core_wire COMMAND LSOverlayCoreWireTests)
+add_executable(LSOverlayCoreAuthTests tests/auth_tests.cpp)
+target_link_libraries(LSOverlayCoreAuthTests PRIVATE LSOverlayCoreTransport)
+add_test(NAME native_core_auth COMMAND LSOverlayCoreAuthTests "${CMAKE_CURRENT_BINARY_DIR}/credential-tests")
+add_executable(LSOverlayCoreTransportProbe tests/transport_probe.cpp)
+target_link_libraries(LSOverlayCoreTransportProbe PRIVATE LSOverlayCoreTransport)
 # UI smoke/measurement is explicit: do not open windows during ordinary ctest.

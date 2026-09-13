@@ -4,4 +4,7 @@
     <AssemblyName>LSOverlay.CoreFixtureHost</AssemblyName>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/LSOverlay.Backend/LSOverlay.Backend.csproj" />
+  </ItemGroup>
 </Project>

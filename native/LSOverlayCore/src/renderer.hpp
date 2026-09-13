@@ -6,6 +6,7 @@
 #include <wrl/client.h>
 #include <array>
 #include <filesystem>
+#include <string>
 
 namespace core {
 void require(HRESULT result, const char* operation);
@@ -21,6 +22,7 @@ public:
     void draw(HWND window, int width, int height, unsigned dpi, const ShellState& state, bool hotkeysAvailable);
     void savePng(const std::filesystem::path& path) const;
     void discardSurface() noexcept;
+    void setConnectionStatus(std::wstring status);
     [[nodiscard]] unsigned alphaAt(int x, int y) const;
     [[nodiscard]] std::uint64_t renderCount() const noexcept { return renderCount_; }
     [[nodiscard]] std::uint64_t layoutBuildCount() const noexcept { return layoutBuildCount_; }
@@ -43,6 +45,7 @@ private:
     unsigned dpi_ = 0;
     float layoutWidth_ = 0;
     bool layoutLocked_ = false, layoutHotkeys_ = false;
+    std::wstring connectionStatus_;
     std::uint64_t renderCount_ = 0, layoutBuildCount_ = 0;
 };
 }

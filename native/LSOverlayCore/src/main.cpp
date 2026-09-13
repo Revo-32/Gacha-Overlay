@@ -1,4 +1,6 @@
 #include "renderer.hpp"
+#include "fixture_client.hpp"
+#include "transport.hpp"
 #include <windowsx.h>
 #include <shellapi.h>
 #include <psapi.h>
@@ -9,9 +11,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <mutex>
+#include <thread>
 
 namespace {
-constexpr UINT drawMessage = WM_APP + 1, trayMessage = WM_APP + 2;
+constexpr UINT drawMessage = WM_APP + 1, trayMessage = WM_APP + 2, connectionMessage = WM_APP + 3;
 constexpr int showHotkey = 1, lockHotkey = 2;
 constexpr UINT menuShow = 100, menuLock = 101, menuOpacity = 102, menuExit = 103;
 constexpr int minWidthDip = 360, minHeightDip = 480;
@@ -81,6 +85,8 @@ struct Phase {
 
 struct Options {
     std::filesystem::path verificationDirectory;
+    std::filesystem::path fixtureVerificationDirectory;
+    std::wstring fixtureEndpoint;
     unsigned phaseSeconds = 15;
     bool noHotkeys = false;
 };
@@ -100,7 +106,7 @@ public:
         klass.hIconSm = klass.hIcon;
         if (!RegisterClassExW(&klass)) throw std::runtime_error("RegisterClassEx failed");
         window_ = CreateWindowExW(WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
-            klass.lpszClassName, L"LS Overlay Core · M1 내부 검증", WS_POPUP | WS_THICKFRAME,
+            klass.lpszClassName, L"LS Overlay Core · 내부 개발 검증", WS_POPUP | WS_THICKFRAME,
             80,80,640,520,nullptr,nullptr,instance,this);
         if (!window_) throw std::runtime_error("Native window creation failed");
         dpi_ = GetDpiForWindow(window_);
@@ -116,6 +122,21 @@ public:
         if (verifying()) {
             std::filesystem::create_directories(options_.verificationDirectory);
             if (!SetTimer(window_,1,1000,nullptr)) throw std::runtime_error("Verification timer unavailable");
+        }
+        if (!options_.fixtureEndpoint.empty()) {
+            const HWND target = window_;
+            renderer_.setConnectionStatus(L"M2 합성 환경에 연결 중 · 실제 Discord 아님"); queueDraw();
+            connectionWorker_ = std::jthread([this,target](std::stop_token stop) {
+                core::runFixtureClient(options_.fixtureEndpoint,stop,[this,target](std::wstring status) {
+                    // One owned latest-value slot: no external message carries a raw pointer.
+                    { std::lock_guard lock(connectionMutex_); latestConnectionStatus_ = std::move(status); }
+                    PostMessageW(target,connectionMessage,0,0);
+                });
+            });
+            if (!options_.fixtureVerificationDirectory.empty()) {
+                std::filesystem::create_directories(options_.fixtureVerificationDirectory);
+                if (!SetTimer(window_,2,1000,nullptr)) throw std::runtime_error("Fixture verification timer unavailable");
+            }
         }
         MSG message{};
         int result = 0;
@@ -137,7 +158,7 @@ private:
         icon.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
         icon.uCallbackMessage = trayMessage;
         icon.hIcon = LoadIconW(instance_,MAKEINTRESOURCEW(101));
-        wcscpy_s(icon.szTip, L"LS Overlay Core · M1 내부 검증");
+        wcscpy_s(icon.szTip, L"LS Overlay Core · 내부 개발 검증");
         return Shell_NotifyIconW(NIM_ADD,&icon) != FALSE;
     }
     void queueDraw() {
@@ -323,10 +344,34 @@ private:
         output.flush();
         if (!output) throw std::runtime_error("Native measurement report write failed");
     }
+    void fixtureTick() {
+        ++fixtureTicks_;
+        if (fixtureTicks_ == 5) {
+            if (!fixtureReady_) throw std::runtime_error("Synthetic connection not ready within five seconds");
+            fixtureBefore_ = measure(); fixtureStarted_ = Clock::now();
+            fixtureRendersBefore_ = renderer_.renderCount();
+        }
+        if (fixtureTicks_ < 15) return;
+        const auto after = measure();
+        const double elapsed = std::chrono::duration<double>(Clock::now()-fixtureStarted_).count();
+        const auto idleRenders = renderer_.renderCount()-fixtureRendersBefore_;
+        if (!fixtureReady_ || idleRenders != 0) throw std::runtime_error("Synthetic connected idle redraw/readiness regression");
+        renderer_.savePng(options_.fixtureVerificationDirectory / "native-synthetic-connected.png");
+        std::ofstream output(options_.fixtureVerificationDirectory / "native-synthetic-connected.json");
+        output << "{\"scope\":\"synthetic fixture; NOT live Discord or chat parity\",\"seconds\":" << elapsed
+            << ",\"privateBytesBefore\":" << fixtureBefore_.privateBytes << ",\"privateBytesAfter\":" << after.privateBytes
+            << ",\"workingSetBefore\":" << fixtureBefore_.workingSet << ",\"workingSetAfter\":" << after.workingSet
+            << ",\"cpuOneCorePercent\":" << static_cast<double>(after.cpu100ns-fixtureBefore_.cpu100ns)/100000.0/elapsed
+            << ",\"idleRenders\":" << idleRenders << ",\"handlesBefore\":" << fixtureBefore_.handles
+            << ",\"handlesAfter\":" << after.handles << ",\"ready\":true}";
+        output.flush();
+        if (!output) throw std::runtime_error("Cannot write fixture measurements");
+        DestroyWindow(window_);
+    }
     void fail(const char* reason) noexcept {
         failure_ = true;
-        if (verifying()) {
-            try { std::ofstream(options_.verificationDirectory / "native-shell-error.txt") << reason; } catch (...) {}
+        if (verifying() || !options_.fixtureVerificationDirectory.empty()) {
+            try { std::ofstream((verifying() ? options_.verificationDirectory : options_.fixtureVerificationDirectory) / "native-shell-error.txt") << reason; } catch (...) {}
         } else {
             MessageBoxA(window_,reason,"LS Overlay Core - native shell error",MB_OK | MB_ICONERROR);
         }
@@ -373,6 +418,12 @@ private:
             queueDraw(); return 0;
         }
         case drawMessage: drawQueued_ = false; renderNow(); return 0;
+        case connectionMessage: {
+            std::wstring status;
+            { std::lock_guard lock(connectionMutex_); status = latestConnectionStatus_; }
+            fixtureReady_ = status.find(L"M2 합성 연결 정상") == 0;
+            renderer_.setConnectionStatus(std::move(status)); queueDraw(); return 0;
+        }
         case WM_HOTKEY:
             if (wparam == showHotkey) toggleVisible();
             else if (wparam == lockHotkey) toggleLocked();
@@ -395,10 +446,16 @@ private:
             default: break;
             }
             return 0;
-        case WM_TIMER: if (verifying() && wparam == 1) tick(); return 0;
+        case WM_TIMER:
+            if (verifying() && wparam == 1) tick();
+            else if (!options_.fixtureVerificationDirectory.empty() && wparam == 2) fixtureTick();
+            return 0;
         case WM_CLOSE: DestroyWindow(window); return 0;
         case WM_DESTROY: {
             KillTimer(window,1);
+            KillTimer(window,2);
+            connectionWorker_.request_stop();
+            if (connectionWorker_.joinable()) connectionWorker_.join();
             if (showRegistered_) UnregisterHotKey(window,showHotkey);
             if (lockRegistered_) UnregisterHotKey(window,lockHotkey);
             NOTIFYICONDATAW icon{}; icon.cbSize = sizeof(icon); icon.hWnd = window; icon.uID = 1;
@@ -424,6 +481,14 @@ private:
     DWORD resizeGdiBefore_ = 0, resizeGdiAfter_ = 0;
     std::vector<double> resizeLatencies_;
     std::vector<Phase> phases_;
+    std::mutex connectionMutex_;
+    std::wstring latestConnectionStatus_;
+    std::jthread connectionWorker_;
+    bool fixtureReady_ = false;
+    unsigned fixtureTicks_ = 0;
+    Metrics fixtureBefore_;
+    Clock::time_point fixtureStarted_;
+    std::uint64_t fixtureRendersBefore_ = 0;
 };
 
 Options parseOptions() {
@@ -435,6 +500,8 @@ Options parseOptions() {
     for (int i = 1; i < count; ++i) {
         const std::wstring arg = argv[i];
         if (arg == L"--verify" && i + 1 < count) options.verificationDirectory = std::filesystem::absolute(argv[++i]);
+        else if (arg == L"--fixture-endpoint" && i + 1 < count) options.fixtureEndpoint = argv[++i];
+        else if (arg == L"--fixture-verify" && i + 1 < count) options.fixtureVerificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--phase-seconds" && i + 1 < count) {
             std::size_t used = 0;
             const std::wstring value = argv[++i];
@@ -442,8 +509,13 @@ Options parseOptions() {
             if (used != value.size() || seconds < 2 || seconds > 300) throw std::runtime_error("Phase seconds must be 2..300");
             options.phaseSeconds = static_cast<unsigned>(seconds);
         } else if (arg == L"--no-hotkeys") options.noHotkeys = true;
-        else throw std::runtime_error("Usage: LSOverlayCore.exe [--no-hotkeys] [--verify directory] [--phase-seconds 2..300]");
+        else throw std::runtime_error("Invalid native Core development arguments");
     }
+    if (!options.fixtureEndpoint.empty()) {
+        const core::Endpoint endpoint(options.fixtureEndpoint);
+        if (!endpoint.loopback || endpoint.secure || !options.verificationDirectory.empty())
+            throw std::runtime_error("Fixture mode requires explicit HTTP loopback, separate from shell verification");
+    } else if (!options.fixtureVerificationDirectory.empty()) throw std::runtime_error("Fixture verification requires an explicit fixture endpoint");
     return options;
 }
 }

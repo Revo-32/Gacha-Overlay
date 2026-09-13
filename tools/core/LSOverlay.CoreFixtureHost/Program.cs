@@ -1,9 +1,22 @@
-// Isolated M0 infrastructure probe. No Discord, OAuth, application data or media fetch.
-var builder = WebApplication.CreateSlimBuilder(args);
+using LSOverlay.Backend.CoreClient;
+using LSOverlay.CoreFixtureHost;
+using System.Text;
+
+// Synthetic contract fixture only. Never imports Production settings/credentials.
+if (args is ["--export-wire", var path])
+{
+    var frames = CoreSnapshotWire.Encode(CoreFixtureData.Create("cross-language", long.MaxValue - 1, large: true));
+    File.WriteAllLines(path, frames.Select(frame => Encoding.UTF8.GetString(frame)), new UTF8Encoding(false));
+    return;
+}
+var m2 = args.Contains("--m2-contract-fixture", StringComparer.Ordinal);
+var builder = WebApplication.CreateSlimBuilder(args.Where(arg => arg != "--m2-contract-fixture").ToArray());
 builder.Logging.ClearProviders();
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 16 * 1024);
 var app = builder.Build();
 app.MapGet("/healthz", () => Results.Json(new { status = "ok", environment = "core-fixture-only" }));
-app.MapGet("/fixture/manifest", () => Results.Json(new
+if (m2) new CoreContractFixture().Map(app);
+else app.MapGet("/fixture/manifest", () => Results.Json(new
 {
     product = "LS Overlay Core",
     stage = "M0 infrastructure only",

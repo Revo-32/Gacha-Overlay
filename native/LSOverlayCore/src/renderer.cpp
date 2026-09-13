@@ -20,6 +20,12 @@ Renderer::Renderer() {
 }
 Renderer::~Renderer() { discardSurface(); }
 
+void Renderer::setConnectionStatus(std::wstring status) {
+    if (connectionStatus_ == status) return;
+    connectionStatus_ = std::move(status);
+    layoutWidth_ = 0;
+}
+
 void Renderer::discardSurface() noexcept {
     brush_.Reset(); target_.Reset();
     if (dc_ && original_ && original_ != HGDI_ERROR) SelectObject(dc_, original_);
@@ -62,12 +68,12 @@ void Renderer::buildLayouts(float width, bool locked, bool hotkeysAvailable) {
     if (layoutWidth_ == width && layoutLocked_ == locked && layoutHotkeys_ == hotkeysAvailable && layouts_[0]) return;
     const wchar_t* lines[] = {
         L"LS Overlay Core",
-        L"네이티브 검증 화면 · 실제 Discord 연결 없음",
+        connectionStatus_.empty() ? L"네이티브 검증 화면 · 실제 Discord 연결 없음" : connectionStatus_.c_str(),
         L"한국어 렌더링 확인",
         L"안녕하세요! 한글·영문·숫자를 선명하게 표시합니다.\n창의 폭을 바꾸면 문장이 자연스럽게 줄바꿈됩니다.\n가나다라마바사 · ABC 123 · GTA Online",
         locked ? L"잠금 상태 · 마우스 입력이 뒤 창으로 통과합니다." : L"잠금 해제 · 상단 드래그 / 가장자리 크기 조절",
         hotkeysAvailable ? L"F9 표시/숨기기  ·  F10 잠금/해제  ·  우클릭 메뉴" : L"단축키 충돌 · 기존 앱을 유지합니다. 트레이 메뉴를 사용하세요.",
-        L"M1 · Direct2D / DirectWrite · 네트워크 및 로그인 기능 없음"
+        connectionStatus_.empty() ? L"M1 · Direct2D / DirectWrite · 네트워크 및 로그인 기능 없음" : L"M2 합성 통신 검증 · 실제 채팅 UI는 다음 단계에서 구현"
     };
     const float sizes[] = {20, 12, 16, 16, 12, 12, 11};
     for (std::size_t i = 0; i < layouts_.size(); ++i) {

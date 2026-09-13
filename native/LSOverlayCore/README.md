@@ -1,5 +1,7 @@
 # LS Overlay Core — M1 네이티브 검증 창
 
+후속 구현: [M2 인증·통신 프로토타입](M2.md). 아래 설명은 M1 shell 범위입니다. 현재 소스의 기본 build 출력은 `artifacts/core/m2/native/Release/LSOverlayCore.exe`이며, M1 보존 실행 파일을 덮어쓰지 않도록 `build-native.ps1 -Stage m2`를 사용합니다. `-Stage`는 출력 경로를 선택하며 과거 소스 버전으로 전환하지 않습니다. 실제 Discord/Chat/미디어 parity 완료를 의미하지 않습니다.
+
 이 경로는 기존 C# `GachaOverlay.Core`와 별개인 C++20 클라이언트입니다. 제품명은 **LS Overlay Core**, 실행 파일은 **LSOverlayCore.exe**입니다.
 
 현재는 창·렌더링·입력·DPI·자원 사용을 확인하는 M1 단계입니다. **Discord 로그인, 실제 채팅, 판매, 세션, 미디어는 아직 구현하지 않았습니다.** 화면의 한국어는 고정 검증 문구이며 실제 서버 데이터가 아닙니다. Full을 대체하는 릴리즈가 아닙니다.
@@ -11,8 +13,8 @@
 저장소 루트에서:
 
 ```powershell
-& .\tools\core\build-native.ps1
-& .\tools\core\verify-native.ps1 -PhaseSeconds 15
+& .\tools\core\build-native.ps1 -Stage m1
+& .\tools\core\verify-native.ps1 -Stage m1 -PhaseSeconds 15
 ```
 
 실행 파일:
