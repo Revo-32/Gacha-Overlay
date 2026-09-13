@@ -1,12 +1,12 @@
 name: lsoverlay-core-dev
 services:
   fixture:
-    image: lsoverlay/core-fixture:m2-contract-v1
+    image: lsoverlay/core-fixture:m3-chat-v1
     build:
       context: .
       dockerfile: Dockerfile.fixture
       network: none
-    entrypoint: ["dotnet", "/core-fixture/LSOverlay.CoreFixtureHost.dll", "--m2-contract-fixture"]
+    entrypoint: ["dotnet", "/core-fixture/LSOverlay.CoreFixtureHost.dll", "--m3-chat-fixture"]
     user: "1000:1000"
     environment:
       ASPNETCORE_URLS: http://0.0.0.0:8080

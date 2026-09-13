@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include "chat_view.hpp"
 #include <wincodec.h>
 #include <cstdio>
 #include <string>
@@ -25,8 +26,14 @@ void Renderer::setConnectionStatus(std::wstring status) {
     connectionStatus_ = std::move(status);
     layoutWidth_ = 0;
 }
+void Renderer::setChatSnapshot(std::shared_ptr<const Json> snapshot) {
+    if (!chat_) chat_ = std::make_unique<ChatView>(write_.Get());
+    chat_->setSnapshot(std::move(snapshot));
+    setConnectionStatus(L"M3 합성 채팅 검증 · 실제 Discord 데이터 아님");
+}
 
 void Renderer::discardSurface() noexcept {
+    if (chat_) chat_->releaseTargetResources();
     brush_.Reset(); target_.Reset();
     if (dc_ && original_ && original_ != HGDI_ERROR) SelectObject(dc_, original_);
     if (bitmap_) DeleteObject(bitmap_);
@@ -73,7 +80,7 @@ void Renderer::buildLayouts(float width, bool locked, bool hotkeysAvailable) {
         L"안녕하세요! 한글·영문·숫자를 선명하게 표시합니다.\n창의 폭을 바꾸면 문장이 자연스럽게 줄바꿈됩니다.\n가나다라마바사 · ABC 123 · GTA Online",
         locked ? L"잠금 상태 · 마우스 입력이 뒤 창으로 통과합니다." : L"잠금 해제 · 상단 드래그 / 가장자리 크기 조절",
         hotkeysAvailable ? L"F9 표시/숨기기  ·  F10 잠금/해제  ·  우클릭 메뉴" : L"단축키 충돌 · 기존 앱을 유지합니다. 트레이 메뉴를 사용하세요.",
-        connectionStatus_.empty() ? L"M1 · Direct2D / DirectWrite · 네트워크 및 로그인 기능 없음" : L"M2 합성 통신 검증 · 실제 채팅 UI는 다음 단계에서 구현"
+        chat_ ? chatFooter_.c_str() : connectionStatus_.empty() ? L"M1 · Direct2D / DirectWrite · 네트워크 및 로그인 기능 없음" : L"M2 합성 통신 검증 · 실제 채팅 UI는 다음 단계에서 구현"
     };
     const float sizes[] = {20, 12, 16, 16, 12, 12, 11};
     for (std::size_t i = 0; i < layouts_.size(); ++i) {
@@ -104,6 +111,11 @@ void Renderer::draw(HWND window, int width, int height, unsigned dpi, const Shel
 void Renderer::drawOnce(HWND window, int width, int height, unsigned dpi, const ShellState& state, bool hotkeysAvailable, bool retryAllowed) {
     ensureSurface(width, height, dpi);
     const float w = toDip(width, dpi), h = toDip(height, dpi);
+    if (chat_) {
+        const auto footer = chat_->scrolling().following() ? L"최신 메시지 · "+chat_->fontName()+L" · 우클릭: 글꼴/크기/멘션 배경" :
+            L"새 메시지 "+std::to_wstring(chat_->scrolling().unread())+L"개 · 여기를 클릭하거나 End: 최신으로";
+        if (chatFooter_ != footer) { chatFooter_ = footer; layoutWidth_ = 0; }
+    }
     buildLayouts(w, state.locked, hotkeysAvailable);
     target_->BeginDraw();
     target_->SetTransform(D2D1::Matrix3x2F::Identity());
@@ -124,6 +136,10 @@ void Renderer::drawOnce(HWND window, int width, int height, unsigned dpi, const 
     }
     text(layouts_[0].Get(), 24, 13, D2D1::ColorF(0xf0f6fc));
     text(layouts_[1].Get(), 24, 57, D2D1::ColorF(0x8b949e));
+    if (chat_) {
+        chat_->draw(target_.Get(),D2D1::RectF(24,96,w-24,h-60));
+        text(layouts_[6].Get(),24,h-35,D2D1::ColorF(0x8b949e));
+    } else {
     text(layouts_[2].Get(), 24, 103, D2D1::ColorF(0x58a6ff));
     text(layouts_[3].Get(), 24, 139, D2D1::ColorF(0xf0f6fc));
     brush_->SetColor(D2D1::ColorF(0x30363d));
@@ -131,6 +147,7 @@ void Renderer::drawOnce(HWND window, int width, int height, unsigned dpi, const 
     text(layouts_[4].Get(), 24, h-104, D2D1::ColorF(0xc9d1d9));
     text(layouts_[5].Get(), 24, h-73, D2D1::ColorF(0xc9d1d9));
     text(layouts_[6].Get(), 24, h-35, D2D1::ColorF(0x8b949e));
+    }
     const auto result = target_->EndDraw();
     if (result == D2DERR_RECREATE_TARGET && retryAllowed) {
         discardSurface();

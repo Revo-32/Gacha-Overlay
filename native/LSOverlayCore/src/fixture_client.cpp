@@ -4,7 +4,8 @@
 #include <algorithm>
 
 namespace core {
-void runFixtureClient(std::wstring origin, std::stop_token stop, const std::function<void(std::wstring)>& publish) {
+void runFixtureClient(std::wstring origin, std::stop_token stop, const std::function<void(std::wstring,std::shared_ptr<const Json>)>& publish) {
+    auto status = [&](std::wstring text) { publish(std::move(text),{}); };
     std::mutex mutex; std::condition_variable_any wake;
     auto pause = [&](std::chrono::milliseconds duration) {
         std::unique_lock lock(mutex); wake.wait_for(lock,stop,duration,[] { return false; });
@@ -17,7 +18,7 @@ void runFixtureClient(std::wstring origin, std::stop_token stop, const std::func
         Json manifest(response.body,65536);
         if (response.status != 200 || !yyjson_is_true(field(manifest.root(),"syntheticAuthentication")) || !yyjson_is_false(field(manifest.root(),"liveDiscord")))
             throw std::runtime_error("Not an isolated synthetic contract fixture");
-        publish(L"M2 합성 환경 · 인증 계약 확인 중 (실제 Discord 아님)");
+        status(L"합성 환경 · 인증 계약 확인 중 (실제 Discord 아님)");
         AuthClient auth(http); const auto identity = newInstallationId();
         auto session = auth.start(identity,stop);
         auto credential = auth.poll(session,identity,stop);
@@ -29,28 +30,28 @@ void runFixtureClient(std::wstring origin, std::stop_token stop, const std::func
             auto* root = current->json->root();
             publish(L"M2 합성 연결 정상 · 채팅 " + std::to_wstring(yyjson_arr_size(field(root,"chat"))) +
                 L" / 판매 " + std::to_wstring(yyjson_arr_size(field(field(root,"sales"),"queue"))) +
-                L" / 세션 " + std::to_wstring(yyjson_arr_size(field(root,"session"))));
+                L" / 세션 " + std::to_wstring(yyjson_arr_size(field(root,"session"))),current->json);
         };
         while (!stop.stop_requested()) {
             const auto connectedAt = std::chrono::steady_clock::now();
             try {
-                if (credential->expiresTicks <= utcTicks()) { publish(L"M2 검증 인증 만료 · 다시 실행해 주세요."); return; }
+                if (credential->expiresTicks <= utcTicks()) { status(L"검증 인증 만료 · 다시 실행해 주세요."); return; }
                 CoreSession connection(http,credential->token.view(),stop);
                 (void)connection.synchronize(current,stop); summary();
                 while (!stop.stop_requested()) if (connection.receiveUpdate(current,stop)) summary();
             } catch (const TransportError& error) {
                 if (stop.stop_requested()) return;
                 if (error.httpStatus == 401 || error.httpStatus == 403 || error.httpStatus == 404 || error.httpStatus == 426) {
-                    publish(L"M2 검증 인증/기능 확인 필요 · 자동 재시도 중단"); return;
+                    status(L"검증 인증/기능 확인 필요 · 자동 재시도 중단"); return;
                 }
                 if (std::chrono::steady_clock::now()-connectedAt >= std::chrono::seconds(30)) failures = 0;
                 const auto delay = std::min<unsigned>(15000,500U << std::min<unsigned>(failures++,5)) + static_cast<unsigned>(GetTickCount64()%251);
-                publish(L"M2 합성 연결 복구 대기 · 마지막 정상 상태 유지");
+                status(L"합성 연결 복구 대기 · 마지막 정상 상태 유지");
                 pause(std::chrono::milliseconds(delay));
             }
         }
     } catch (const std::exception&) {
-        if (!stop.stop_requested()) publish(L"M2 연결 검증 실패 · 안전하지 않은 응답은 적용하지 않습니다.");
+        if (!stop.stop_requested()) status(L"연결 검증 실패 · 안전하지 않은 응답은 적용하지 않습니다.");
     }
 }
 }

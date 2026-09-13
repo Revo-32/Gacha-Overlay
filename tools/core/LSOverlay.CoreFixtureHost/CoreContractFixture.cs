@@ -6,17 +6,20 @@ using System.Text.Json;
 using LSOverlay.Backend.CoreClient;
 using LSOverlay.Protocol;
 using Microsoft.AspNetCore.WebUtilities;
+using System.Threading.Channels;
 
 namespace LSOverlay.CoreFixtureHost;
 
 // Compiled only into developer tooling. This is NOT the real Discord auth service.
 // All identities/data are synthetic; there is no external route or Production store.
-internal sealed class CoreContractFixture
+internal sealed class CoreContractFixture(bool chatFixture = false)
 {
     private readonly ConcurrentDictionary<Guid, Session> _sessions = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _tokens = new();
     private readonly object _gate = new();
-    private CoreSnapshot _snapshot = CoreFixtureData.Create(Guid.NewGuid().ToString("N"), 1);
+    private CoreSnapshot _snapshot = chatFixture ? ChatFixtureData.Create(1, 20, 1) : CoreFixtureData.Create(Guid.NewGuid().ToString("N"), 1);
+    private readonly ConcurrentDictionary<int, Channel<bool>> _updates = new();
+    private readonly SemaphoreSlim _streamSlots = new(8, 8);
     private int _connections, _authStarts, _snapshots, _resumes;
     private readonly string _origin = Environment.GetEnvironmentVariable("CORE_FIXTURE_ORIGIN") ?? "http://127.0.0.1:15188";
 
@@ -32,12 +35,20 @@ internal sealed class CoreContractFixture
             context.Response.Headers["Referrer-Policy"] = "no-referrer";
             await next();
         });
-        app.MapGet("/fixture/manifest", () => Results.Json(new {
-            product = "LS Overlay Core", stage = "M2 synthetic contracts", syntheticAuthentication = true,
-            liveDiscord = false, productionDataMounted = false, mediaFetchEnabled = false,
+        app.MapGet("/fixture/manifest", () => Results.Json(new
+        {
+            product = "LS Overlay Core",
+            stage = chatFixture ? "M3 synthetic chat" : "M2 synthetic contracts",
+            syntheticAuthentication = true,
+            liveUpdates = true,
+            liveDiscord = false,
+            productionDataMounted = false,
+            mediaFetchEnabled = false,
             capabilities = new[] { CoreClientProtocol.Capability },
-            connections = Volatile.Read(ref _connections), authStarts = Volatile.Read(ref _authStarts),
-            snapshots = Volatile.Read(ref _snapshots), resumes = Volatile.Read(ref _resumes)
+            connections = Volatile.Read(ref _connections),
+            authStarts = Volatile.Read(ref _authStarts),
+            snapshots = Volatile.Read(ref _snapshots),
+            resumes = Volatile.Read(ref _resumes)
         }));
         app.MapPost("/api/v1/auth/discord/sessions", (Delegate)StartAsync);
         app.MapMethods("/api/v1/auth/discord/sessions/{sessionId:guid}", new[] { "GET", "DELETE" }, Claim);
@@ -45,13 +56,15 @@ internal sealed class CoreContractFixture
         app.MapPost("/fixture/revision", (HttpContext context) =>
         {
             if (!Authorized(context)) return Results.Unauthorized();
-            lock (_gate) _snapshot = CoreFixtureData.Create(_snapshot.Generation, _snapshot.Revision + 1);
+            lock (_gate) _snapshot = CreateSnapshot(_snapshot.Generation, _snapshot.Revision + 1);
+            SignalUpdate();
             return Results.Ok();
         });
         app.MapPost("/fixture/generation", (HttpContext context) =>
         {
             if (!Authorized(context)) return Results.Unauthorized();
-            lock (_gate) _snapshot = CoreFixtureData.Create(Guid.NewGuid().ToString("N"), 1);
+            lock (_gate) _snapshot = CreateSnapshot(Guid.NewGuid().ToString("N"), 1);
+            SignalUpdate();
             return Results.Ok();
         });
         app.MapGet("/fixture/redirect", () => Results.Redirect("/healthz"));
@@ -61,6 +74,14 @@ internal sealed class CoreContractFixture
             await Task.Delay(TimeSpan.FromSeconds(10), context.RequestAborted);
             return Results.Ok();
         });
+    }
+
+    private CoreSnapshot CreateSnapshot(string generation, long revision) => chatFixture
+        ? ChatFixtureData.Create(checked((int)revision), 20, revision) with { Generation = generation }
+        : CoreFixtureData.Create(generation, revision);
+    private void SignalUpdate()
+    {
+        foreach (var channel in _updates.Values) channel.Writer.TryWrite(true);
     }
 
     private async Task<IResult> StartAsync(HttpContext context)
@@ -74,10 +95,15 @@ internal sealed class CoreContractFixture
         catch (JsonException) { return Results.BadRequest(); }
         if (request is null || request.ProtocolVersion != 1 || request.ClientInstallationId == Guid.Empty) return Results.BadRequest();
         var id = Guid.NewGuid(); var secret = RandomSecret(); var expires = DateTimeOffset.UtcNow.AddMinutes(5);
-        var authorizationUrl = QueryHelpers.AddQueryString("https://discord.com/oauth2/authorize", new Dictionary<string, string?> {
-            ["client_id"] = "123", ["response_type"] = "code", ["scope"] = "identify",
-            ["redirect_uri"] = _origin.TrimEnd('/') + "/auth/discord/callback", ["state"] = RandomSecret(),
-            ["code_challenge_method"] = "S256", ["code_challenge"] = RandomSecret()
+        var authorizationUrl = QueryHelpers.AddQueryString("https://discord.com/oauth2/authorize", new Dictionary<string, string?>
+        {
+            ["client_id"] = "123",
+            ["response_type"] = "code",
+            ["scope"] = "identify",
+            ["redirect_uri"] = _origin.TrimEnd('/') + "/auth/discord/callback",
+            ["state"] = RandomSecret(),
+            ["code_challenge_method"] = "S256",
+            ["code_challenge"] = RandomSecret()
         });
         _sessions[id] = new Session(Hash(secret), expires);
         Interlocked.Increment(ref _authStarts);
@@ -123,46 +149,67 @@ internal sealed class CoreContractFixture
         if (context.Request.QueryString.HasValue || !context.WebSockets.IsWebSocketRequest ||
             !context.WebSockets.WebSocketRequestedProtocols.Contains(OverlayTransportProtocol.WebSocketSubprotocol, StringComparer.Ordinal))
         { context.Response.StatusCode = 400; return; }
-        using var socket = await context.WebSockets.AcceptWebSocketAsync(OverlayTransportProtocol.WebSocketSubprotocol);
-        Interlocked.Increment(ref _connections);
-        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
-        lifetime.CancelAfter(TimeSpan.FromMinutes(5));
+        if (!_streamSlots.Wait(0)) { context.Response.StatusCode = 429; return; }
+        var connectionId = Interlocked.Increment(ref _connections);
+        var updates = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
+        _updates[connectionId] = updates;
         try
         {
-            var helloBytes = await ReceiveAsync(socket, lifetime.Token);
-            var hello = JsonSerializer.Deserialize<CoreSessionStart>(helloBytes, OverlayProtocolJson.Options) ?? throw new InvalidDataException();
-            CoreSnapshotWire.ValidateHello(hello);
-            CoreSnapshot snapshot; lock (_gate) snapshot = _snapshot;
-            var resumed = CoreSnapshotWire.CanResume(hello, snapshot);
-            if (!resumed)
+            using var socket = await context.WebSockets.AcceptWebSocketAsync(OverlayTransportProtocol.WebSocketSubprotocol);
+            using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
+            lifetime.CancelAfter(TimeSpan.FromMinutes(5));
+            try
             {
-                foreach (var frame in CoreSnapshotWire.Encode(snapshot)) await socket.SendAsync(frame, WebSocketMessageType.Text, true, lifetime.Token);
-                Interlocked.Increment(ref _snapshots);
+                using var helloDeadline = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+                helloDeadline.CancelAfter(TimeSpan.FromSeconds(10));
+                var helloBytes = await ReceiveAsync(socket, helloDeadline.Token);
+                var hello = JsonSerializer.Deserialize<CoreSessionStart>(helloBytes, OverlayProtocolJson.Options) ?? throw new InvalidDataException();
+                CoreSnapshotWire.ValidateHello(hello);
+                CoreSnapshot snapshot; lock (_gate) snapshot = _snapshot;
+                var resumed = CoreSnapshotWire.CanResume(hello, snapshot);
+                if (!resumed)
+                {
+                    foreach (var frame in CoreSnapshotWire.Encode(snapshot)) await socket.SendAsync(frame, WebSocketMessageType.Text, true, lifetime.Token);
+                    Interlocked.Increment(ref _snapshots);
+                }
+                else Interlocked.Increment(ref _resumes);
+                var ready = JsonSerializer.SerializeToUtf8Bytes(new CoreReady(1, CoreClientProtocol.Ready, snapshot.Generation, snapshot.Revision, resumed), OverlayProtocolJson.Options);
+                await socket.SendAsync(ready, WebSocketMessageType.Text, true, lifetime.Token);
+                while (!lifetime.IsCancellationRequested && socket.State == WebSocketState.Open)
+                {
+                    using var nextEvent = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+                    nextEvent.CancelAfter(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        await updates.Reader.ReadAsync(nextEvent.Token);
+                        CoreSnapshot latest; lock (_gate) latest = _snapshot;
+                        if (latest.Generation == snapshot.Generation && latest.Revision == snapshot.Revision) continue;
+                        foreach (var frame in CoreSnapshotWire.Encode(latest)) await socket.SendAsync(frame, WebSocketMessageType.Text, true, lifetime.Token);
+                        await socket.SendAsync(JsonSerializer.SerializeToUtf8Bytes(new CoreReady(1, CoreClientProtocol.Ready, latest.Generation, latest.Revision, false), OverlayProtocolJson.Options), WebSocketMessageType.Text, true, lifetime.Token);
+                        snapshot = latest; Interlocked.Increment(ref _snapshots);
+                        continue;
+                    }
+                    catch (OperationCanceledException) when (!lifetime.IsCancellationRequested) { }
+                    await socket.SendAsync("{\"protocolVersion\":1,\"type\":\"heartbeat\"}"u8.ToArray(), WebSocketMessageType.Text, true, lifetime.Token);
+                    using var deadline = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+                    deadline.CancelAfter(TimeSpan.FromSeconds(10));
+                    using var ack = JsonDocument.Parse(await ReceiveAsync(socket, deadline.Token));
+                    if (ack.RootElement.GetProperty("type").GetString() != "heartbeat_ack") throw new InvalidDataException();
+                }
             }
-            else Interlocked.Increment(ref _resumes);
-            var ready = JsonSerializer.SerializeToUtf8Bytes(new CoreReady(1, CoreClientProtocol.Ready, snapshot.Generation, snapshot.Revision, resumed), OverlayProtocolJson.Options);
-            await socket.SendAsync(ready, WebSocketMessageType.Text, true, lifetime.Token);
-            while (!lifetime.IsCancellationRequested && socket.State == WebSocketState.Open)
+            catch (Exception exception) when (exception is WebSocketException or OperationCanceledException or InvalidDataException or JsonException or NotSupportedException or InvalidOperationException)
             {
-                await Task.Delay(TimeSpan.FromSeconds(5), lifetime.Token);
-                await socket.SendAsync("{\"protocolVersion\":1,\"type\":\"heartbeat\"}"u8.ToArray(), WebSocketMessageType.Text, true, lifetime.Token);
-                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
-                deadline.CancelAfter(TimeSpan.FromSeconds(10));
-                using var ack = JsonDocument.Parse(await ReceiveAsync(socket, deadline.Token));
-                if (ack.RootElement.GetProperty("type").GetString() != "heartbeat_ack") throw new InvalidDataException();
+                socket.Abort(); // Never log claim/token/control bodies, even on malformed input.
             }
         }
-        catch (Exception exception) when (exception is WebSocketException or OperationCanceledException or InvalidDataException or JsonException or NotSupportedException or InvalidOperationException)
-        {
-            socket.Abort(); // Never log claim/token/control bodies, even on malformed input.
-        }
+        finally { _updates.TryRemove(connectionId, out _); _streamSlots.Release(); }
     }
 
     private static async Task<byte[]> ReceiveAsync(WebSocket socket, CancellationToken cancellation)
     {
         using var bytes = new MemoryStream();
         var buffer = new byte[4096];
-        for (;;)
+        for (; ; )
         {
             var result = await socket.ReceiveAsync(buffer, cancellation);
             if (result.MessageType != WebSocketMessageType.Text || bytes.Length + result.Count > 16 * 1024) throw new InvalidDataException();

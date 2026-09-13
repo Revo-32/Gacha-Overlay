@@ -1,6 +1,7 @@
 #include "renderer.hpp"
 #include "fixture_client.hpp"
 #include "transport.hpp"
+#include "chat_view.hpp"
 #include <windowsx.h>
 #include <shellapi.h>
 #include <psapi.h>
@@ -18,6 +19,9 @@ namespace {
 constexpr UINT drawMessage = WM_APP + 1, trayMessage = WM_APP + 2, connectionMessage = WM_APP + 3;
 constexpr int showHotkey = 1, lockHotkey = 2;
 constexpr UINT menuShow = 100, menuLock = 101, menuOpacity = 102, menuExit = 103;
+constexpr UINT menuFont = 104, menuLarger = 105, menuSmaller = 106, menuMention = 107, menuLatest = 108;
+constexpr UINT menuOutline = 109;
+constexpr UINT menuRolePosition = 110;
 constexpr int minWidthDip = 360, minHeightDip = 480;
 using Clock = std::chrono::steady_clock;
 
@@ -87,6 +91,7 @@ struct Options {
     std::filesystem::path verificationDirectory;
     std::filesystem::path fixtureVerificationDirectory;
     std::wstring fixtureEndpoint;
+    std::filesystem::path chatFixture, chatVerificationDirectory;
     unsigned phaseSeconds = 15;
     bool noHotkeys = false;
 };
@@ -118,6 +123,7 @@ public:
         taskbarCreated_ = RegisterWindowMessageW(L"TaskbarCreated");
         if (!addTray()) throw std::runtime_error("Tray icon unavailable; refusing an unrecoverable hidden window");
         ShowWindow(window_, SW_SHOWNOACTIVATE);
+        if (!options_.chatFixture.empty()) loadChat(options_.chatFixture);
         renderNow();
         if (verifying()) {
             std::filesystem::create_directories(options_.verificationDirectory);
@@ -127,16 +133,23 @@ public:
             const HWND target = window_;
             renderer_.setConnectionStatus(L"M2 합성 환경에 연결 중 · 실제 Discord 아님"); queueDraw();
             connectionWorker_ = std::jthread([this,target](std::stop_token stop) {
-                core::runFixtureClient(options_.fixtureEndpoint,stop,[this,target](std::wstring status) {
+                core::runFixtureClient(options_.fixtureEndpoint,stop,[this,target](std::wstring status,std::shared_ptr<const core::Json> snapshot) {
                     // One owned latest-value slot: no external message carries a raw pointer.
-                    { std::lock_guard lock(connectionMutex_); latestConnectionStatus_ = std::move(status); }
-                    PostMessageW(target,connectionMessage,0,0);
+                    std::lock_guard lock(connectionMutex_);
+                    latestConnectionStatus_ = std::move(status); if (snapshot) latestChatSnapshot_ = std::move(snapshot);
+                    // Coalesce wakeups too, not just the payload. A temporarily busy
+                    // UI must not accumulate one Win32 queue entry per server revision.
+                    if (!connectionNotificationQueued_) connectionNotificationQueued_ = PostMessageW(target,connectionMessage,0,0) != FALSE;
                 });
             });
             if (!options_.fixtureVerificationDirectory.empty()) {
                 std::filesystem::create_directories(options_.fixtureVerificationDirectory);
                 if (!SetTimer(window_,2,1000,nullptr)) throw std::runtime_error("Fixture verification timer unavailable");
             }
+        }
+        if (!options_.chatVerificationDirectory.empty()) {
+            std::filesystem::create_directories(options_.chatVerificationDirectory);
+            if (!SetTimer(window_,3,1000,nullptr)) throw std::runtime_error("Chat verification timer unavailable");
         }
         MSG message{};
         int result = 0;
@@ -147,6 +160,14 @@ public:
         return failure_ ? 1 : static_cast<int>(message.wParam);
     }
 private:
+    void loadChat(const std::filesystem::path& path) {
+        std::ifstream input(path,std::ios::binary | std::ios::ate);
+        const auto length = input ? static_cast<std::streamoff>(input.tellg()) : 0;
+        if (length <= 0 || length > 1024*1024) throw std::runtime_error("Invalid chat fixture size");
+        input.seekg(0); std::string bytes(static_cast<std::size_t>(length),'\0');
+        if (!input.read(bytes.data(),length)) throw std::runtime_error("Cannot read chat fixture");
+        renderer_.setChatSnapshot(std::make_shared<core::Json>(bytes)); queueDraw();
+    }
     bool verifying() const { return !options_.verificationDirectory.empty(); }
     void assertion(bool value, const char* name) {
         ++assertions_;
@@ -174,11 +195,15 @@ private:
         renderer_.draw(window_,bounds.right,bounds.bottom,dpi_,state_,showRegistered_ && lockRegistered_);
     }
     void toggleVisible() {
+        if (renderer_.chat()) renderer_.chat()->endScrollbar();
+        if (GetCapture() == window_) ReleaseCapture();
         state_.toggleVisible();
         ShowWindow(window_,state_.visible ? SW_SHOWNOACTIVATE : SW_HIDE);
         if (state_.visible) queueDraw();
     }
     void toggleLocked() {
+        if (renderer_.chat()) renderer_.chat()->endScrollbar();
+        if (GetCapture() == window_) ReleaseCapture();
         state_.toggleLocked();
         auto style = GetWindowLongPtrW(window_,GWL_EXSTYLE);
         if (state_.locked) style |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
@@ -197,6 +222,15 @@ private:
         AppendMenuW(popup,MF_STRING,menuLock,state_.locked ? L"잠금 해제 (F10)" : L"잠금 (F10)");
         AppendMenuW(popup,MF_STRING,menuOpacity,state_.backgroundOpacity == 0 ? L"배경 불투명도 85%" : L"배경 불투명도 0% 검증");
         AppendMenuW(popup,MF_SEPARATOR,0,nullptr);
+        if (renderer_.chat()) {
+            AppendMenuW(popup,MF_STRING,menuFont,(L"글꼴 변경 · "+renderer_.chat()->fontName()).c_str());
+            AppendMenuW(popup,MF_STRING,menuLarger,L"채팅 글자 크게");
+            AppendMenuW(popup,MF_STRING,menuSmaller,L"채팅 글자 작게");
+            AppendMenuW(popup,MF_STRING,menuMention,L"나를 언급한 메시지 배경 켜기/끄기");
+            AppendMenuW(popup,MF_STRING,menuOutline,L"글자 외곽선 켜기/끄기");
+            AppendMenuW(popup,MF_STRING,menuRolePosition,L"역할 아이콘 위치 변경 (왼쪽/이름 뒤/오른쪽)");
+            AppendMenuW(popup,MF_STRING,menuLatest,L"최신 메시지로 이동");
+        }
         AppendMenuW(popup,MF_STRING,menuExit,L"LS Overlay Core 종료");
         SetForegroundWindow(window_);
         const auto selected = TrackPopupMenu(popup,TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON,point.x,point.y,0,window_,nullptr);
@@ -368,10 +402,81 @@ private:
         if (!output) throw std::runtime_error("Cannot write fixture measurements");
         DestroyWindow(window_);
     }
+    void chatTick() {
+        auto* chat = renderer_.chat();
+        if (!chat) throw std::runtime_error("Chat test view missing");
+        ++chatTicks_;
+        if (chatTicks_ == 1) {
+            assertion(chat->messageCount() == 20 && chat->scrolling().following(),"Chat20 initially follows latest");
+            renderer_.savePng(options_.chatVerificationDirectory / "chat20.png");
+            const auto outlined = chat->outlineBuilds(); renderNow();
+            assertion(outlined > 0 && chat->outlineBuilds() == outlined,"Glyph outlines are cached between paints");
+            chat->toggleOutline(); renderNow(); renderer_.savePng(options_.chatVerificationDirectory / "chat-no-outline.png");
+            assertion(chat->outlineBuilds() == outlined,"Disabling outlines does not rebuild geometry");
+            chat->toggleOutline(); renderNow();
+            for (unsigned i = 0; i < 3; ++i) {
+                chat->cycleRolePosition(); renderNow();
+                renderer_.savePng(options_.chatVerificationDirectory / (L"chat-role-"+std::to_wstring(i)+L".png"));
+            }
+            assertion(chat->messageCount() == 20,"Role placement changes preserve retained messages");
+            chat->scroll(-chat->scrolling().maximum()/2); renderNow();
+            const auto anchor = chat->scrolling().anchor();
+            loadChat(options_.chatFixture.parent_path()/L"chat21.json"); renderNow();
+            assertion(chat->scrolling().anchor().id == anchor.id && chat->scrolling().unread() == 1,"New message preserves reading anchor/unread");
+            const auto beforeLayout = chat->layoutBuilds();
+            for (int i = 0; i < 100; ++i) { chat->scroll(i%2 ? -24.0f : 24.0f); renderNow(); }
+            assertion(chat->layoutBuilds() == beforeLayout,"Scrolling reuses text layout");
+            RECT chatBounds{}; GetClientRect(window_,&chatBounds);
+            const float right = static_cast<float>(chatBounds.right)*96/dpi_-24;
+            assertion(chat->pressScrollbar(right-2,110),"Scrollbar accepts track press");
+            chat->dragScrollbar(100000); chat->endScrollbar();
+            assertion(chat->scrolling().following() && chat->scrolling().unread() == 0,"Scrollbar bottom restores latest following");
+            chat->scroll(-chat->scrolling().maximum()/2); renderNow();
+            const auto beforeResize = measure();
+            for (int i = 0; i < 40; ++i) {
+                const auto started = Clock::now();
+                SetWindowPos(window_,nullptr,0,0,core::toPixels(i%2 ? 640.0f : 360.0f,dpi_),core::toPixels(620,dpi_),SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+                renderNow(); chatResizeMs_.push_back(std::chrono::duration<double,std::milli>(Clock::now()-started).count());
+            }
+            assertion(measure().gdi <= beforeResize.gdi+2,"Chat resize GDI resources bounded");
+            SetWindowPos(window_,nullptr,0,0,core::toPixels(360,dpi_),core::toPixels(620,dpi_),SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+            renderNow(); renderer_.savePng(options_.chatVerificationDirectory / "chat-narrow.png");
+            SetWindowPos(window_,nullptr,0,0,core::toPixels(640,dpi_),core::toPixels(620,dpi_),SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+            for (unsigned i = 0; i < 5; ++i) {
+                chat->followLatest(); renderNow();
+                renderer_.savePng(options_.chatVerificationDirectory / (L"chat-font-"+std::to_wstring(i)+L".png"));
+                chat->cycleFont();
+            }
+            chat->changeSize(8); renderNow(); renderer_.savePng(options_.chatVerificationDirectory / "chat-large-font.png");
+            chat->changeSize(-8);
+            state_.backgroundOpacity = 0; renderNow();
+            assertion(renderer_.alphaAt(4,100) > 0,"Chat zero-opacity edit edge remains visible");
+            renderer_.savePng(options_.chatVerificationDirectory / "chat-zero-opacity.png");
+            state_.backgroundOpacity = 0.85f;
+            loadChat(options_.chatFixture.parent_path()/L"retained20.json"); renderNow();
+            assertion(chat->messageCount() == 20,"Server retention applied without local ghost rows");
+            loadChat(options_.chatFixture); chat->followLatest(); renderNow();
+            return;
+        }
+        if (chatTicks_ == 4) { chatBefore_ = measure(); chatStarted_ = Clock::now(); chatIdleRenders_ = renderer_.renderCount(); }
+        if (chatTicks_ < 12) return;
+        const auto after = measure(); const auto elapsed = std::chrono::duration<double>(Clock::now()-chatStarted_).count();
+        assertion(renderer_.renderCount() == chatIdleRenders_,"Chat idle does not repaint");
+        std::ofstream output(options_.chatVerificationDirectory / "native-chat-metrics.json");
+        output << "{\"scope\":\"M3 synthetic text prototype; NOT live Discord/media parity\",\"assertions\":" << assertions_
+            << ",\"messages\":" << chat->messageCount() << ",\"seconds\":" << elapsed << ",\"privateBytes\":" << after.privateBytes
+            << ",\"workingSet\":" << after.workingSet << ",\"cpuOneCorePercent\":" << static_cast<double>(after.cpu100ns-chatBefore_.cpu100ns)/100000.0/elapsed
+            << ",\"idleRenders\":0,\"ownedTextSpanBytes\":" << chat->layoutTextBytes() << ",\"layoutBuilds\":" << chat->layoutBuilds()
+            << ",\"outlineBuilds\":" << chat->outlineBuilds() << ",\"resizeMs\":[";
+        for (std::size_t i = 0; i < chatResizeMs_.size(); ++i) output << (i ? "," : "") << chatResizeMs_[i];
+        output << "]}"; output.flush(); if (!output) throw std::runtime_error("Chat measurement write failed");
+        DestroyWindow(window_);
+    }
     void fail(const char* reason) noexcept {
         failure_ = true;
-        if (verifying() || !options_.fixtureVerificationDirectory.empty()) {
-            try { std::ofstream((verifying() ? options_.verificationDirectory : options_.fixtureVerificationDirectory) / "native-shell-error.txt") << reason; } catch (...) {}
+        if (verifying() || !options_.fixtureVerificationDirectory.empty() || !options_.chatVerificationDirectory.empty()) {
+            const auto& directory = verifying() ? options_.verificationDirectory : !options_.fixtureVerificationDirectory.empty() ? options_.fixtureVerificationDirectory : options_.chatVerificationDirectory;
+            try { std::ofstream(directory / "native-shell-error.txt") << reason; } catch (...) {}
         } else {
             MessageBoxA(window_,reason,"LS Overlay Core - native shell error",MB_OK | MB_ICONERROR);
         }
@@ -420,13 +525,53 @@ private:
         case drawMessage: drawQueued_ = false; renderNow(); return 0;
         case connectionMessage: {
             std::wstring status;
-            { std::lock_guard lock(connectionMutex_); status = latestConnectionStatus_; }
+            std::shared_ptr<const core::Json> snapshot;
+            { std::lock_guard lock(connectionMutex_); connectionNotificationQueued_ = false; status = latestConnectionStatus_; snapshot = std::move(latestChatSnapshot_); }
             fixtureReady_ = status.find(L"M2 합성 연결 정상") == 0;
+            if (snapshot) {
+                auto* chat = core::field(snapshot->root(),"chat");
+                // M2-only fixtures remain usable as a connection shell.
+                if (renderer_.chat() || (yyjson_arr_size(chat) && yyjson_is_str(core::field(yyjson_arr_get(chat,0),"presentationHash")))) renderer_.setChatSnapshot(std::move(snapshot));
+            }
             renderer_.setConnectionStatus(std::move(status)); queueDraw(); return 0;
         }
         case WM_HOTKEY:
             if (wparam == showHotkey) toggleVisible();
             else if (wparam == lockHotkey) toggleLocked();
+            return 0;
+        case WM_MOUSEWHEEL:
+            if (renderer_.chat() && !state_.locked) { renderer_.chat()->scroll(-static_cast<float>(GET_WHEEL_DELTA_WPARAM(wparam))/WHEEL_DELTA*64); queueDraw(); }
+            return 0;
+        case WM_LBUTTONDOWN:
+            if (renderer_.chat() && !state_.locked && renderer_.chat()->pressScrollbar(
+                static_cast<float>(GET_X_LPARAM(lparam))*96/dpi_,static_cast<float>(GET_Y_LPARAM(lparam))*96/dpi_)) {
+                SetCapture(window_); queueDraw();
+            }
+            return 0;
+        case WM_MOUSEMOVE:
+            if (renderer_.chat() && renderer_.chat()->draggingScrollbar() && !state_.locked) {
+                renderer_.chat()->dragScrollbar(static_cast<float>(GET_Y_LPARAM(lparam))*96/dpi_); queueDraw();
+            }
+            return 0;
+        case WM_CAPTURECHANGED:
+            if (renderer_.chat()) renderer_.chat()->endScrollbar();
+            return 0;
+        case WM_LBUTTONUP:
+            if (renderer_.chat() && !state_.locked) {
+                if (renderer_.chat()->draggingScrollbar()) { renderer_.chat()->endScrollbar(); ReleaseCapture(); return 0; }
+                RECT bounds{}; GetClientRect(window,&bounds);
+                if (GET_Y_LPARAM(lparam) > bounds.bottom-core::toPixels(60,dpi_)) { renderer_.chat()->followLatest(); queueDraw(); }
+            }
+            return 0;
+        case WM_KEYDOWN:
+            if (renderer_.chat() && !state_.locked) {
+                auto* chat = renderer_.chat();
+                if (wparam == VK_END) chat->followLatest();
+                else if (wparam == VK_HOME) chat->scroll(-chat->scrolling().maximum());
+                else if (wparam == VK_UP || wparam == VK_PRIOR) chat->scroll(wparam == VK_UP ? -32.0f : -250.0f);
+                else if (wparam == VK_DOWN || wparam == VK_NEXT) chat->scroll(wparam == VK_DOWN ? 32.0f : 250.0f);
+                queueDraw();
+            }
             return 0;
         case WM_CONTEXTMENU: {
             POINT point{GET_X_LPARAM(lparam),GET_Y_LPARAM(lparam)};
@@ -443,17 +588,26 @@ private:
             case menuLock: toggleLocked(); break;
             case menuOpacity: state_.backgroundOpacity = state_.backgroundOpacity == 0 ? 0.85f : 0; queueDraw(); break;
             case menuExit: DestroyWindow(window); break;
+            case menuFont: if (renderer_.chat()) { renderer_.chat()->cycleFont(); queueDraw(); } break;
+            case menuLarger: if (renderer_.chat()) { renderer_.chat()->changeSize(2); queueDraw(); } break;
+            case menuSmaller: if (renderer_.chat()) { renderer_.chat()->changeSize(-2); queueDraw(); } break;
+            case menuMention: if (renderer_.chat()) { renderer_.chat()->toggleMentionBackground(); queueDraw(); } break;
+            case menuOutline: if (renderer_.chat()) { renderer_.chat()->toggleOutline(); queueDraw(); } break;
+            case menuRolePosition: if (renderer_.chat()) { renderer_.chat()->cycleRolePosition(); queueDraw(); } break;
+            case menuLatest: if (renderer_.chat()) { renderer_.chat()->followLatest(); queueDraw(); } break;
             default: break;
             }
             return 0;
         case WM_TIMER:
             if (verifying() && wparam == 1) tick();
             else if (!options_.fixtureVerificationDirectory.empty() && wparam == 2) fixtureTick();
+            else if (!options_.chatVerificationDirectory.empty() && wparam == 3) chatTick();
             return 0;
         case WM_CLOSE: DestroyWindow(window); return 0;
         case WM_DESTROY: {
             KillTimer(window,1);
             KillTimer(window,2);
+            KillTimer(window,3);
             connectionWorker_.request_stop();
             if (connectionWorker_.joinable()) connectionWorker_.join();
             if (showRegistered_) UnregisterHotKey(window,showHotkey);
@@ -482,13 +636,20 @@ private:
     std::vector<double> resizeLatencies_;
     std::vector<Phase> phases_;
     std::mutex connectionMutex_;
+    bool connectionNotificationQueued_ = false;
     std::wstring latestConnectionStatus_;
+    std::shared_ptr<const core::Json> latestChatSnapshot_;
     std::jthread connectionWorker_;
     bool fixtureReady_ = false;
     unsigned fixtureTicks_ = 0;
     Metrics fixtureBefore_;
     Clock::time_point fixtureStarted_;
     std::uint64_t fixtureRendersBefore_ = 0;
+    unsigned chatTicks_ = 0;
+    Metrics chatBefore_;
+    Clock::time_point chatStarted_;
+    std::uint64_t chatIdleRenders_ = 0;
+    std::vector<double> chatResizeMs_;
 };
 
 Options parseOptions() {
@@ -502,6 +663,8 @@ Options parseOptions() {
         if (arg == L"--verify" && i + 1 < count) options.verificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--fixture-endpoint" && i + 1 < count) options.fixtureEndpoint = argv[++i];
         else if (arg == L"--fixture-verify" && i + 1 < count) options.fixtureVerificationDirectory = std::filesystem::absolute(argv[++i]);
+        else if (arg == L"--chat-fixture" && i + 1 < count) options.chatFixture = std::filesystem::absolute(argv[++i]);
+        else if (arg == L"--chat-verify" && i + 1 < count) options.chatVerificationDirectory = std::filesystem::absolute(argv[++i]);
         else if (arg == L"--phase-seconds" && i + 1 < count) {
             std::size_t used = 0;
             const std::wstring value = argv[++i];
@@ -516,6 +679,8 @@ Options parseOptions() {
         if (!endpoint.loopback || endpoint.secure || !options.verificationDirectory.empty())
             throw std::runtime_error("Fixture mode requires explicit HTTP loopback, separate from shell verification");
     } else if (!options.fixtureVerificationDirectory.empty()) throw std::runtime_error("Fixture verification requires an explicit fixture endpoint");
+    if (!options.chatFixture.empty() && (!options.fixtureEndpoint.empty() || !options.verificationDirectory.empty())) throw std::runtime_error("Chat fixture mode is separate from network/shell verification");
+    if (!options.chatVerificationDirectory.empty() && options.chatFixture.empty()) throw std::runtime_error("Chat verification requires synthetic chat fixture");
     return options;
 }
 }
@@ -528,6 +693,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     try {
         options = parseOptions();
         if (!options.verificationDirectory.empty()) std::filesystem::create_directories(options.verificationDirectory);
+        if (!options.chatVerificationDirectory.empty()) std::filesystem::create_directories(options.chatVerificationDirectory);
         Shell shell(options); result = shell.run(instance);
     } catch (const std::exception& error) {
         if (!options.verificationDirectory.empty()) {

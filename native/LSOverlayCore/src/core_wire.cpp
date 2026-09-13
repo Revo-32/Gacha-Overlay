@@ -67,7 +67,7 @@ std::optional<SnapshotDocument> SnapshotAssembler::accept(std::string_view frame
         bytes_.insert(bytes_.end(),payload.begin(),payload.end()); ++next_;
         if (next_ != count_) return std::nullopt;
         if (bytes_.size() != total_ || sha256(bytes_) != digest_) throw std::runtime_error("Core snapshot integrity mismatch");
-        auto document = std::make_unique<Json>(std::string_view(reinterpret_cast<const char*>(bytes_.data()),bytes_.size()));
+        auto document = std::make_shared<Json>(std::string_view(reinterpret_cast<const char*>(bytes_.data()),bytes_.size()));
         auto* data = document->root();
         if (numberField(data,"protocolVersion") != 1 || textField(data,"generation") != generation_ ||
             numberField(data,"revision") != revision_ || textField(data,"selfUserId").empty() ||

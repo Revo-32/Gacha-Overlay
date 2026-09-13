@@ -1,12 +1,12 @@
 [CmdletBinding()]
-param([switch]$IncludeGui)
+param([switch]$IncludeGui, [ValidateSet('m2','m3')][string]$Stage = 'm2')
 $ErrorActionPreference = 'Stop'
 $repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $dotnet = 'E:\CODEX\Tools\dotnet8\dotnet.exe'
-$fixture = Join-Path $repository 'artifacts/core/m2/fixture-publish/LSOverlay.CoreFixtureHost.dll'
-$probe = Join-Path $repository 'artifacts/core/m2/native/Release/LSOverlayCoreTransportProbe.exe'
-$wireTest = Join-Path $repository 'artifacts/core/m2/native/Release/LSOverlayCoreWireTests.exe'
-$wireFixture = Join-Path $repository 'artifacts/core/m2/wire-fixture.ndjson'
+$fixture = Join-Path $repository "artifacts/core/$Stage/fixture-publish/LSOverlay.CoreFixtureHost.dll"
+$probe = Join-Path $repository "artifacts/core/$Stage/native/Release/LSOverlayCoreTransportProbe.exe"
+$wireTest = Join-Path $repository "artifacts/core/$Stage/native/Release/LSOverlayCoreWireTests.exe"
+$wireFixture = Join-Path $repository "artifacts/core/$Stage/wire-fixture.ndjson"
 foreach ($required in @($dotnet,$fixture,$probe,$wireTest)) {
     if (!(Test-Path -LiteralPath $required)) { throw "Required build output missing: $required" }
 }
@@ -21,7 +21,8 @@ $listener.Stop()
 $origin = "http://127.0.0.1:$port"
 $startInfo = [Diagnostics.ProcessStartInfo]::new()
 $startInfo.FileName = $dotnet
-$startInfo.Arguments = '"' + $fixture + '" --m2-contract-fixture --urls ' + $origin
+$mode = if ($Stage -eq 'm3') { '--m3-chat-fixture' } else { '--m2-contract-fixture' }
+$startInfo.Arguments = '"' + $fixture + '" ' + $mode + ' --urls ' + $origin
 $startInfo.WorkingDirectory = Split-Path $fixture
 $startInfo.UseShellExecute = $false
 $startInfo.CreateNoWindow = $true
@@ -45,8 +46,8 @@ try {
     $final = Invoke-RestMethod -Uri "$origin/fixture/manifest" -TimeoutSec 3
     [pscustomobject]@{Scope='synthetic contract fixture only';Connections=$final.connections;Snapshots=$final.snapshots;Resumes=$final.resumes;AuthStarts=$final.authStarts} | ConvertTo-Json
     if ($IncludeGui) {
-        $client = Join-Path $repository 'artifacts/core/m2/native/Release/LSOverlayCore.exe'
-        $report = Join-Path $repository 'artifacts/core/m2/local-gui'
+        $client = Join-Path $repository "artifacts/core/$Stage/native/Release/LSOverlayCore.exe"
+        $report = Join-Path $repository "artifacts/core/$Stage/local-gui"
         $gui = Start-Process -FilePath $client -ArgumentList @('--no-hotkeys','--fixture-endpoint',$origin,'--fixture-verify',('"' + $report + '"')) -WindowStyle Hidden -PassThru
         try {
             if (!$gui.WaitForExit(30000)) { throw 'Synthetic GUI verification exceeded 30 seconds.' }

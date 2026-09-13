@@ -2,6 +2,8 @@ using GachaOverlay.Core.Chat;
 using GachaOverlay.Core.Discord.Messages;
 using GachaOverlay.Core.Sales;
 using LSOverlay.Protocol;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace LSOverlay.Backend.CoreClient;
 
@@ -26,7 +28,11 @@ public sealed class CoreSemanticProjection(ICoreMediaReferences media)
             new DiscordMessageState(1, false, messages, Array.Empty<NormalizedDiscordMessage>()), authenticatedUserId);
         var projected = changes.Select(change => change.Message!).ToArray();
         var headers = ChatAuthorGrouping.ResolveHeaders(projected.Select(message => message.AuthorId));
-        var chat = projected.Select((message, index) => MapMessage(message, headers[index], authenticatedUserId)).ToArray();
+        var chat = projected.Select((message, index) =>
+        {
+            var mapped = MapMessage(message, headers[index], authenticatedUserId);
+            return mapped with { PresentationHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(mapped, OverlayProtocolJson.Options))).ToLowerInvariant() };
+        }).ToArray();
         var queue = sales.ActiveItems.Select(entry => new CoreSale(entry.MessageId, entry.AuthorId,
             entry.DisplayName, entry.AllProducts.Select(product => new CoreSaleProduct(
                 product.ProductId, product.DisplayName, product.EmojiId, product.EmojiName, product.Quantity)).ToArray(),
@@ -48,7 +54,7 @@ public sealed class CoreSemanticProjection(ICoreMediaReferences media)
             icon is { Kind: "unicode" } ? icon.Value : null);
         var reply = message.RemoteMetadata?.Reply;
         var reactions = message.Reactions.Select(reaction => new CoreReaction(
-            Run(message.MessageId, new ChatToken(ChatTokenKind.CustomEmoji, reaction.Emoji.Name,
+            Run(message.MessageId, new ChatToken(string.IsNullOrEmpty(reaction.Emoji.EmojiId) ? ChatTokenKind.Text : ChatTokenKind.CustomEmoji, reaction.Emoji.Name,
                 reaction.Emoji.EmojiId, false, reaction.Emoji.Animated), viewer), reaction.Count)).ToArray();
         return new CoreRenderMessage(message.MessageId, author, message.CreatedAt, header,
             Runs(message.MessageId, message.Tokens, viewer), message.HasSelfMention,
@@ -57,7 +63,46 @@ public sealed class CoreSemanticProjection(ICoreMediaReferences media)
                 reply.ResolvedContent is null ? "unavailable" : "resolved",
                 Runs(message.MessageId, ChatPresentationSynchronizer.TokenizeDiscordMarkup(reply.ResolvedContent ?? "", viewer), viewer)),
             message.ForwardedMessages.Select(forward => new CoreForward(Runs(message.MessageId, forward.Tokens, viewer),
-                Media(message.MessageId, forward.Media, forward.Stickers))).ToArray());
+                Media(message.MessageId, forward.Media, forward.Stickers))).ToArray(),
+            message.Attention.ToString(), message.FallbackKind.ToString(), Details: Details(message));
+    }
+
+    // Preserve Full's supported non-image fallback information, without shipping
+    // arbitrary component payloads, fetch URLs, or client pixel layout decisions.
+    private static IReadOnlyList<CoreDetail> Details(ChatMessagePresentation message)
+    {
+        var details = new List<CoreDetail>();
+        foreach (var item in message.RemoteAttachments)
+        {
+            if (item.IsVoiceMessage)
+            {
+                var duration = item.DurationSeconds ?? 0;
+                var seconds = double.IsFinite(duration) ? Math.Clamp(duration, 0, TimeSpan.MaxValue.TotalSeconds / 2) : 0;
+                details.Add(new("voice", TimeSpan.FromSeconds(seconds).ToString(seconds >= 3600 ? "h\\:mm\\:ss" : "m\\:ss")));
+            }
+            else if (item.ContentType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) != true)
+                details.Add(new("attachment", item.FileName ?? "이름 없는 첨부 파일"));
+        }
+        foreach (var embed in message.RemoteEmbeds)
+        {
+            var text = new[] { embed.Title, embed.Description }.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            if (text is not null) details.Add(new("embed", text));
+        }
+        if (message.RemoteMetadata?.Poll is { } poll)
+            details.Add(new("poll", (poll.Question ?? "제목 없는 투표") + " · " + string.Join(" · ", poll.Answers.Select(answer => answer.Text).Where(text => !string.IsNullOrWhiteSpace(text)))));
+        IEnumerable<DiscordComponentMetadata> Flatten(IEnumerable<DiscordComponentMetadata> components, int depth = 0)
+        {
+            if (depth > 16) throw new InvalidDataException("Core component nesting limit exceeded.");
+            foreach (var component in components)
+            {
+                yield return component;
+                foreach (var child in Flatten(component.Children, depth + 1)) yield return child;
+            }
+        }
+        var labels = Flatten(message.RemoteMetadata?.Components ?? Array.Empty<DiscordComponentMetadata>())
+            .Select(component => component.Label ?? component.Content ?? component.Description).Where(text => !string.IsNullOrWhiteSpace(text)).Take(4).ToArray();
+        if (labels.Length != 0) details.Add(new("components", string.Join(" · ", labels)));
+        return details.Distinct().ToArray();
     }
 
     private IReadOnlyList<CoreRun> Runs(string messageId, IReadOnlyList<ChatToken> tokens, string viewer) =>

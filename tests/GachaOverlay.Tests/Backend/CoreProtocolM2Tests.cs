@@ -11,6 +11,41 @@ namespace GachaOverlay.Tests.Backend;
 public sealed class CoreProtocolM2Tests
 {
     [Fact]
+    public void PresentationIdentityTracksViewerAndRichMetadataWithoutCrossViewerReuse()
+    {
+        var source = Message("1", "22", "원문 <@77>");
+        var projection = new CoreSemanticProjection(new OpaqueMedia());
+        CoreRenderMessage Capture(NormalizedDiscordMessage message, string viewer) =>
+            projection.Capture("g", 1, viewer, new[] { message }, SalesQueueSnapshot.Empty, Array.Empty<HostPresenceSnapshot>()).Chat.Single();
+        var mine = Capture(source, "77");
+        Assert.Equal(mine.PresentationHash, Capture(source, "77").PresentationHash);
+        Assert.Equal("DirectSelfMention", mine.Attention);
+        Assert.NotEqual(mine.PresentationHash, Capture(source, "88").PresentationHash);
+        Assert.NotEqual(mine.PresentationHash, Capture(source with { Content = "변경된 내용" }, "77").PresentationHash);
+        var ordinary = source with { Mentions = Array.Empty<DiscordMention>(), Reactions = new[] { new DiscordMessageReaction(new DiscordCustomEmoji("", "👍", false), 3) } };
+        Assert.Equal("Normal", Capture(ordinary, "77").Attention);
+        Assert.Equal("Text", Capture(ordinary, "77").Reactions.Single().Emoji.Kind);
+    }
+
+    [Fact]
+    public void NonImageAttachmentsEmbedAndPollRemainVisibleAsSemanticDetails()
+    {
+        var message = Message("1", "22", "본문") with
+        {
+            Mentions = Array.Empty<DiscordMention>(),
+            Attachments = new[] { new DiscordAttachmentMetadata("a", "guide.txt", "https://cdn.discordapp.com/a.txt", null, 20, null, null, "text/plain") },
+            Embeds = new[] { new DiscordEmbedMetadata("rich", null, "임베드 제목", null, null, "설명") },
+            RemoteMetadata = new DiscordRemoteMessageMetadata("default", 0, 0, false, false, false, false, false, null,
+                Array.Empty<DiscordForwardSnapshotMetadata>(), Array.Empty<DiscordComponentMetadata>(),
+                new DiscordPollMetadata("질문", new[] { new DiscordPollAnswerMetadata(1, "답변", null, null, null) }, DateTimeOffset.UtcNow, false, "default", null))
+        };
+        var result = new CoreSemanticProjection(new OpaqueMedia()).Capture("g", 1, "77", new[] { message }, SalesQueueSnapshot.Empty, Array.Empty<HostPresenceSnapshot>()).Chat.Single();
+        Assert.Contains(result.Details!, detail => detail.Kind == "attachment" && detail.Text == "guide.txt");
+        Assert.Contains(result.Details!, detail => detail.Kind == "embed" && detail.Text == "임베드 제목");
+        Assert.Contains(result.Details!, detail => detail.Kind == "poll" && detail.Text.Contains("질문 · 답변", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ProjectionUsesExistingChatGroupingAndPerViewerMentions()
     {
         var messages = new[] { Message("1", "22", "안녕 <@77> <:test:12345>"), Message("2", "22", "같은 작성자"), Message("3", "33", "다른 작성자") };

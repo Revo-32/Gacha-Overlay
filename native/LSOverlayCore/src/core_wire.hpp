@@ -15,7 +15,7 @@ std::vector<unsigned char> unbase64(std::string_view encoded);
 struct SnapshotDocument {
     std::string generation;
     std::uint64_t revision;
-    std::unique_ptr<Json> json;
+    std::shared_ptr<const Json> json;
 };
 
 class SnapshotAssembler final {

@@ -2,7 +2,7 @@
 param(
     [ValidateRange(2,300)][int]$PhaseSeconds = 15,
     [switch]$NoHotkeys,
-    [ValidateSet('m1','m2')][string]$Stage = 'm2'
+    [ValidateSet('m1','m2','m3')][string]$Stage = 'm3'
 )
 $ErrorActionPreference = 'Stop'
 $repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))

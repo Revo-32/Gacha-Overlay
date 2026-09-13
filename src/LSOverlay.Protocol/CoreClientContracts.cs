@@ -27,11 +27,14 @@ public sealed record CoreMedia(string Id, string Kind, string? Name,
     int? Width, int? Height, bool IsAnimated);
 public sealed record CoreReply(string? MessageId, string? AuthorName, string Status, IReadOnlyList<CoreRun> Runs);
 public sealed record CoreReaction(CoreRun Emoji, int Count);
+public sealed record CoreDetail(string Kind, string Text);
 public sealed record CoreForward(IReadOnlyList<CoreRun> Runs, IReadOnlyList<CoreMedia> Media);
 public sealed record CoreRenderMessage(string Id, CoreAuthor Author, DateTimeOffset? CreatedAt,
     bool ShowAuthorHeader, IReadOnlyList<CoreRun> Runs, bool HasSelfMention,
     IReadOnlyList<CoreMedia> Media, IReadOnlyList<CoreReaction> Reactions,
-    CoreReply? Reply, IReadOnlyList<CoreForward> Forwarded);
+    CoreReply? Reply, IReadOnlyList<CoreForward> Forwarded,
+    string Attention = "Normal", string FallbackKind = "None", string PresentationHash = "",
+    IReadOnlyList<CoreDetail>? Details = null);
 public sealed record CoreSale(string MessageId, string AuthorId, string DisplayName,
     IReadOnlyList<CoreSaleProduct> Products, string Trust, DateTimeOffset? CreatedAt,
     IReadOnlyList<CoreRun> DetailRuns);

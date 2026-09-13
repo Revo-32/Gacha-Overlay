@@ -35,10 +35,13 @@ get_filename_component(CORE_ICON "../../src/GachaOverlay.App/Assets/Branding/LSO
 set(CORE_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest")
 configure_file(resources/app.rc.in "${CMAKE_CURRENT_BINARY_DIR}/app.rc" @ONLY)
 
-add_executable(LSOverlayCore WIN32 src/main.cpp src/renderer.cpp "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
+add_executable(LSOverlayCore WIN32 src/main.cpp src/renderer.cpp src/chat_view.cpp src/text_outline.cpp "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
 target_include_directories(LSOverlayCore PRIVATE src)
 target_link_libraries(LSOverlayCore PRIVATE d2d1 dwrite windowscodecs ole32 user32 gdi32 shell32 psapi LSOverlayCoreTransport)
 target_link_options(LSOverlayCore PRIVATE /MANIFEST:NO /DYNAMICBASE /NXCOMPAT)
+add_custom_command(TARGET LSOverlayCore POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../src/GachaOverlay.App/Assets/Fonts" "$<TARGET_FILE_DIR:LSOverlayCore>/fonts")
 
 enable_testing()
 add_executable(LSOverlayCoreStateTests tests/shell_state_tests.cpp)
@@ -50,6 +53,9 @@ add_test(NAME native_core_wire COMMAND LSOverlayCoreWireTests)
 add_executable(LSOverlayCoreAuthTests tests/auth_tests.cpp)
 target_link_libraries(LSOverlayCoreAuthTests PRIVATE LSOverlayCoreTransport)
 add_test(NAME native_core_auth COMMAND LSOverlayCoreAuthTests "${CMAKE_CURRENT_BINARY_DIR}/credential-tests")
+add_executable(LSOverlayCoreChatScrollTests tests/chat_scroll_tests.cpp)
+target_include_directories(LSOverlayCoreChatScrollTests PRIVATE src)
+add_test(NAME native_chat_scroll COMMAND LSOverlayCoreChatScrollTests)
 add_executable(LSOverlayCoreTransportProbe tests/transport_probe.cpp)
 target_link_libraries(LSOverlayCoreTransportProbe PRIVATE LSOverlayCoreTransport)
 # UI smoke/measurement is explicit: do not open windows during ordinary ctest.

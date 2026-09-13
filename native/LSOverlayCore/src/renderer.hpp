@@ -7,8 +7,11 @@
 #include <array>
 #include <filesystem>
 #include <string>
+#include <memory>
 
 namespace core {
+class ChatView;
+class Json;
 void require(HRESULT result, const char* operation);
 
 // Minimal per-pixel-alpha feasibility path. CPU-backed DC rendering is measured
@@ -23,6 +26,8 @@ public:
     void savePng(const std::filesystem::path& path) const;
     void discardSurface() noexcept;
     void setConnectionStatus(std::wstring status);
+    void setChatSnapshot(std::shared_ptr<const Json> snapshot);
+    ChatView* chat() { return chat_.get(); }
     [[nodiscard]] unsigned alphaAt(int x, int y) const;
     [[nodiscard]] std::uint64_t renderCount() const noexcept { return renderCount_; }
     [[nodiscard]] std::uint64_t layoutBuildCount() const noexcept { return layoutBuildCount_; }
@@ -46,6 +51,8 @@ private:
     float layoutWidth_ = 0;
     bool layoutLocked_ = false, layoutHotkeys_ = false;
     std::wstring connectionStatus_;
+    std::unique_ptr<ChatView> chat_;
+    std::wstring chatFooter_;
     std::uint64_t renderCount_ = 0, layoutBuildCount_ = 0;
 };
 }

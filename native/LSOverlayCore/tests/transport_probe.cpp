@@ -57,6 +57,16 @@ int wmain(int argc, wchar_t** argv) {
         {
             core::CoreSession stream(http,credential->token.view());
             check(stream.synchronize(current));
+            if (yyjson_is_true(core::field(manifest.root(),"liveUpdates"))) {
+                const auto revision = current->revision;
+                const auto startedUpdate = std::chrono::steady_clock::now();
+                for (int update = 0; update < 5; ++update) check(http.request(L"POST",L"/fixture/revision",{},bearer.view()).status == 200);
+                for (unsigned received = 0; current->revision < revision+5 && received < 100; ++received) (void)stream.receiveUpdate(current);
+                check(current->revision == revision+5);
+                const auto latency = std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-startedUpdate).count();
+                check(latency < 3000);
+                std::cout << "Synthetic 5-update canonical-to-native publication: " << latency << " ms (not UI/live Discord latency)\n";
+            }
             check(!stream.receiveUpdate(current)); // Real heartbeat received and ACK sent.
             std::stop_source socketStop;
             const auto socketStart = std::chrono::steady_clock::now();
