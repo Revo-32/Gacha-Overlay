@@ -149,6 +149,12 @@ internal sealed class RemoteChatService
 
     public bool IsActive(ulong channelId) => _streams.IsActive(channelId);
 
+    // Reuse the existing bounded, event-invalidated chat permission lease.
+    // Forcing Discord REST twice per image also delays already cached images.
+    internal Task<ChatAuthorizationResult> AuthorizeMediaAsync(
+        AuthenticatedClientIdentity identity, ulong channelId, CancellationToken cancellationToken) =>
+        _authorization.AuthorizeChannelAsync(identity, channelId, forceRefresh: false, cancellationToken);
+
     public async Task<ChatAuthorizationResult> RefreshAuthorizationAsync(
         AuthenticatedClientIdentity identity,
         ulong channelId,

@@ -26,6 +26,7 @@ public:
     // Pending returns null; denial/expiry/error never returns a usable token.
     std::optional<Credential> poll(const AuthSession& session, std::string_view installationId, std::stop_token stop = {});
     void cancel(const AuthSession& session, std::stop_token stop = {});
+    void renew(Credential& credential, std::stop_token stop = {});
 private:
     HttpTransport& http_;
 };

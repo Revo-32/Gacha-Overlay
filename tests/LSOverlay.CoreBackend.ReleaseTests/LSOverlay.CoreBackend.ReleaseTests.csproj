@@ -15,5 +15,6 @@
     <Compile Include="../GachaOverlay.Tests/Backend/IndependentSession211IntegrationTests.cs" Link="IndependentSession211IntegrationTests.cs" />
     <Compile Include="../GachaOverlay.Tests/Backend/CoreProductionIntegrationTests.cs" Link="CoreProductionIntegrationTests.cs" />
     <Compile Include="../GachaOverlay.Tests/Backend/CoreProductionMediaTests.cs" Link="CoreProductionMediaTests.cs" />
+    <Compile Include="../GachaOverlay.Tests/Backend/CoreCleanupIntegrationTests.cs" Link="CoreCleanupIntegrationTests.cs" />
   </ItemGroup>
 </Project>

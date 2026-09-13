@@ -52,6 +52,9 @@ void runDevelopmentClient(std::wstring origin,std::stop_token stop,const std::fu
                     if(!credential){try{auth.cancel(session);}catch(...){}return;}
                     store.save(*credential);
                 }
+                if(production && credential->expiresTicks-utcTicks()<=30LL*24*60*60*10000000) {
+                    auth.renew(*credential,stop);store.save(*credential);
+                }
                 if(mediaEnabled)mediaReady(credential->token.view());
                 std::jthread actionWorker;
                 if(actions)actionWorker=std::jthread([&](std::stop_token workerStop){

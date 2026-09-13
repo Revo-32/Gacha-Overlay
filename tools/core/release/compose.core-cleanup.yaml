@@ -1,0 +1,14 @@
+services:
+  backend:
+    image: lsoverlay/backend:core-cleanup-20260914
+    environment:
+      LS_CORE_ENABLED: "1"
+      LS_CORE_ONLY: "1"
+      GEMINI_API_KEY: ""
+      GEMINI_MODEL: ""
+    volumes:
+      - type: bind
+        source: /srv/apps/lsoverlay-core-release/private/core-media-key
+        target: /run/secrets/core-media-key
+        read_only: true
+        bind: {create_host_path: false}

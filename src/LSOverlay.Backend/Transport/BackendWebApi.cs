@@ -16,6 +16,24 @@ internal static class BackendWebApi
     public static void MapTransportApi(this WebApplication app)
     {
         app.UseBackendTransportSecurity();
+        if (app.Services.GetService<Runtime.BackendFeaturePolicy>()?.CoreOnly == true)
+        {
+            app.Use(async (context, next) =>
+            {
+                // Retire Full streams/bootstrap, not shared OAuth or Sales writes.
+                var path = context.Request.Path;
+                if (path.StartsWithSegments("/api/v1/stream", StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWithSegments("/api/v1/bootstrap", StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWithSegments("/api/v1/chat", StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWithSegments("/api/v1/sales/bootstrap", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Response.Headers.CacheControl = "no-store";
+                    context.Response.StatusCode = StatusCodes.Status410Gone;
+                    return;
+                }
+                await next(context);
+            });
+        }
         app.MapDiscordWebAuth();
         app.UseWebSockets(new WebSocketOptions
         {

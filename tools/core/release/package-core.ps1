@@ -1,8 +1,9 @@
 [CmdletBinding()]
-param([switch]$Candidate)
+param([switch]$Candidate, [ValidateSet('core-release','core-cleanup')][string]$Stage='core-release')
 $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
-$build=Join-Path $root 'artifacts/core/core-release/native/Release'
+if($Stage -eq 'core-cleanup' -and !$Candidate){throw 'Cleanup build is a validation candidate, not a replacement for the public release'}
+$build=Join-Path $root "artifacts/core/$Stage/native/Release"
 $version='1.0.0'
 $exe=Join-Path $build 'LSOverlayCore.exe'
 if((Get-Item -LiteralPath $exe).VersionInfo.ProductVersion -ne $version){throw 'Native product version mismatch'}
@@ -11,7 +12,7 @@ try {
     $sourceCommit=(& git rev-parse HEAD).Trim()
     $dirty=[bool](& git status --porcelain)
     if($dirty -and !$Candidate){throw 'Final packaging requires a clean committed source tree'}
-    $suffix=if($Candidate){'-candidate'}else{''}
+    $suffix=if($Stage -eq 'core-cleanup'){'-cleanup-candidate'}elseif($Candidate){'-candidate'}else{''}
     $name="LS-Overlay-Core-$version-win-x64$suffix"
     $output=Join-Path $root "artifacts/core/release/$name"
     $zip="$output.zip"

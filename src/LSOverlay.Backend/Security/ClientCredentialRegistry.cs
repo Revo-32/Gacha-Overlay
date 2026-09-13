@@ -152,6 +152,23 @@ internal sealed class ClientCredentialRegistry
         }
     }
 
+    internal DateTimeOffset? Renew(string accessToken)
+    {
+        lock (_sync)
+        {
+            var identity = Authenticate(accessToken);
+            if (identity is null) return null; // Never resurrect expired/revoked credentials.
+            var record = _records.Single(item => item.ClientInstallationId == identity.ClientInstallationId);
+            var now = _clock();
+            if (record.ExpiresAt - now > TimeSpan.FromDays(30)) return record.ExpiresAt;
+            var renewed = record with { ExpiresAt = now.Add(CredentialLifetime) };
+            var records = _records.Select(item => ReferenceEquals(item, record) ? renewed : item).ToArray();
+            SaveValidated(records);
+            _records = records;
+            return renewed.ExpiresAt;
+        }
+    }
+
     internal IReadOnlyList<ClientCredentialRecord> Snapshot()
     {
         lock (_sync)

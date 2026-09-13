@@ -14,6 +14,7 @@ RELEASE = ROOT / 'rc1'
 COMPOSE = Path('/srv/apps/lsoverlay/compose.yaml')
 COMPOSE_HASH = 'a3a2d878d549c6572253769ccdb3f3b9d5587ddf16b35d375f0ebb2eb3da669b'
 BASE_IMAGE = 'sha256:b92549a8741a7ef16b3d9621488accf42a601e675cc4950cd2775d9d9f778b19'
+CORE_IMAGE = 'lsoverlay/backend:core-1.0.0-rc1'
 BACKEND = 'lsoverlay-backend-1'
 WORKER = 'lsoverlay-core-media-production-1'
 KEY = ROOT / 'private/core-media-key'
@@ -86,7 +87,7 @@ def compose(core, *args):
 def promote():
     before=stamp(BACKEND);status=stamp('lsoverlay-status-1')
     if before['Image']!=BASE_IMAGE or before['health']!='healthy':raise RuntimeError('Unexpected Production baseline')
-    image=inspect('lsoverlay/backend:core-1.0.0-rc1')['Id']
+    image=inspect(CORE_IMAGE)['Id']
     validation=json.loads((RELEASE/'image-tests.json').read_text())
     if validation.get('passed') is not True or validation.get('image')!=image:raise RuntimeError('Exact image validation missing')
     worker=inspect(WORKER)

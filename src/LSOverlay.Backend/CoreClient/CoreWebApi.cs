@@ -31,6 +31,17 @@ internal static class CoreWebApi
             channelSelection = true,
             salesActions = true,
         }));
+        routes.MapPost("/credential/renew", async (HttpContext context, ClientCredentialRegistry credentials, IGuildMembershipVerifier membership) =>
+        {
+            var identity = Authenticate(context, credentials);
+            if (identity is null) return Results.Unauthorized();
+            var status = await membership.VerifyAsync(identity, context.RequestAborted);
+            if (status != GuildMembershipStatus.Member) return Results.StatusCode(status == GuildMembershipStatus.NotMember ? 403 : 503);
+            // Authenticate already validated the single Bearer header. Re-check
+            // under the registry lock so a concurrent revocation cannot renew it.
+            var expires = credentials.Renew(context.Request.Headers.Authorization.ToString()[7..].Trim());
+            return expires is null ? Results.Unauthorized() : Results.Json(new { credentialExpiresAt = expires.Value });
+        });
         routes.MapPost("/channel/{slot:int}", (HttpContext context, int slot, ClientCredentialRegistry credentials, CoreSessionRegistry sessions) =>
         {
             var identity = Authenticate(context, credentials);

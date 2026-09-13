@@ -4,9 +4,14 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 ROOT=Path('/srv/apps/lsoverlay-core-release/rc1')
 IMAGE='lsoverlay/backend:core-1.0.0-rc1'
+if sys.argv[1:]==['--core-cleanup']:
+    ROOT=Path('/srv/apps/lsoverlay-core-release/cleanup-20260914')
+    IMAGE='lsoverlay/backend:core-cleanup-20260914'
+elif sys.argv[1:]:raise RuntimeError('Unknown image verification profile')
 SDK='mcr.microsoft.com/dotnet/sdk@sha256:5ef85cc12cb25be6ec319a7392d1e9efd53c3bc8abb971c53d8058a473f09053'
 
 def run(*args):
@@ -15,7 +20,7 @@ def run(*args):
     return result.stdout
 
 image=json.loads(run('docker','inspect',IMAGE))[0]['Id']
-target=ROOT/'tests-image'
+target=ROOT/('tests-image-'+image.split(':')[-1][:12] if sys.argv[1:] else 'tests-image')
 if target.exists():raise RuntimeError('Preserve previous image-test output')
 shutil.copytree(ROOT/'tests-final',target)
 container=run('docker','create','--network','none','--read-only',IMAGE).strip()

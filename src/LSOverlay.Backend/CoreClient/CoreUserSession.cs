@@ -43,7 +43,7 @@ internal sealed class CoreUserSession : IDisposable
             async (channel, token) =>
             {
                 if (!_credentialValid() || !ulong.TryParse(channel, out var id)) return false;
-                var access = id == _sales.ChannelId ? await _sales.RefreshAuthorizationAsync(Identity, token) : await _chat.RefreshAuthorizationAsync(Identity, id, token);
+                var access = await _chat.AuthorizeMediaAsync(Identity, id, token);
                 return access.Status == ChatAuthorizationStatus.Authorized && _credentialValid();
             }, _lifetime.Token);
         _state = new(_presence.CaptureBootstrap(identity), Media) { Channels = _channels, IncludeSalesActionHints = true };

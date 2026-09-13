@@ -120,6 +120,15 @@ std::optional<Credential> AuthClient::poll(const AuthSession& session, std::stri
     Credential credential{Secret(textField(root,"accessToken")),parseUtc(textField(root,"credentialExpiresAt")),std::string(installationId)};
     validateCredential(credential); return credential;
 }
+void AuthClient::renew(Credential& credential, std::stop_token stop) {
+    validateCredential(credential);
+    Secret header("Bearer ",credential.token.view());
+    auto response=http_.request(L"POST",L"/api/v1/core/credential/renew","{}",header.view(),stop);
+    if(response.status!=200)throw TransportError("Core credential renewal unavailable",response.status);
+    Json json(response.body,4096);const auto expires=parseUtc(textField(json.root(),"credentialExpiresAt"));
+    if(expires<credential.expiresTicks || expires>utcTicks()+181LL*24*60*60*10000000)throw std::runtime_error("Invalid renewed credential expiry");
+    credential.expiresTicks=expires;
+}
 void AuthClient::cancel(const AuthSession& session, std::stop_token stop) {
     if (!validGuid(session.id) || !opaqueSecret(session.claim.view())) throw std::runtime_error("Invalid OAuth cancellation identity");
     Secret header("LSOAuthClaim ",session.claim.view());
@@ -185,6 +194,7 @@ std::optional<Credential> CredentialStore::load() const {
     auto* root = json.root();
     if (textField(root,"origin") != endpoint_.origin) throw std::runtime_error("Core credential origin mismatch");
     Credential credential{Secret(textField(root,"token")),static_cast<std::int64_t>(numberField(root,"expiresTicks")),std::string(textField(root,"installationId"))};
+    if(credential.expiresTicks<=utcTicks())return std::nullopt;
     validateCredential(credential); return credential;
 }
 }

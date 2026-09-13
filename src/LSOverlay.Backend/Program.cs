@@ -85,6 +85,10 @@ internal static class Program
         WebAuthLogPolicy.Apply(builder.Services);
 
         builder.Services.AddSingleton(configuration);
+        var coreEnabled = Environment.GetEnvironmentVariable("LS_CORE_ENABLED") == "1";
+        var coreOnly = Environment.GetEnvironmentVariable("LS_CORE_ONLY") == "1";
+        if (coreOnly && !coreEnabled) throw new InvalidOperationException("Core-only mode requires Core endpoints.");
+        builder.Services.AddSingleton(new BackendFeaturePolicy(coreOnly));
         if (configuration.WebAuth is not null)
         {
             builder.Services.AddSingleton<IDiscordIdentityClient>(_ => new DiscordIdentityClient(configuration.WebAuth));
@@ -113,6 +117,8 @@ internal static class Program
         builder.Services.AddSingleton<BackendMetrics>();
         builder.Services.AddSingleton<GtaPresenceNormalizer>();
         builder.Services.AddSingleton(TimeProvider.System);
+        if (!coreOnly)
+        {
         builder.Services.AddSingleton<KstResetSchedule>();
         builder.Services.AddSingleton<CanonicalEventDocumentBuilder>();
         builder.Services.AddSingleton<GtaEventVocabulary>();
@@ -121,6 +127,7 @@ internal static class Program
         builder.Services.AddSingleton<GtaEventParser>();
         builder.Services.AddSingleton<GtaEventResolver>();
         builder.Services.AddSingleton<GtaKoreanFormatter>();
+        }
         builder.Services.AddSingleton<ClientCredentialRegistry>();
         builder.Services.AddSingleton<TransportMetrics>();
         builder.Services.AddSingleton<RemotePublicationHub>();
@@ -128,7 +135,6 @@ internal static class Program
             services.GetRequiredService<RemotePublicationHub>());
         builder.Services.AddSingleton<RemoteConnectionLimiter>();
         builder.Services.AddSingleton<BackendWebSocketSession>();
-        var coreEnabled = Environment.GetEnvironmentVariable("LS_CORE_ENABLED") == "1";
         if (coreEnabled)
         {
             builder.Services.AddSingleton<CoreSessionRegistry>();
@@ -150,6 +156,8 @@ internal static class Program
         builder.Services.AddSingleton<ISalesStatusDiscordSource,
             DiscordNetSalesStatusSource>();
         builder.Services.AddSingleton<RemoteSalesActionService>();
+        if (!coreOnly)
+        {
         builder.Services.AddSingleton<IGtaEventDiscordSource, DiscordNetGtaEventSource>();
         builder.Services.AddSingleton<IGtaEventStore, JsonGtaEventStore>();
         builder.Services.AddSingleton<IGtaLocalizationProvider>(_ => new GeminiGtaLocalizationProvider(
@@ -159,9 +167,10 @@ internal static class Program
             services.GetRequiredService<ILogger<GtaLocalizationService>>()));
         builder.Services.AddHostedService(services => services.GetRequiredService<GtaLocalizationService>());
         builder.Services.AddSingleton<GtaEventService>();
-        builder.Services.AddHostedService<ActiveChatStreamEvictionWorker>();
         builder.Services.AddHostedService<GtaEventResetWorker>();
-        builder.Services.AddHostedService<SlashPairingRetirementWorker>();
+        }
+        builder.Services.AddHostedService<ActiveChatStreamEvictionWorker>();
+        if (!coreOnly) builder.Services.AddHostedService<SlashPairingRetirementWorker>();
         builder.Services.AddSingleton<DiscordGatewayAdapter>();
         builder.Services.AddSingleton<IDiscordGatewayLifecycle>(services =>
             services.GetRequiredService<DiscordGatewayAdapter>());

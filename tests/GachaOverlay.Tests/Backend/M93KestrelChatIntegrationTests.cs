@@ -299,7 +299,7 @@ public sealed partial class M93KestrelChatIntegrationTests
         public IServiceProvider Services => _app.Services;
         public Task StopAsync() => _app.StopAsync();
 
-        public static async Task<ChatFixture> StartAsync(bool rejectAccess = false, bool shutdownTest = false, bool core = false, Func<DateTimeOffset>? credentialClock = null)
+        public static async Task<ChatFixture> StartAsync(bool rejectAccess = false, bool shutdownTest = false, bool core = false, Func<DateTimeOffset>? credentialClock = null, bool coreOnly = false)
         {
             var stateDirectory = Path.Combine(
                 Path.GetTempPath(),
@@ -316,6 +316,7 @@ public sealed partial class M93KestrelChatIntegrationTests
             });
             builder.WebHost.UseUrls(configuration.ListenUri.AbsoluteUri);
             builder.Logging.ClearProviders();
+            builder.Services.AddSingleton(new BackendFeaturePolicy(coreOnly));
             builder.Services.AddSingleton(configuration);
             builder.Services.AddSingleton(new TrackedHostPresenceStore(
                 configuration.SessionHostIds));
@@ -407,12 +408,14 @@ public sealed partial class M93KestrelChatIntegrationTests
     {
         public bool RejectAccess { get; set; }
         public bool Core { get; init; }
+        public int PermissionRequests;
         public TaskCompletionSource? SalesBarrier { get; set; }
 
         public Task<ChatGuildSourceResult> GetGuildAsync(
             AuthenticatedClientIdentity identity,
             CancellationToken cancellationToken)
         {
+            Interlocked.Increment(ref PermissionRequests);
             if (RejectAccess)
             {
                 return Task.FromResult(new ChatGuildSourceResult(ChatSourceStatus.NotMember, null));
