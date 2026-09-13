@@ -1,0 +1,7 @@
+# Reuse the already-validated local .NET runtime image; never fetch a new base implicitly.
+# Compose overrides the entrypoint, does not import production environment or mount its data.
+FROM lsoverlay/backend:eac122e-proxy1
+WORKDIR /core-fixture
+COPY publish/ ./
+USER 1000:1000
+ENTRYPOINT ["dotnet", "/core-fixture/LSOverlay.CoreFixtureHost.dll"]
