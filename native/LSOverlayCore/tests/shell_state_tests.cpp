@@ -13,6 +13,12 @@ int main() {
         check(state.visible && !state.locked, "initial unlocked visibility");
         state.toggleLocked(); state.toggleVisible(); state.toggleVisible();
         check(state.visible && state.locked, "hide/show preserves lock");
+        check(state.shouldShow(false, false), "always mode preserves manual show");
+        check(!state.shouldShow(true, false), "foreground mode hides outside target game");
+        check(state.shouldShow(true, true), "foreground mode shows over target game");
+        state.toggleVisible();
+        check(!state.shouldShow(true, true), "manual hide is not overridden by foreground");
+        state.toggleVisible();
         check(core::hitTest(100, 100, 640, 420, state) == core::Hit::through, "locked input passes through");
         state.toggleLocked(); state.backgroundOpacity = 0;
         for (unsigned dpi : {96U, 120U, 144U, 192U, 240U}) {

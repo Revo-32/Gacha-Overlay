@@ -4,7 +4,7 @@ $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
 if($Stage -eq 'core-cleanup' -and !$Candidate){throw 'Cleanup build is a validation candidate, not a replacement for the public release'}
 $build=Join-Path $root "artifacts/core/$Stage/native/Release"
-$version='1.0.0'
+$version='1.0.1'
 $exe=Join-Path $build 'LSOverlayCore.exe'
 if((Get-Item -LiteralPath $exe).VersionInfo.ProductVersion -ne $version){throw 'Native product version mismatch'}
 Push-Location $root
@@ -25,17 +25,17 @@ try {
     $fonts=@('Cafe24PROSlimFit.ttf','Cafe24PROSlimMax.ttf','ChosunGu.TTF','KIMM_Bold.ttf','KIMM_Light.ttf','PretendardVariable.ttf','WantedSansVariable.ttf')
     New-Item -ItemType Directory -Path (Join-Path $output 'fonts/ThirdPartyNotices') | Out-Null
     foreach($font in $fonts){Copy-Item -LiteralPath (Join-Path $build "fonts/$font") -Destination (Join-Path $output 'fonts')}
-    foreach($notice in @('NOTICE-Fonts.txt','OFL-1.1.txt','License-Cafe24-PRO-Slim-Fit.pdf','License-Cafe24-PRO-Slim-Max.pdf')){
+    foreach($notice in @('NOTICE-Fonts.txt','OFL-1.1.txt')){
         Copy-Item -LiteralPath (Join-Path $build "fonts/ThirdPartyNotices/$notice") -Destination (Join-Path $output 'fonts/ThirdPartyNotices')
     }
     $metadata=[ordered]@{product='LS Overlay Core';version=$version;sourceCommit=$sourceCommit;uncommittedCandidate=$dirty;architecture='win-x64';signed=$false}
     [IO.File]::WriteAllText((Join-Path $output 'build.json'),($metadata | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
     $files=Get-ChildItem -LiteralPath $output -Recurse -File | Sort-Object FullName
-    if($files.Count -ne 16){throw 'Unexpected package file count'}
+    if($files.Count -ne 14){throw 'Unexpected package file count'}
     $hashes=@($files | ForEach-Object {((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+[IO.Path]::GetRelativePath($output,$_.FullName).Replace('\','/')})
     [IO.File]::WriteAllLines((Join-Path $output 'SHA256SUMS.txt'),$hashes,[Text.UTF8Encoding]::new($false))
     Compress-Archive -LiteralPath $output -DestinationPath $zip -CompressionLevel Optimal
     $zipHash=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
     [IO.File]::WriteAllText("$zip.sha256",$zipHash+'  '+[IO.Path]::GetFileName($zip)+[Environment]::NewLine,[Text.UTF8Encoding]::new($false))
-    [ordered]@{zip=$zip;sha256=(Get-FileHash -LiteralPath $zip).Hash;bytes=(Get-Item -LiteralPath $zip).Length;files=17;sourceCommit=$sourceCommit;candidate=[bool]$Candidate} | ConvertTo-Json
+    [ordered]@{zip=$zip;sha256=(Get-FileHash -LiteralPath $zip).Hash;bytes=(Get-Item -LiteralPath $zip).Length;files=15;sourceCommit=$sourceCommit;candidate=[bool]$Candidate} | ConvertTo-Json
 }finally{Pop-Location}

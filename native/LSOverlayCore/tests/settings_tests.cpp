@@ -1,4 +1,5 @@
 #include "user_settings.hpp"
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <set>
@@ -29,6 +30,16 @@ int wmain(int argc, wchar_t **argv) {
     loaded.load(std::filesystem::absolute(argv[1]));
     if (!(loaded == settings))
       throw std::runtime_error("Settings round trip");
+    const auto legacy = std::filesystem::absolute(argv[1]).parent_path() /
+                        L"legacy-settings.json";
+    std::ofstream(legacy, std::ios::binary | std::ios::trunc)
+        << R"({"schemaVersion":1,"channel":6})";
+    core::UserSettings migrated;
+    migrated.load(legacy);
+    if (migrated.get(core::Setting::Channel) != 6 ||
+        migrated.get(core::Setting::LastChannel) != 6)
+      throw std::runtime_error("Legacy channel migration");
+    std::filesystem::remove(legacy);
     std::cout << "PASS " << index
               << " settings: identity/bounds/finite/persistence\n";
     return 0;

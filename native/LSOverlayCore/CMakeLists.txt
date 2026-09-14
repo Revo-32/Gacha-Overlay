@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(LSOverlayNativeCore VERSION 1.0.0 LANGUAGES C CXX RC)
+project(LSOverlayNativeCore VERSION 1.0.1 LANGUAGES C CXX RC)
 
 if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "LS Overlay Core requires Windows x64 and MSVC.")
@@ -36,10 +36,11 @@ target_include_directories(LSOverlayCoreMedia PUBLIC src)
 target_link_libraries(LSOverlayCoreMedia PUBLIC windowscodecs ole32 bcrypt LSOverlayCoreTransport)
 
 get_filename_component(CORE_ICON "../../src/GachaOverlay.App/Assets/Branding/LSOverlay-AppIcon.ico" ABSOLUTE)
+get_filename_component(CORE_EASTER_EGG "resources/GACHACR_EASTEREGGS.png" ABSOLUTE)
 set(CORE_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest")
 configure_file(resources/app.rc.in "${CMAKE_CURRENT_BINARY_DIR}/app.rc" @ONLY)
 
-add_executable(LSOverlayCore WIN32 src/main.cpp src/renderer.cpp src/chat_view.cpp src/text_outline.cpp src/sales_view.cpp src/user_settings.cpp src/settings_window.cpp "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
+add_executable(LSOverlayCore WIN32 src/main.cpp src/renderer.cpp src/chat_view.cpp src/text_outline.cpp src/sales_view.cpp src/user_settings.cpp src/settings_window.cpp src/easter_egg.cpp "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
 target_include_directories(LSOverlayCore PRIVATE src)
 target_link_libraries(LSOverlayCore PRIVATE d2d1 dwrite windowscodecs ole32 user32 gdi32 gdiplus dwmapi shell32 psapi comctl32 uxtheme winmm LSOverlayCoreTransport LSOverlayCoreMedia)
 target_link_options(LSOverlayCore PRIVATE /MANIFEST:NO /DYNAMICBASE /NXCOMPAT)

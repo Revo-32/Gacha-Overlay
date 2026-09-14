@@ -48,6 +48,13 @@ enum class Setting : unsigned {
   EmojiSize,
   SessionOutline,
   SessionOutlineThickness,
+  ForegroundOnly,
+  WindowX,
+  WindowY,
+  WindowWidth,
+  WindowHeight,
+  Locked,
+  LastChannel,
   Count
 };
 struct SettingSpec {

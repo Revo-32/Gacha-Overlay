@@ -1,6 +1,8 @@
 # LS Overlay Core
 
-Core 1.0.0은 실제 Discord 데이터와 네이티브 채팅·미디어·판매 조작·세션 인원을 연결하며, EXE 단독 실행으로 정식 HTTPS Backend에 접속합니다. 우상단 설정창, 채널 선택, F9/F10, 투명 HUD 및 독립적인 이모지/세션 외곽선 설정을 제공합니다. [사용 안내](RELEASE-README.ko.txt)와 [정식 전환 검증 기록](RELEASE-1.0.0.ko.md)을 참조하세요.
+이스터에그가 추가되었습니다!
+
+Core 1.0.1은 실제 Discord 데이터와 네이티브 채팅·미디어·판매 조작·세션 인원을 연결하며, EXE 단독 실행으로 정식 HTTPS Backend에 접속합니다. 우상단 설정창, 채널 선택, F9/F10, 투명 HUD 및 독립적인 이모지/세션 외곽선 설정을 제공합니다. 마지막 채널과 HUD 상태를 복원하며, GTA가 포그라운드일 때만 표시하는 선택 옵션을 제공합니다. [사용 안내](RELEASE-README.ko.txt)와 [정식 전환 검증 기록](RELEASE-1.0.0.ko.md)을 참조하세요.
 
 2026-09-14부터 **Core를 정식 배포 대상 및 향후 Backend 설계 기준**으로 삼습니다. 기존 기본판 지원을 종료하며, 운영 서버는 사용자별 Core 경로를 제공합니다. 개발용 SSH bridge는 별도 보존된 검증 도구이고 배포 패키지에는 포함되지 않습니다. [정식 릴리즈 준비](RELEASE-PREPARATION.ko.md)는 착수 당시 기록입니다. 현재 소스의 정식 빌드는 `build-native.ps1 -Stage core-release`를 사용합니다.
 

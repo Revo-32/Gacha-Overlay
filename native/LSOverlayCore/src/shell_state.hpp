@@ -13,6 +13,9 @@ struct ShellState {
     float backgroundOpacity = 0.85f;
     void toggleVisible() noexcept { visible = !visible; }
     void toggleLocked() noexcept { locked = !locked; }
+    bool shouldShow(bool foregroundOnly, bool targetGameForeground) const noexcept {
+        return visible && (!foregroundOnly || targetGameForeground);
+    }
 };
 
 inline float toDip(int pixels, unsigned dpi) noexcept {

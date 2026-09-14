@@ -83,7 +83,16 @@ const std::vector<SettingSpec> &settingSpecs() {
       {Setting::ChannelKeys,0,"channelKeys",L"이전 / 다음 채팅방 단축키",1,0,3,1,L"미지정|Ctrl + Alt + ← / →|Alt + ← / →|F7 / F8"},
       {Setting::EmojiSize,1,"emojiSize",L"채팅 이모지 크기 (DIP)",28,12,64,1,nullptr},
       {Setting::SessionOutline,4,"sessionOutline",L"세션 인원 글자 외곽선",1,0,1,1,L""},
-      {Setting::SessionOutlineThickness,4,"sessionOutlineThickness",L"세션 인원 외곽선 두께 (DIP)",1.5f,0.5f,4,0.25f,nullptr}};
+      {Setting::SessionOutlineThickness,4,"sessionOutlineThickness",L"세션 인원 외곽선 두께 (DIP)",1.5f,0.5f,4,0.25f,nullptr},
+      {Setting::ForegroundOnly,0,"foregroundOnly",L"GTA가 포그라운드일 때만 표시",0,0,1,1,L""},
+      // Page 6 is intentionally not shown. These values share the existing
+      // Core-only settings file but are controlled by the native HUD shell.
+      {Setting::WindowX,6,"windowX",L"",80,-65536,65536,1,nullptr},
+      {Setting::WindowY,6,"windowY",L"",80,-65536,65536,1,nullptr},
+      {Setting::WindowWidth,6,"windowWidth",L"",640,360,8192,1,nullptr},
+      {Setting::WindowHeight,6,"windowHeight",L"",520,240,8192,1,nullptr},
+      {Setting::Locked,6,"locked",L"",0,0,1,1,L""},
+      {Setting::LastChannel,6,"lastChannel",L"",0,0,7,1,nullptr}};
   return specs;
 }
 UserSettings::UserSettings() {
@@ -137,9 +146,17 @@ void UserSettings::load(const std::filesystem::path &path) {
   Json json(bytes);
   if (!yyjson_is_obj(json.root()))
     throw std::runtime_error("Core settings object required");
+  bool hasLastChannel = false;
   for (const auto &s : settingSpecs())
-    if (auto *value = field(json.root(), s.key); yyjson_is_num(value))
+    if (auto *value = field(json.root(), s.key); yyjson_is_num(value)) {
       set(s.id, static_cast<float>(yyjson_get_num(value)));
+      if (s.id == Setting::LastChannel)
+        hasLastChannel = true;
+    }
+  // Core 1.0.0 stored only `channel`. Treat it as the last successful value
+  // once, then use the explicit confirmation field on subsequent launches.
+  if (!hasLastChannel)
+    set(Setting::LastChannel, get(Setting::Channel));
 }
 void UserSettings::save(const std::filesystem::path &path) const {
   validateMediaPath(path);

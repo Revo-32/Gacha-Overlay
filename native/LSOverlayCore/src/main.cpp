@@ -6,6 +6,7 @@
 #include "dev_client.hpp"
 #include "settings_window.hpp"
 #include "sales_sound.hpp"
+#include "easter_egg.hpp"
 #include <windowsx.h>
 #include <commctrl.h>
 #include <shellapi.h>
@@ -32,6 +33,8 @@ constexpr UINT menuRolePosition = 110;
 constexpr UINT menuHost = 111;
 constexpr UINT menuSettings=112,altMessage=WM_APP+5;
 constexpr UINT salesActionMessage=WM_APP+6;
+constexpr UINT foregroundMessage=WM_APP+7,easterKeyMessage=WM_APP+8;
+constexpr UINT_PTR placementTimer=8,foregroundPollTimer=9,foregroundSettleTimer=10;
 constexpr int minWidthDip = 360, minHeightDip = 480;
 using Clock = std::chrono::steady_clock;
 
@@ -137,10 +140,11 @@ public:
             showRegistered_ = RegisterHotKey(window_,showHotkey,MOD_NOREPEAT,VK_F9) != FALSE;
             lockRegistered_ = RegisterHotKey(window_,lockHotkey,MOD_NOREPEAT,VK_F10) != FALSE;
             if(!showRegistered_ || !lockRegistered_)MessageBoxW(window_,L"F9 또는 F10을 다른 앱이 사용 중입니다. Full 등 해당 앱을 종료한 뒤 Core를 다시 실행해 주세요. 트레이 메뉴의 숨기기·잠금은 계속 사용할 수 있습니다.",L"LS Overlay Core · 단축키 충돌",MB_OK|MB_ICONWARNING);
+            easterOwner_=this;easterHook_=SetWindowsHookExW(WH_KEYBOARD_LL,easterProc,instance_,0);
+            if(!easterHook_)easterOwner_=nullptr;
         }
         taskbarCreated_ = RegisterWindowMessageW(L"TaskbarCreated");
         if (!addTray()) throw std::runtime_error("Tray icon unavailable; refusing an unrecoverable hidden window");
-        ShowWindow(window_, SW_SHOWNOACTIVATE);
         if (!options_.mediaFixture.empty()) {
             const HWND target = window_;
             media_ = std::make_shared<core::MediaStore>(options_.mediaFixture,[target] { (void)PostMessageW(target,mediaMessage,0,0); });
@@ -152,10 +156,20 @@ public:
             renderer_.setMedia(media_);
         }
         if (!options_.chatFixture.empty()) loadChat(options_.chatFixture);
+        settingsPersistence_=!options_.developmentEndpoint.empty() || !options_.settingsVerificationDirectory.empty();
+        if(settingsPersistence_) {
+            settingsStorage_=options_.settingsVerificationDirectory.empty()?core::UserSettings::path():options_.settingsVerificationDirectory/L"settings.json";
+            if(options_.settingsVerificationDirectory.empty()) {try {preferences_.load(settingsStorage_);}catch(const std::exception&) {settingsLoadFailed_=true;}}
+            preferences_.set(core::Setting::Channel,preferences_.get(core::Setting::LastChannel));
+            restorePlacement();
+            state_.locked=preferences_.enabled(core::Setting::Locked);
+        }
         if(!options_.developmentEndpoint.empty() || !options_.settingsVerificationDirectory.empty()) {
-            if(options_.settingsVerificationDirectory.empty()) {try {preferences_.load(core::UserSettings::path());}catch(const std::exception&) {settingsLoadFailed_=true;}}
             applyPreferences();
         }
+        applyLocked();
+        windowReady_=true;
+        applyVisibility();
         renderNow();
         if (verifying()) {
             std::filesystem::create_directories(options_.verificationDirectory);
@@ -213,6 +227,7 @@ private:
     core::UserSettings preferences_;
     std::unique_ptr<core::SettingsWindow> settingsWindow_;
     core::SalesSound sound_;
+    core::EasterEgg easterEgg_;
     core::SalesActions salesActions_;
     void refreshSalesAction() {
         if(options_.salesActions && renderer_.sales())renderer_.sales()->setAction(salesActions_.offered(),salesActions_.busy(),salesActions_.status());
@@ -226,7 +241,9 @@ private:
         (void)salesActions_.submit(*action);
         refreshSalesAction();queueDraw();return true;
     }
-    bool settingsLoadFailed_=false,altDrag_=false;
+    bool settingsLoadFailed_=false,settingsSaveFailed_=false,altDrag_=false;
+    bool settingsPersistence_=false,restoringPlacement_=false,windowReady_=false;
+    std::filesystem::path settingsStorage_;
     core::ChannelControl channelControl_;int requestedChannel_=-1,channelKeyMode_=-1;
     std::vector<unsigned> availableChannels_;
     void channelStep(int direction) {
@@ -234,14 +251,148 @@ private:
         auto current=static_cast<unsigned>(preferences_.get(core::Setting::Channel));auto it=std::find(availableChannels_.begin(),availableChannels_.end(),current);
         const auto index=it==availableChannels_.end()?0:static_cast<int>(it-availableChannels_.begin());const auto count=static_cast<int>(availableChannels_.size());
         preferences_.set(core::Setting::Channel,static_cast<float>(availableChannels_[static_cast<std::size_t>((index+direction+count)%count)]));applyPreferences();
-        preferences_.save(core::UserSettings::path());
+        savePreferences();
+    }
+    void reconcileChannel(yyjson_val* selection) {
+        availableChannels_.clear();
+        auto* slots=yyjson_is_obj(selection)?core::field(selection,"availableSlots"):nullptr;
+        if(yyjson_is_arr(slots) && yyjson_arr_size(slots)<=8) {
+            std::size_t i=0,n=0;yyjson_val* slot=nullptr;
+            yyjson_arr_foreach(slots,i,n,slot)
+                if(yyjson_is_uint(slot) && yyjson_get_uint(slot)<8)
+                    availableChannels_.push_back(static_cast<unsigned>(yyjson_get_uint(slot)));
+        }
+        if(availableChannels_.empty())return;
+        const auto desired=static_cast<unsigned>(preferences_.get(core::Setting::Channel));
+        if(std::find(availableChannels_.begin(),availableChannels_.end(),desired)==availableChannels_.end()) {
+            const auto fallback=std::find(availableChannels_.begin(),availableChannels_.end(),0U)!=availableChannels_.end()?0U:availableChannels_.front();
+            preferences_.set(core::Setting::Channel,static_cast<float>(fallback));
+            preferences_.set(core::Setting::LastChannel,static_cast<float>(fallback));
+            applyPreferences();savePreferences();return;
+        }
+        auto* selected=core::field(selection,"slot");
+        if(yyjson_is_uint(selected) && yyjson_get_uint(selected)==desired &&
+           static_cast<unsigned>(preferences_.get(core::Setting::LastChannel))!=desired) {
+            preferences_.set(core::Setting::LastChannel,static_cast<float>(desired));
+            savePreferences();
+        }
     }
     HHOOK altHook_=nullptr;inline static Shell* altOwner_=nullptr;
+    HHOOK easterHook_=nullptr;inline static Shell* easterOwner_=nullptr;
+    std::array<bool,4> easterPressed_{};std::size_t easterIndex_=0;
+    HWINEVENTHOOK foregroundHook_=nullptr;inline static Shell* foregroundOwner_=nullptr;
+    bool foregroundMode_=false,targetForeground_=false;
     std::string alertGeneration_,alertCurrent_,alertNext_;
     bool alertEligible_=false;
     static LRESULT CALLBACK altProc(int code,WPARAM w,LPARAM l) {
         if(code>=0 && altOwner_) {const auto* key=reinterpret_cast<KBDLLHOOKSTRUCT*>(l);if(key->vkCode==VK_LMENU || key->vkCode==VK_RMENU || key->vkCode==VK_MENU)PostMessageW(altOwner_->window_,altMessage,w==WM_KEYDOWN || w==WM_SYSKEYDOWN,0);}
         return CallNextHookEx(nullptr,code,w,l);
+    }
+    static LRESULT CALLBACK easterProc(int code,WPARAM w,LPARAM l) {
+        if(code>=0 && easterOwner_ && easterOwner_->window_) {
+            const auto* key=reinterpret_cast<KBDLLHOOKSTRUCT*>(l);
+            const bool down=w==WM_KEYDOWN || w==WM_SYSKEYDOWN;
+            const bool up=w==WM_KEYUP || w==WM_SYSKEYUP;
+            if((key->vkCode==VK_CONTROL || key->vkCode==VK_LCONTROL || key->vkCode==VK_RCONTROL ||
+                key->vkCode==VK_SHIFT || key->vkCode==VK_LSHIFT || key->vkCode==VK_RSHIFT) && up)
+                PostMessageW(easterOwner_->window_,easterKeyMessage,0,0);
+            constexpr std::array<DWORD,4> arrows{VK_UP,VK_DOWN,VK_LEFT,VK_RIGHT};
+            const auto found=std::find(arrows.begin(),arrows.end(),key->vkCode);
+            if(found!=arrows.end()) {
+                const auto index=static_cast<std::size_t>(found-arrows.begin());
+                if(up)easterOwner_->easterPressed_[index]=false;
+                else if(down && !easterOwner_->easterPressed_[index]) {
+                    easterOwner_->easterPressed_[index]=true;
+                    const bool held=(GetAsyncKeyState(VK_CONTROL)&0x8000) && (GetAsyncKeyState(VK_SHIFT)&0x8000);
+                    PostMessageW(easterOwner_->window_,easterKeyMessage,held?key->vkCode:0,0);
+                }
+            }
+        }
+        return CallNextHookEx(nullptr,code,w,l);
+    }
+    void easterKey(DWORD key) {
+        constexpr std::array<DWORD,8> sequence{VK_UP,VK_UP,VK_DOWN,VK_DOWN,VK_LEFT,VK_RIGHT,VK_LEFT,VK_RIGHT};
+        if(!key){easterIndex_=0;return;}
+        easterIndex_=key==sequence[easterIndex_]?easterIndex_+1:key==sequence[0]?1:0;
+        if(easterIndex_!=sequence.size())return;
+        easterIndex_=0;
+        const auto foreground=GetForegroundWindow();
+        try {easterEgg_.show(instance_,gtaWindow(foreground)?foreground:window_);} catch(...) {}
+    }
+    static void CALLBACK foregroundProc(HWINEVENTHOOK,DWORD event,HWND hwnd,LONG,LONG,DWORD,DWORD) noexcept {
+        if(event==EVENT_SYSTEM_FOREGROUND && foregroundOwner_ && foregroundOwner_->window_)
+            (void)PostMessageW(foregroundOwner_->window_,foregroundMessage,0,reinterpret_cast<LPARAM>(hwnd));
+    }
+    static bool gtaWindow(HWND hwnd) noexcept {
+        if(!hwnd)return false;
+        DWORD processId=0;GetWindowThreadProcessId(hwnd,&processId);if(!processId)return false;
+        const auto process=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,processId);if(!process)return false;
+        std::wstring path(32768,L'\0');DWORD length=static_cast<DWORD>(path.size());
+        const bool read=QueryFullProcessImageNameW(process,0,path.data(),&length)!=FALSE;CloseHandle(process);
+        if(!read || !length)return false;path.resize(length);
+        const auto separator=path.find_last_of(L"\\/");const auto name=path.substr(separator==std::wstring::npos?0:separator+1);
+        return _wcsicmp(name.c_str(),L"GTA5.exe")==0 || _wcsicmp(name.c_str(),L"GTA5_Enhanced.exe")==0;
+    }
+    bool effectiveVisible() const noexcept {
+        return state_.shouldShow(foregroundMode_,targetForeground_);
+    }
+    void applyVisibility() {
+        if(!windowReady_ || !window_)return;
+        const bool desired=effectiveVisible(),shown=IsWindowVisible(window_)!=FALSE;
+        if(desired!=shown)ShowWindow(window_,desired?SW_SHOWNOACTIVATE:SW_HIDE);
+        if(!desired && renderer_.chat())renderer_.chat()->pauseMedia();
+        if(desired)queueDraw();
+    }
+    void evaluateForeground() {
+        const auto foreground=GetForegroundWindow();
+        if(foreground==window_ || (settingsWindow_ && (foreground==settingsWindow_->handle() || GetAncestor(foreground,GA_ROOTOWNER)==settingsWindow_->handle())))return;
+        const bool next=gtaWindow(foreground);if(next==targetForeground_)return;
+        targetForeground_=next;applyVisibility();
+    }
+    void configureForeground() {
+        const bool enabled=preferences_.enabled(core::Setting::ForegroundOnly);
+        if(enabled==foregroundMode_)return;
+        foregroundMode_=enabled;
+        KillTimer(window_,foregroundPollTimer);KillTimer(window_,foregroundSettleTimer);
+        if(foregroundHook_){UnhookWinEvent(foregroundHook_);foregroundHook_=nullptr;}
+        if(foregroundOwner_==this)foregroundOwner_=nullptr;
+        if(enabled) {
+            foregroundOwner_=this;
+            foregroundHook_=SetWinEventHook(EVENT_SYSTEM_FOREGROUND,EVENT_SYSTEM_FOREGROUND,nullptr,foregroundProc,0,0,WINEVENT_OUTOFCONTEXT);
+            if(!foregroundHook_ && !SetTimer(window_,foregroundPollTimer,1000,nullptr))throw std::runtime_error("GTA foreground monitoring unavailable");
+            const auto foreground=GetForegroundWindow();
+            targetForeground_=(foreground==window_ || (settingsWindow_ && foreground==settingsWindow_->handle()))?true:gtaWindow(foreground);
+        } else targetForeground_=false;
+        applyVisibility();
+    }
+    void savePreferences() noexcept {
+        if(!settingsPersistence_)return;
+        try {preferences_.save(settingsStorage_);settingsSaveFailed_=false;}catch(...){settingsSaveFailed_=true;}
+    }
+    void capturePlacement(bool immediate=false) {
+        if(!settingsPersistence_ || restoringPlacement_ || !windowReady_ || !window_)return;
+        RECT bounds{};if(!GetWindowRect(window_,&bounds))return;
+        preferences_.set(core::Setting::WindowX,static_cast<float>(bounds.left));
+        preferences_.set(core::Setting::WindowY,static_cast<float>(bounds.top));
+        preferences_.set(core::Setting::WindowWidth,core::toDip(bounds.right-bounds.left,dpi_));
+        preferences_.set(core::Setting::WindowHeight,core::toDip(bounds.bottom-bounds.top,dpi_));
+        if(immediate){KillTimer(window_,placementTimer);savePreferences();}
+        else SetTimer(window_,placementTimer,500,nullptr);
+    }
+    void restorePlacement() {
+        RECT current{};if(!GetWindowRect(window_,&current))return;
+        int x=static_cast<int>(std::lround(preferences_.get(core::Setting::WindowX))),y=static_cast<int>(std::lround(preferences_.get(core::Setting::WindowY)));
+        RECT probe{x,y,x+1,y+1};MONITORINFO monitor{sizeof(monitor)};
+        if(!GetMonitorInfoW(MonitorFromRect(&probe,MONITOR_DEFAULTTONEAREST),&monitor))return;
+        restoringPlacement_=true;
+        SetWindowPos(window_,nullptr,x,y,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE);
+        dpi_=GetDpiForWindow(window_);
+        const int width=core::toPixels(preferences_.get(core::Setting::WindowWidth),dpi_),height=core::toPixels(preferences_.get(core::Setting::WindowHeight),dpi_);
+        constexpr int visible=64;
+        x=std::clamp(x,static_cast<int>(monitor.rcWork.left)-width+visible,static_cast<int>(monitor.rcWork.right)-visible);
+        y=std::clamp(y,static_cast<int>(monitor.rcWork.top)-height+visible,static_cast<int>(monitor.rcWork.bottom)-visible);
+        SetWindowPos(window_,nullptr,x,y,width,height,SWP_NOZORDER|SWP_NOACTIVATE);
+        dpi_=GetDpiForWindow(window_);restoringPlacement_=false;
     }
     void applyPreferences() {
         const int channel=static_cast<int>(preferences_.get(core::Setting::Channel));if(channel!=requestedChannel_){requestedChannel_=channel;channelControl_.select(static_cast<unsigned>(channel));}
@@ -257,6 +408,7 @@ private:
         if(media_)media_->setAnimated(preferences_.enabled(core::Setting::Animated));
         if(preferences_.enabled(core::Setting::ModifierDrag) && !altHook_) {altOwner_=this;altHook_=SetWindowsHookExW(WH_KEYBOARD_LL,altProc,instance_,0);if(!altHook_){altOwner_=nullptr;preferences_.set(core::Setting::ModifierDrag,0);throw std::runtime_error("Alt drag hook unavailable");}}
         if(!preferences_.enabled(core::Setting::ModifierDrag) && altHook_) {UnhookWindowsHookEx(altHook_);altHook_=nullptr;altOwner_=nullptr;PostMessageW(window_,altMessage,FALSE,0);}
+        configureForeground();
         queueDraw();
     }
     void openSettings() {
@@ -266,8 +418,8 @@ private:
             else if(action==511)SetWindowPos(window_,nullptr,0,0,core::toPixels(640,dpi_),core::toPixels(520,dpi_),SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE);
             else if(action==510) {MONITORINFO info{sizeof(info)};GetMonitorInfoW(MonitorFromWindow(window_,MONITOR_DEFAULTTONEAREST),&info);RECT r{};GetWindowRect(window_,&r);SetWindowPos(window_,nullptr,info.rcWork.left+(info.rcWork.right-info.rcWork.left-r.right+r.left)/2,info.rcWork.top+(info.rcWork.bottom-info.rcWork.top-r.bottom+r.top)/2,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE);}
             queueDraw();
-        },options_.settingsVerificationDirectory.empty()?std::filesystem::path{}:options_.settingsVerificationDirectory/L"settings.json");
-        settingsWindow_->status((settingsLoadFailed_?L"기존 Core 설정을 읽지 못해 기본값으로 표시합니다.\r\n":L"")+developmentStatus_);settingsWindow_->show(window_);
+        },settingsStorage_);
+        settingsWindow_->status((settingsLoadFailed_?L"기존 Core 설정을 읽지 못해 기본값으로 표시합니다.\r\n":settingsSaveFailed_?L"Core 설정을 저장하지 못했습니다.\r\n":L"")+developmentStatus_);settingsWindow_->show(window_);
     }
     void salesAlert(const core::Json& snapshot) {
         if(!renderer_.compact())return;auto* root=snapshot.root();auto* sales=core::field(root,"sales");if(!yyjson_is_obj(sales))return;
@@ -419,12 +571,12 @@ private:
     }
     void queueDraw(bool mediaOnly = false) {
         fullDrawRequired_ |= !mediaOnly;
-        if (state_.visible && !drawQueued_ && window_) {
+        if (effectiveVisible() && !drawQueued_ && window_) {
             drawQueued_ = PostMessageW(window_,drawMessage,0,0) != FALSE;
         }
     }
     void renderNow(bool mediaOnly = false) {
-        if (!state_.visible || !window_) return;
+        if (!effectiveVisible() || !window_) return;
         RECT bounds{};
         if (!GetClientRect(window_,&bounds)) throw std::runtime_error("GetClientRect failed");
         if (bounds.right <= 0 || bounds.bottom <= 0) return;
@@ -435,14 +587,9 @@ private:
         if (GetCapture() == window_) ReleaseCapture();
         state_.toggleVisible();
         SendMessageW(window_,altMessage,FALSE,0);
-        ShowWindow(window_,state_.visible ? SW_SHOWNOACTIVATE : SW_HIDE);
-        if (!state_.visible && renderer_.chat()) renderer_.chat()->pauseMedia();
-        if (state_.visible) queueDraw();
+        applyVisibility();
     }
-    void toggleLocked() {
-        if (renderer_.chat()) renderer_.chat()->endScrollbar();
-        if (GetCapture() == window_) ReleaseCapture();
-        state_.toggleLocked();
+    void applyLocked() {
         altDrag_=false;
         auto style = GetWindowLongPtrW(window_,GWL_EXSTYLE);
         if (state_.locked) style |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
@@ -453,6 +600,13 @@ private:
         if (!SetWindowPos(window_,nullptr,0,0,0,0,SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED))
             throw std::runtime_error("Lock frame update failed");
         queueDraw();
+    }
+    void toggleLocked() {
+        if (renderer_.chat()) renderer_.chat()->endScrollbar();
+        if (GetCapture() == window_) ReleaseCapture();
+        state_.toggleLocked();
+        preferences_.set(core::Setting::Locked,state_.locked?1.0f:0.0f);
+        applyLocked();savePreferences();
     }
     void menu(POINT point) {
         const auto popup = CreatePopupMenu();
@@ -915,7 +1069,7 @@ private:
             if(altDrag_ && state_.locked)return HTCAPTION;return hit(lparam);
         }
         case altMessage: {
-            altDrag_=wparam && state_.visible && state_.locked && preferences_.enabled(core::Setting::ModifierDrag);
+            altDrag_=wparam && effectiveVisible() && state_.locked && preferences_.enabled(core::Setting::ModifierDrag);
             auto style=GetWindowLongPtrW(window_,GWL_EXSTYLE);if(state_.locked && !altDrag_)style|=WS_EX_TRANSPARENT;else style&=~static_cast<LONG_PTR>(WS_EX_TRANSPARENT);
             SetWindowLongPtrW(window_,GWL_EXSTYLE,style);return 0;
         }
@@ -923,7 +1077,9 @@ private:
         case WM_PAINT: {
             PAINTSTRUCT paint{}; BeginPaint(window,&paint); EndPaint(window,&paint); queueDraw(); return 0;
         }
-        case WM_SIZE: queueDraw(); return 0;
+        case WM_MOVE: capturePlacement();return 0;
+        case WM_SIZE: if(wparam!=SIZE_MINIMIZED)capturePlacement();queueDraw(); return 0;
+        case WM_EXITSIZEMOVE: capturePlacement(true);return 0;
         case WM_DISPLAYCHANGE:
         case WM_DWMCOMPOSITIONCHANGED:
             renderer_.discardSurface(); queueDraw(); return 0;
@@ -956,8 +1112,7 @@ private:
             developmentState_ = status.find(L"브라우저")!=std::wstring::npos ? "approval-pending" :
                 (status.find(L"개발 실시간 채팅") == 0 || status.find(L"실시간 채팅") == 0) ? "chat-live" : status.find(L"재연결")!=std::wstring::npos ? "reconnecting" : "not-live";
             if (snapshot) {
-                auto* selection=core::field(snapshot->root(),"chatSelection");availableChannels_.clear();auto* slots=yyjson_is_obj(selection)?core::field(selection,"availableSlots"):nullptr;
-                if(yyjson_is_arr(slots) && yyjson_arr_size(slots)<=8){std::size_t i=0,n=0;yyjson_val* slot=nullptr;yyjson_arr_foreach(slots,i,n,slot)if(yyjson_is_uint(slot) && yyjson_get_uint(slot)<8)availableChannels_.push_back(static_cast<unsigned>(yyjson_get_uint(slot)));}
+                auto* selection=core::field(snapshot->root(),"chatSelection");reconcileChannel(selection);
                 salesAlert(*snapshot);
                 ++developmentSnapshots_;
                 if (media_ && !options_.developmentEndpoint.empty()) {
@@ -978,6 +1133,11 @@ private:
         }
         case salesActionMessage:
             refreshSalesAction();queueDraw();return 0;
+        case foregroundMessage:
+            KillTimer(window_,foregroundSettleTimer);
+            if(!SetTimer(window_,foregroundSettleTimer,150,nullptr))evaluateForeground();
+            return 0;
+        case easterKeyMessage:easterKey(static_cast<DWORD>(wparam));return 0;
         case WM_HOTKEY:
             if (wparam == showHotkey) toggleVisible();
             else if (wparam == lockHotkey) toggleLocked();
@@ -1059,6 +1219,9 @@ private:
             queueDraw(!reflow); return 0;
         }
         case WM_TIMER:
+            if(wparam==placementTimer){KillTimer(window_,placementTimer);savePreferences();return 0;}
+            if(wparam==foregroundPollTimer){evaluateForeground();return 0;}
+            if(wparam==foregroundSettleTimer){KillTimer(window_,foregroundSettleTimer);evaluateForeground();return 0;}
             if(wparam==7 && !options_.settingsVerificationDirectory.empty()) {settingsTick();return 0;}
             if (!options_.developmentObservation.empty() && wparam == 6) { developmentSample(); return 0; }
             if (verifying() && wparam == 1) tick();
@@ -1069,8 +1232,13 @@ private:
             return 0;
         case WM_CLOSE: DestroyWindow(window); return 0;
         case WM_DESTROY: {
+            capturePlacement(true);windowReady_=false;
+            KillTimer(window,placementTimer);KillTimer(window,foregroundPollTimer);KillTimer(window,foregroundSettleTimer);
+            if(foregroundHook_){UnhookWinEvent(foregroundHook_);foregroundHook_=nullptr;}
+            if(foregroundOwner_==this)foregroundOwner_=nullptr;
             KillTimer(window,7);
             settingsWindow_.reset();if(altHook_) {UnhookWindowsHookEx(altHook_);altHook_=nullptr;altOwner_=nullptr;}
+            if(easterHook_){UnhookWindowsHookEx(easterHook_);easterHook_=nullptr;easterOwner_=nullptr;}
             KillTimer(window,1);
             KillTimer(window,2);
             KillTimer(window,3);
